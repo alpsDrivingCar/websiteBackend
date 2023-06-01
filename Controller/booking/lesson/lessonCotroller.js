@@ -1,10 +1,10 @@
-const GymSchema = require("../model/gymSchema");
+const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 
-exports.createGym = (req, res) => {
-    const gym = new GymSchema(req.body);
+exports.createLesson = (req, res) => {
+    const lessonSchema = new LessonSchema(req.body);
 
     console.log(req.body);
-    gym.save()
+    lessonSchema.save()
         .then(result => {
             res.json(result);
         })
@@ -14,9 +14,9 @@ exports.createGym = (req, res) => {
 
 }
 
-exports.gyms = (req, res) => {
+exports.lessons = (req, res) => {
     // result = Array of objects inside mongo database
-    GymSchema.find()
+    LessonSchema.find()
         .then((result) => {
             res.status(200).json({data: result});
         })
@@ -25,20 +25,21 @@ exports.gyms = (req, res) => {
         });
 }
 
-exports.gymById = (req, res) => {
+exports.lessonByPostCode = (req, res) => {
     // result =   object  inside mongo database
-    GymSchema.findById(req.params.id)
+    // LessonSchema.findById(req.params.id)
+    LessonSchema.findById("6477b5fc8194c8e0f50c799f")
         .then((result) => {
-            res.send("detials " + result)
+            res.json(result)
         })
         .catch((err) => {
             console.log(err);
         });
 }
 
-exports.gymUpdate = (req, res) => {
+exports.lessonUpdate = (req, res) => {
     // result =   object  inside mongo database
-    GymSchema.findByIdAndUpdate(req.params.id).updateOne(req.body)
+    LessonSchema.findByIdAndUpdate(req.params.id).updateOne(req.body)
         .then((result) => {
             res.send("Update " + result)
         })
@@ -47,8 +48,8 @@ exports.gymUpdate = (req, res) => {
         });
 }
 
-exports.deleteGym = (req, res) => {
-    GymSchema.findByIdAndDelete(req.params.id)
+exports.deleteLesson = (req, res) => {
+    LessonSchema.findByIdAndDelete(req.params.id)
         .then((result) => {
             res.send("Delete " + result.response)
         })

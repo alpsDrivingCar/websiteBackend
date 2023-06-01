@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const dotenv = require("dotenv");
 const helmet = require('helmet');
 
+
 app.use(bodyParser.json())
 app.use(bodyParser.text())
 app.use(bodyParser.urlencoded({extended: true}))
@@ -13,7 +14,7 @@ app.use(helmet());
 dotenv.config(dotenv);
 
 //Routes
-app.use('/api/gyms', require('./routes/GymRoutes'))
+app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
 
 
 
@@ -29,7 +30,7 @@ mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
 }).then(result => {
     // app.listen(3000)
-    app.listen(3000, () => {
+    app.listen(process.env.PORT || 3000, () => {
         console.log("Server Run ")
     })
 }).catch(err => {
