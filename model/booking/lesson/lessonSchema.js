@@ -4,7 +4,6 @@ const Schema = mongoose.Schema;
 // define the Schema (the structure of the article)
 const postCodeSchema = new Schema({
     title: String,
-    parentPostcode: String,
     description: String,
     typeOfLesson: [
         {

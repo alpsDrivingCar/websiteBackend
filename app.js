@@ -15,6 +15,7 @@ dotenv.config(dotenv);
 
 //Routes
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
+app.use('/api/booking/instructors', require('./routes/booking/instructors/InstructorsBookingRoutes'))
 
 
 
@@ -28,7 +29,7 @@ app.use(function (req, res, next) {
 const {mongoose} = require('mongoose');
 mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
-}).then(result => {
+}).then(() => {
     // app.listen(3000)
     app.listen(process.env.PORT || 3000, () => {
         console.log("Server Run ")
