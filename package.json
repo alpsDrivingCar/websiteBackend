@@ -8,6 +8,7 @@
   "dependencies": {
     "body-parser": "^1.20.2",
     "cookie-parser": "~1.4.4",
+    "cors": "^2.8.5",
     "debug": "~2.6.9",
     "dotenv": "^16.0.3",
     "express": "~4.16.1",
@@ -21,7 +22,6 @@
     "uuid": "^9.0.0"
   },
   "main": "app.js",
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://MohammedMansour4009@github.com/MohammedMansour4009/Alps-Website-Backend.git"

@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const dotenv = require("dotenv");
 const helmet = require('helmet');
+const cors = require("cors");
 
 
 app.use(bodyParser.json())
@@ -10,6 +11,7 @@ app.use(bodyParser.text())
 app.use(bodyParser.urlencoded({extended: true}))
 app.use(express.urlencoded({extended: true}))
 app.use(helmet());
+app.use(cors({ credentials: true, origin: true }));
 
 dotenv.config(dotenv);
 
