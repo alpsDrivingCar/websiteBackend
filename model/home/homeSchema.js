@@ -9,6 +9,7 @@ const homeSchema = new Schema({
         videoLink: String,
         postCodeButtonText: String,
         postCodeInputText: String,
+        backgroundImage: String,
     },
     whyAlps: {
         title: String,

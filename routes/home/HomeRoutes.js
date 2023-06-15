@@ -6,6 +6,7 @@ router.get("/",homeServer.homes)
 // router.get("/:id",homeServer.homeByPostCode)
 router.post("/",homeServer.createHome)
 router.delete("/:id",homeServer.deleteHome)
+router.put("/",homeServer.homeUpdate)
 
 module.exports = router
 

@@ -13,17 +13,17 @@ exports.createHome = (req, res) => {
         });
 
 }
-
-exports.homes = (req, res) => {
-    // result = Array of objects inside mongo database
-    HomeSchema.find()
-        .then((result) => {
-            res.status(200).json({data: result});
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
+//
+// exports.homes = (req, res) => {
+//     // result = Array of objects inside mongo database
+//     HomeSchema.find()
+//         .then((result) => {
+//             res.status(200).json({data: result});
+//         })
+//         .catch((err) => {
+//             console.log(err);
+//         });
+// }
 
 exports.homes = (req, res) => {
     // result =   object  inside mongo database
@@ -39,9 +39,9 @@ exports.homes = (req, res) => {
 
 exports.homeUpdate = (req, res) => {
     // result =   object  inside mongo database
-    HomeSchema.findByIdAndUpdate(req.params.id).updateOne(req.body)
+    HomeSchema.findByIdAndUpdate("6489c7239bdfd1bbc0d33afc").updateOne(req.body)
         .then((result) => {
-            res.send("Update " + result)
+            res.json(result)
         })
         .catch((err) => {
             console.log(err);
