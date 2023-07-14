@@ -1,10 +1,10 @@
-const HomeSchema = require("../../model/home/homeSchema");
+const OfferSchema = require("../../model/offer/offerSchema");
 
-exports.createHome = (req, res) => {
-    const homeSchema = new HomeSchema(req.body);
+exports.createOffer = (req, res) => {
+    const offerSchema = new OfferSchema(req.body);
 
     console.log(req.body);
-    homeSchema.save()
+    offerSchema.save()
         .then(result => {
             res.json(result);
         })
@@ -14,10 +14,9 @@ exports.createHome = (req, res) => {
 
 }
 
-exports.homes = (req, res) => {
-    // result =   object  inside mongo database
-    // HomeSchema.findById(req.params.id)
-    HomeSchema.findById("6489c7239bdfd1bbc0d33afc")
+exports.offers = (req, res) => {
+
+    OfferSchema.findById("64b1a5e956d64d9410eeb286")
         .then((result) => {
             res.json(result)
         })
@@ -26,9 +25,8 @@ exports.homes = (req, res) => {
         });
 }
 
-exports.homeUpdate = (req, res) => {
-    // result =   object  inside mongo database
-    HomeSchema.findByIdAndUpdate("6489c7239bdfd1bbc0d33afc").updateOne(req.body)
+exports.offerUpdate = (req, res) => {
+    OfferSchema.findByIdAndUpdate("64b1a5e956d64d9410eeb286").updateOne(req.body)
         .then((result) => {
             res.json(result)
         })
@@ -37,8 +35,8 @@ exports.homeUpdate = (req, res) => {
         });
 }
 
-exports.deleteHome = (req, res) => {
-    HomeSchema.findByIdAndDelete(req.params.id)
+exports.deleteOffer = (req, res) => {
+    OfferSchema.findByIdAndDelete(req.params.id)
         .then((result) => {
             res.send("Delete " + result.response)
         })
