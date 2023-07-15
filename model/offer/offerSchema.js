@@ -4,22 +4,14 @@ const Schema = mongoose.Schema;
 // define the Schema (the structure of the article)
 const offerSchema = new Schema({
     title: String,
-    offerType: [
+    offers: [
         {
+            icon: String,
             title: String,
-            offers: [
+            price: String,
+            offerFeature: [
                 {
-                    title: String,
-                    price: String,
-                    description: String,
-                    icon: String,
-                    offerTitle: String,
-                    features: [
-                        {
-                            title: String,
-                            icon: String,
-                        }
-                    ]
+                    name: String
                 }
             ]
         }
