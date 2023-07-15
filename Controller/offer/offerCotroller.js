@@ -16,7 +16,7 @@ exports.createOffer = (req, res) => {
 
 exports.offers = (req, res) => {
 
-    OfferSchema.findById("64b261971b77a1337254e45a")
+    OfferSchema.findById("64b26a3bfeb691283105b1be")
         .then((result) => {
             res.json(result)
         })
@@ -26,7 +26,7 @@ exports.offers = (req, res) => {
 }
 
 exports.offerUpdate = (req, res) => {
-    OfferSchema.findByIdAndUpdate("64b1a5e956d64d9410eeb286").updateOne(req.body)
+    OfferSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
         .then((result) => {
             res.json(result)
         })
