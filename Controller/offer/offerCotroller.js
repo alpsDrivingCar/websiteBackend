@@ -16,7 +16,7 @@ exports.createOffer = (req, res) => {
 
 exports.offers = (req, res) => {
 
-    OfferSchema.findById("64b1a5e956d64d9410eeb286")
+    OfferSchema.findById("64b261971b77a1337254e45a")
         .then((result) => {
             res.json(result)
         })
