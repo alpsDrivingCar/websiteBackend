@@ -16,7 +16,7 @@ exports.createBookingInstructors = (req, res) => {
 
 exports.getBookingInstructors = (req, res) => {
     // result = Array of objects inside mongo database
-    InstructorsSchema.find()
+    InstructorsSchema.findById("64859e62519ba1e3fcc98866")
         .then((result) => {
             res.status(200).json({data: result});
         })
