@@ -7,7 +7,6 @@ router.get("/:id",lessonServer.lessonByPostCode)
 router.post("/",lessonServer.createLesson)
 router.delete("/:id",lessonServer.deleteLesson)
 
-module.exports = router
 
 module.exports = router
 

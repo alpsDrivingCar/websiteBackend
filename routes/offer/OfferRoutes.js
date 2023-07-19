@@ -9,5 +9,4 @@ router.put("/",offerServer.offerUpdate)
 
 module.exports = router
 
-module.exports = router
 

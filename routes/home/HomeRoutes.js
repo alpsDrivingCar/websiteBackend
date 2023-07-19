@@ -8,7 +8,6 @@ router.post("/",homeServer.createHome)
 router.delete("/:id",homeServer.deleteHome)
 router.put("/",homeServer.homeUpdate)
 
-module.exports = router
 
 module.exports = router
 

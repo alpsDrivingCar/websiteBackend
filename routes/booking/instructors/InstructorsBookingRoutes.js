@@ -8,7 +8,6 @@ router.post("/",server.createBookingInstructors)
 router.put("/",server.bookingInstructorsUpdate)
 router.delete("/:id",server.deleteBookingInstructors)
 
-module.exports = router
 
 module.exports = router
 

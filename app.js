@@ -18,6 +18,7 @@ dotenv.config(dotenv);
 //Routes
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
 app.use('/api/booking/instructors', require('./routes/booking/instructors/InstructorsBookingRoutes'))
+app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 
