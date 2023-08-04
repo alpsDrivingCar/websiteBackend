@@ -21,6 +21,10 @@ const DaySchema = new Schema({
         type: String,
         required: true,
     },
+    month: {
+        type: String,
+        required: true,
+    },
     availableTimes: {
         type: [TimeSlotSchema],
         required: true,
