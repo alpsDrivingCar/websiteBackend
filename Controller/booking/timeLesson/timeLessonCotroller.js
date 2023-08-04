@@ -28,7 +28,7 @@ exports.timeLessons = (req, res) => {
 exports.timeLessonByInstructors = (req, res) => {
     // result =   object  inside mongo database
     // TimeLessonSchema.findById(req.params.id)
-    TimeLessonSchema.findById("64b7fc5711f03424354f4ac5")
+    TimeLessonSchema.findById("64cd116d18343dcb8ce98a1d")
         .then((result) => {
             res.json(result)
         })
