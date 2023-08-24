@@ -21,6 +21,7 @@ app.use('/api/booking/instructors', require('./routes/booking/instructors/Instru
 app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
+app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 
 
 
