@@ -22,6 +22,8 @@ app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLess
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
+app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
+app.use('/api/setting/contactUs', require('./routes/setting/ContacUsRoutes'))
 
 
 
@@ -30,6 +32,7 @@ app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
+
 
 //mongoose
 const {mongoose} = require('mongoose');
