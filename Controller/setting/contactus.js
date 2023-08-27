@@ -35,6 +35,7 @@ exports.contactUsUpdate = (req, res) => {
         });
 }
 
+
 exports.deleteContactUs = (req, res) => {
     ContactUsSchema.findByIdAndDelete(req.params.id)
         .then((result) => {
