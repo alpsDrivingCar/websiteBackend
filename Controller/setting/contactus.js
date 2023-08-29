@@ -16,7 +16,7 @@ exports.createContactUs = (req, res) => {
 
 exports.contactUs = (req, res) => {
 
-    ContactUsSchema.findById("64e648c09e3a26ecf93d9651")
+    ContactUsSchema.find()
         .then((result) => {
             res.json(result)
         })
