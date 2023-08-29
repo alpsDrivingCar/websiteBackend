@@ -24,7 +24,7 @@ app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
 
-// app.use('/api/setting/contactUs', require('./routes/setting/ContacUsRoutes'))
+app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
 
 
 
