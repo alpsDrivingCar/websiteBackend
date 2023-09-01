@@ -11,14 +11,17 @@ const storeItems = new Map([
         [2, {priceInCents: 2000, name: "alps item 2 "}],
     ]
 )
-app.post('/ccs', async (req, res) => {
+app.post('/create-checkout', async (req, res) => {
     console.log(req.body);
 
     try {
-        const paymentIntent = await stripe.paymentIntents.create({
-            // amount: 1000, // amount in cents
-            // currency: 'usd',
-            line_items:req.body.items.map( item =>{
+        const paymentIntent = await stripe.checkout.sessions.create({
+            // amount, // amount in cents
+            // currencycy: 'usd',
+            mode: 'payment', // Use 'payment' mode for one-time payments
+            success_url: `${process.env.SERVER_URL}/success`,
+            cancel_url: `${process.env.SERVER_URL}/cancle`,
+            line_items: req.body.items.map( item => {
                 const  storeItem = storeItems.get(item.id)
                 return {
                     price_data:{
@@ -26,25 +29,21 @@ app.post('/ccs', async (req, res) => {
                         product_data:{
                             name :storeItem.name
                         },
-                        unit_amount: storeItem.priceInCents
+                        unit_amount: "59"
                     },
                     quantity:item.quantity
                 }
             }),
-            payment_method_types: ['card'],
-            mode: 'payment',
-            success_url:`https://www.youtube.com/watch?v=1r-F3FIONl8`,
-            cancel_url:'https://www.youtube.com/watch?v=1r-F3FIONl8'
         });
 
-        res.json({data:'hi'})
+        res.json({url: paymentIntent.url})
     }catch (e) {
         res.status(500).json({error : e.message})
     }
 })
 
 app.post('/success', (req, res) => {
-    console.log("success");
+    console.log(req);
 
 })
 app.post('/cancle', (req, res) => {
@@ -55,3 +54,4 @@ app.post('/cancle', (req, res) => {
 app.listen(3000, () => {
     console.log("Server Run2 ")
 })
+
