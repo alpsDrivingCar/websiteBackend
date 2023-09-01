@@ -58,16 +58,10 @@ app.use(function (req, res, next) {
 
 
 //mongoose
-const {mongoose} = require('mongoose');
-mongoose.connect(process.env.DATABASE, {
-    useNewUrlParser: true, useUnifiedTopology: true,
-}).then(() => {
-    // app.listen(3000)
-    app.listen(process.env.PORT || 3000, () => {
-        console.log("Server Run ")
-    })
-}).catch(err => {
-    console.log("mongodb Error :" + err)
+
+// app.listen(3000)
+app.listen(process.env.PORT || 3000, () => {
+    console.log("Server Run ")
 })
 
 module.exports = app
