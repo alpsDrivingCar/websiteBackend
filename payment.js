@@ -44,7 +44,30 @@ app.post('/cancle', (req, res) => {
 
 })
 
-app.listen(3000, () => {
-    console.log("Server Run2 ")
+// app.listen(3000, () => {
+//     console.log("Server Run2 ")
+// })
+
+
+
+app.use(function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", req.headers.origin);
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
+
+//mongoose
+const {mongoose} = require('mongoose');
+mongoose.connect(process.env.DATABASE, {
+    useNewUrlParser: true, useUnifiedTopology: true,
+}).then(() => {
+    // app.listen(3000)
+    app.listen(process.env.PORT || 3000, () => {
+        console.log("Server Run ")
+    })
+}).catch(err => {
+    console.log("mongodb Error :" + err)
 })
 
+module.exports = app
