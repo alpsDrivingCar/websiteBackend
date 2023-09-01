@@ -6,30 +6,23 @@ app.use(express.json())
 const stripe = require('stripe')(
     process.env.STRIPE_PRIVATE_KEY
 )
-const storeItems = new Map([
-        [1, {priceInCents: 1000, name: "alps item "}],
-        [2, {priceInCents: 2000, name: "alps item 2 "}],
-    ]
-)
-app.post('/create-checkout', async (req, res) => {
-    console.log(req.body);
 
+app.post('/create-checkout', async (req, res) => {
     try {
         const paymentIntent = await stripe.checkout.sessions.create({
             // amount, // amount in cents
             // currencycy: 'usd',
             mode: 'payment', // Use 'payment' mode for one-time payments
-            success_url: `${process.env.SERVER_URL}/success`,
-            cancel_url: `${process.env.SERVER_URL}/cancle`,
+            success_url: req.body.success_url,
+            cancel_url: req.body.cancel_url,
             line_items: req.body.items.map( item => {
-                const  storeItem = storeItems.get(item.id)
                 return {
                     price_data:{
                         currency: 'usd',
                         product_data:{
-                            name :storeItem.name
+                            name :item.name
                         },
-                        unit_amount: "59"
+                        unit_amount: item.price
                     },
                     quantity:item.quantity
                 }
