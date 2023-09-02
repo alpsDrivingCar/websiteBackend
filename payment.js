@@ -44,9 +44,9 @@ app.post('/cancle', (req, res) => {
 
 })
 
-app.listen(3000, () => {
-    console.log("Server Run2 ")
-})
+// app.listen(3000, () => {
+//     console.log("Server Run2 ")
+// })
 
 //
 //
@@ -60,7 +60,7 @@ app.use(function (req, res, next) {
 // //mongoose
 //
 // // app.listen(3000)
-app.listen(process.env.PORT || 300, () => {
+app.listen(process.env.PORT || 3000, () => {
     console.log("Server Run ")
 })
 //
