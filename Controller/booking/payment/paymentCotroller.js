@@ -1,20 +1,5 @@
 const TimeLessonSchema = require("../../../model/booking/timeLesson/timeLessonSchema");
 
-// exports.createTimeLesson = (req, res) => {
-//     const timeLessonSchema = new TimeLessonSchema(req.body);
-//
-//     console.log(req.body);
-//     timeLessonSchema.save()
-//         .then(result => {
-//             res.json(result);
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-//
-// }
-//
-
 const stripe = require('stripe')(
     process.env.STRIPE_PRIVATE_KEY
 )
@@ -35,7 +20,8 @@ exports.payment = async (req, res) => {
                         product_data:{
                             name :item.name
                         },
-                        unit_amount: item.price
+                        // unit_amount: item.price
+                        unit_amount: "1000"
                     },
                     quantity:item.quantity
                 }
