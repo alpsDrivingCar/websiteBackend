@@ -1,10 +1,10 @@
 const InfoSchema = require("../../../model/booking/info/infoSchema");
 
-exports.createBookingInfo = (req, res) => {
-    const lessonSchema = new InfoSchema(req.body);
+exports.createInfo = (req, res) => {
+    const infoSchema = new InfoSchema(req.body);
 
     console.log(req.body);
-    lessonSchema.save()
+    infoSchema.save()
         .then(result => {
             res.json(result);
         })
@@ -14,7 +14,7 @@ exports.createBookingInfo = (req, res) => {
 
 }
 
-exports.getBookingInfo = (req, res) => {
+exports.infos = (req, res) => {
     // result = Array of objects inside mongo database
     InfoSchema.find()
         .then((result) => {
@@ -25,33 +25,30 @@ exports.getBookingInfo = (req, res) => {
         });
 }
 
-exports.bookingInfoByPostCode = (req, res) => {
+exports.infoByPostCode = (req, res) => {
     // result =   object  inside mongo database
-    // LessonSchema.findById(req.params.id)
-    InfoSchema.findById("64859e62519ba1e3fcc98866")
+    // InfoSchema.findById(req.params.id)
+    InfoSchema.findById("64876d775160ba7ae603516e")
         .then((result) => {
-            res.json({data: result});
-
+            res.json(result)
         })
         .catch((err) => {
             console.log(err);
         });
 }
 
-exports.bookingInfoUpdate = (req, res) => {
+exports.infoUpdate = (req, res) => {
     // result =   object  inside mongo database
-    InfoSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
+    InfoSchema.findByIdAndUpdate(req.params.id).updateOne(req.body)
         .then((result) => {
-            res.json(result);
+            res.send("Update " + result)
         })
         .catch((err) => {
             console.log(err);
         });
-
-
 }
 
-exports.deleteBookingInfo = (req, res) => {
+exports.deleteInfo = (req, res) => {
     InfoSchema.findByIdAndDelete(req.params.id)
         .then((result) => {
             res.send("Delete " + result.response)

@@ -12,7 +12,7 @@ const infoInstructorsSchema = new Schema({
 
 
 // Create a model based on that schema
-const InfoInstructors = mongoose.model("infoInstructors", infoInstructorsSchema);
+const PostCode = mongoose.model("info", infoInstructorsSchema);
 
-module.exports = InfoInstructors
+module.exports = PostCode
 
