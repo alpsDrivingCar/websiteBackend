@@ -19,7 +19,7 @@ dotenv.config(dotenv);
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
     app.use('/api/booking/instructors', require('./routes/booking/instructors/InstructorsBookingRoutes'))
 app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
-// app.use('/api/booking/info', require('./routes/booking/info/InfoBookingRoutes'))
+app.use('/api/booking/info', require('./routes/booking/info/InfoBookingRoutes'))
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))

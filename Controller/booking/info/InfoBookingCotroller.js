@@ -16,7 +16,7 @@ exports.createBookingInfo = (req, res) => {
 
 exports.getBookingInfo = (req, res) => {
     // result = Array of objects inside mongo database
-    InfoSchema.findById("64859e62519ba1e3fcc98866")
+    InfoSchema.find()
         .then((result) => {
             res.status(200).json({data: result});
         })
