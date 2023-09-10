@@ -1,4 +1,7 @@
-const TimeLessonSchema = require("../../../model/booking/timeLesson/timeLessonSchema");
+const CheckoutInfo = require("../../../model/booking/payment/paymentSchema");
+const bodyParser = require("body-parser");
+const express = require("express");
+const mongoose = require("mongoose");
 
 const stripe = require('stripe')(
     process.env.STRIPE_PRIVATE_KEY
@@ -7,30 +10,38 @@ const stripe = require('stripe')(
 exports.payment = async (req, res) => {
 // app.post('/create-checkout', async (req, res) => {
     try {
+
+        const receivedData = req.body; // Assuming the request contains the JSON data
+
+        // Create a new document based on the schema and save it to MongoDB
+        const checkoutInfo = new CheckoutInfo(receivedData);
+        // await checkoutInfo.save();
+
+        // Log the checkoutInfo to the console
+        console.log("Received checkoutInfo:");
+        console.log(checkoutInfo);
+
         const paymentIntent = await stripe.checkout.sessions.create({
-            // amount, // amount in cents
-            // currencycy: 'usd',
             mode: 'payment', // Use 'payment' mode for one-time payments
-            success_url: req.body.success_url,
-            cancel_url: req.body.cancel_url,
-            line_items: req.body.items.map( item => {
+            success_url: checkoutInfo.orderInfo.success_url,
+            cancel_url: checkoutInfo.orderInfo.cancel_url,
+            line_items: checkoutInfo.orderInfo.items.map(item => {
                 return {
-                    price_data:{
+                    price_data: {
                         currency: 'usd',
-                        product_data:{
-                            name :item.name
+                        product_data: {
+                            name: item.name,
                         },
-                        // unit_amount: item.price
-                        unit_amount: "1000"
+                        unit_amount: "10000", // Assuming the price is in dollars
                     },
-                    quantity:item.quantity
-                }
+                    quantity: item.quantity,
+                };
             }),
         });
 
         res.json({url: paymentIntent.url})
-    }catch (e) {
-        res.status(500).json({error : e.message})
+    } catch (e) {
+        res.status(500).json({error: e.message})
     }
 }
 
