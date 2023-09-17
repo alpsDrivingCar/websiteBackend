@@ -15,7 +15,8 @@ const checkoutInfoSchema = new mongoose.Schema({
                 name: String,
                 packageId: String, // Move packageId to items
                 packageName: String, // Move packageName to items
-                time: String, // Add time field to items
+                dayTime: String, // Change 'time' to 'dayTime' in items
+                availableHours: String // Add availableHours field to items
             },
         ],
     },
@@ -28,6 +29,7 @@ const checkoutInfoSchema = new mongoose.Schema({
     },
 
 });
+
 
 // Create a Mongoose model from the schema
 const CheckoutInfo = mongoose.model("CheckoutInfo", checkoutInfoSchema);
