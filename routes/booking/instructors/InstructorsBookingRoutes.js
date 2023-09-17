@@ -8,6 +8,7 @@ router.get("/postcode=:id/type=:type",server.bookingInstructorsByPostCodeAndType
 router.post("/",server.createBookingInstructors)
 router.put("/",server.bookingInstructorsUpdate)
 router.delete("/:id",server.deleteBookingInstructors)
+// router.get("/test",server.instructorsByPostcodeAndtype)
 
 
 module.exports = router

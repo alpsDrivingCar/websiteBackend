@@ -1,4 +1,5 @@
 const InstructorsSchema = require("../../../model/booking/instructors/instructorsSchema");
+const InstructorsUserSchema = require("../../../model/user/Instructor");
 
 exports.createBookingInstructors = (req, res) => {
     const lessonSchema = new InstructorsSchema(req.body);
@@ -124,6 +125,16 @@ exports.deleteBookingInstructors = (req, res) => {
     InstructorsSchema.findByIdAndDelete(req.params.id)
         .then((result) => {
             res.send("Delete " + result.response)
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+}
+
+exports.instructorsByPostcodeAndtype = (req, res) => {
+    InstructorsUserSchema.find()
+        .then((result) => {
+            res.send("Instructors " + result.response)
         })
         .catch((err) => {
             console.log(err);
