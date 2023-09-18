@@ -1,4 +1,5 @@
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
+const InstructorsUserSchema = require("../../../model/user/Instructor");
 
 exports.createLesson = (req, res) => {
     const lessonSchema = new LessonSchema(req.body);
@@ -28,6 +29,27 @@ exports.lessons = (req, res) => {
 exports.lessonByPostCode = (req, res) => {
     // result =   object  inside mongo database
     // LessonSchema.findById(req.params.id)
+    const {postCode} = req.params;
+
+    console.log(postCode)
+
+    const filter = {
+        "postCode": postCode
+    };
+
+    // const result1 =  Instructor.find(filter);
+
+    InstructorsUserSchema.find(filter)
+        .then((result) => {
+            if (result.length === 0) {
+                return res.status(404).json({message: 'Data not found for the specified postcode.'});
+            }
+            res.json({data: result});
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+
     LessonSchema.findById("64876d775160ba7ae603516e")
         .then((result) => {
             res.json(result)
