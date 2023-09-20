@@ -44,7 +44,6 @@ exports.lessonByPostCode = (req, res) => {
             if (result.length === 0) {
                 return res.status(404).json({message: 'Data not found for the specified postcode.'});
             }
-            res.json({data: result});
         })
         .catch((err) => {
             console.log(err);
