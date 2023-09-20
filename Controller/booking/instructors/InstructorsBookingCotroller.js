@@ -26,22 +26,6 @@ exports.getBookingInstructors = (req, res) => {
         });
 }
 
-exports.bookingInstructorsByPostCodeAndType = (req, res) => {
-    // result =   object  inside mongo database
-    // LessonSchema.findById(req.params.id)
-    const { id, type } = req.params;
-
-    console.log("id:" + id + "type:" + type)
-    InstructorsSchema.findById("64859e62519ba1e3fcc98866")
-        .then((result) => {
-            res.json({data: result});
-
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
-
 
 exports.bookingInstructorsUpdate = (req, res) => {
     // result =   object  inside mongo database

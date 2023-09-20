@@ -2,13 +2,11 @@ const server = require('../../../Controller/booking/instructors/InstructorsBooki
 const express = require("express");
 const router = express.Router();
 
-router.get("/",server.getBookingInstructors)
-router.get("/postcode=:id/type=:type",server.bookingInstructorsByPostCodeAndType)
-// router.get('/booking/:bookingId/instructor/:instructorId/package/:packageId',server.getPackagePrice)
+router.get("/all",server.getBookingInstructors)
 router.post("/",server.createBookingInstructors)
 router.put("/",server.bookingInstructorsUpdate)
 router.delete("/:id",server.deleteBookingInstructors)
-router.get("/test",server.instructorsByPostcodeAndtype)
+router.get("/",server.instructorsByPostcodeAndtype)
 
 
 module.exports = router
