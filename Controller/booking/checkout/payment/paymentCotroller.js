@@ -1,4 +1,4 @@
-const CheckoutInfo = require("../../../model/booking/payment/paymentSchema");
+const CheckoutInfo = require("../../../../model/booking/payment/paymentSchema");
 const bodyParser = require("body-parser");
 const express = require("express");
 const mongoose = require("mongoose");

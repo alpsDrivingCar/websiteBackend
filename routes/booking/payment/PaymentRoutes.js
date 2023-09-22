@@ -1,4 +1,4 @@
-const paymentServer = require('../../../Controller/booking/payment/paymentCotroller')
+const paymentServer = require('../../../Controller/booking/checkout/payment/paymentCotroller')
 const express = require("express");
 const router = express.Router();
 
