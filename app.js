@@ -26,7 +26,8 @@ app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
 
 app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
-app.use('/api/create-checkout', require('./routes/booking/payment/PaymentRoutes'))
+app.use('/api/create-checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
+app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
 
 
 app.use(function (req, res, next) {
