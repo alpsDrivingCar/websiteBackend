@@ -1,4 +1,5 @@
 const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
+const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const bodyParser = require("body-parser");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -20,6 +21,21 @@ exports.payment = async (req, res) => {
         // Log the checkoutInfo to the console
         console.log("Received checkoutInfo:");
         console.log(checkoutInfo);
+
+        try {
+            // Check if the email exists in your database
+            let existingEmailRecord = await CheckEmail.findOne({ email: receivedData.studentInfo.email, verificationNumber:  receivedData.studentInfo.verificationNumber });
+
+            if (!existingEmailRecord) {
+                res.status(404).json({error: "Verification number is not valid"})
+                return
+            }
+
+        }catch (e) {
+           console.log("sss" + e)
+        }
+
+        console.log("qqq")
 
         const paymentIntent = await stripe.checkout.sessions.create({
             mode: 'payment', // Use 'payment' mode for one-time payments

@@ -26,6 +26,7 @@ const checkoutInfoSchema = new mongoose.Schema({
         email: String,
         address: String,
         dateOfBirth: Date,
+        verificationNumber: String
     },
 
 });
