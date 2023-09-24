@@ -27,17 +27,13 @@ exports.lessons = (req, res) => {
 }
 
 exports.lessonByPostCode = (req, res) => {
-    // result =   object  inside mongo database
-    // LessonSchema.findById(req.params.id)
     const {postCode} = req.params;
 
     console.log(postCode)
 
     const filter = {
-        "postCode": postCode
+        "postCode": { $regex: new RegExp("^" + postCode, "i") }
     };
-
-    // const result1 =  Instructor.find(filter);
 
     InstructorsUserSchema.find(filter)
         .then((result) => {
