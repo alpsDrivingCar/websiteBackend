@@ -26,32 +26,37 @@ exports.lessons = (req, res) => {
         });
 }
 
-exports.lessonByPostCode = (req, res) => {
-    const {postCode} = req.params;
-
-    console.log(postCode)
+exports.lessonByPostCode = async (req, res) => {
+    const postcode = req.query.postCode;
 
     const filter = {
-        "postCode": { $regex: new RegExp("^" + postCode, "i") }
+        "postCode": postcode,
     };
 
-    InstructorsUserSchema.find(filter)
-        .then((result) => {
-            if (result.length === 0) {
-                return res.status(404).json({message: 'Data not found for the specified postcode.'});
-            }
-        })
-        .catch((err) => {
+    if (postcode === undefined || postcode === null) {
+        return res.status(404).json({message: 'Postcode is not defined.'});
+    } else {
+        InstructorsUserSchema.find(filter)
+            .then((result) => {
+                // console.log(result)
+                if (result.length === 0) {
+                    // If no data is found, return a "not found" response
+                    return res.status(404).json({message: 'Data not found for the specified postcode.'});
+                } else {
+                    LessonSchema.findById("64876d775160ba7ae603516e")
+                        .then((result) => {
+                            return res.json(result)
+                        })
+                        .catch((err) => {
+                            console.log(err);
+                            return res.status(404).json({message: err});
+                        });
+                }
+            }).catch((err) => {
             console.log(err);
+            return res.status(404).json({message: err});
         });
-
-    LessonSchema.findById("64876d775160ba7ae603516e")
-        .then((result) => {
-            res.json(result)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
+    }
 }
 
 exports.lessonUpdate = (req, res) => {

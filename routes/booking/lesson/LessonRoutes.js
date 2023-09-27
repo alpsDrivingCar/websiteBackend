@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 router.get("/",lessonServer.lessons)
-router.get("/:postCode",lessonServer.lessonByPostCode)
+router.get("/post-code/",lessonServer.lessonByPostCode)
 router.post("/",lessonServer.createLesson)
 router.delete("/:id",lessonServer.deleteLesson)
 
