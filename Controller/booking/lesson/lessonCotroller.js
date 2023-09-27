@@ -29,8 +29,12 @@ exports.lessons = (req, res) => {
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
 
+    // const filter = {
+    //     "postCode": postcode,
+    // };
+
     const filter = {
-        "postCode": postcode,
+        "postCode": { $regex: new RegExp("^" + postcode, "i") }
     };
 
     if (postcode === undefined || postcode === null) {
