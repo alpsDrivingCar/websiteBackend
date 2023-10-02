@@ -15,19 +15,21 @@ app.use(cors({ credentials: true, origin: true }));
 
 dotenv.config(dotenv);
 
-//Routes
+//Routes booking
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
 app.use('/api/booking/instructors', require('./routes/booking/instructors/InstructorsBookingRoutes'))
 app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
-// app.use('/api/booking/info', require('./routes/booking/info/InfoRoutes'))
-app.use('/api/home', require('./routes/home/HomeRoutes'))
-app.use('/api/offer', require('./routes/offer/OfferRoutes'))
-app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
-app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
-
-app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
+app.use('/api/booking/packageBooking', require('./routes/booking/package/PackageBookingRoutes'))
 app.use('/api/create-checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
 app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
+//Routes setting
+app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
+app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
+app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
+
+app.use('/api/home', require('./routes/home/HomeRoutes'))
+app.use('/api/offer', require('./routes/offer/OfferRoutes'))
+
 
 
 app.use(function (req, res, next) {

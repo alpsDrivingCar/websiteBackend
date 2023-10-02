@@ -47,7 +47,7 @@ exports.bookingInstructorsUpdate = (req, res) => {
     // result =   object  inside mongo database
     InstructorsSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
         .then((result) => {
-            res.json(result);
+            res.json({data: result});
         })
         .catch((err) => {
             console.log(err);
