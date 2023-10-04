@@ -45,7 +45,7 @@ exports.lessonByPostCode = async (req, res) => {
                 // console.log(result)
                 if (result.length === 0) {
                     // If no data is found, return a "not found" response
-                    return res.status(404).json({message: 'Data not found for the specified postcode.'});
+                    return res.status(404).json({message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW'});
                 } else {
                     LessonSchema.findById("64876d775160ba7ae603516e")
                         .then((result) => {
