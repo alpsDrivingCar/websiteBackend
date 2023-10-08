@@ -22,10 +22,12 @@ app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLess
 app.use('/api/booking/packageBooking', require('./routes/booking/package/PackageBookingRoutes'))
 app.use('/api/create-checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
 app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
+
 //Routes setting
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
 app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
+app.use('/api/setting/franchise', require('./routes/setting/FranchiseRoutes'))
 
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
