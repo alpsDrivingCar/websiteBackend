@@ -1,7 +1,14 @@
 const AboutusSchema = require("../../model/setting/aboutusSchema");
+const {body, validationResult} = require('express-validator');
 
-exports.createAboutus = (req, res) => {
+exports.createAboutus = async (req, res) => {
     const aboutusSchema = new AboutusSchema(req.body);
+
+    const errors = await handleValidator(req);
+    if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(error => error.msg);
+        return res.status(400).json({errors: errorMessages[0]});
+    }
 
     console.log(req.body);
     aboutusSchema.save()
@@ -12,6 +19,21 @@ exports.createAboutus = (req, res) => {
             console.log(err);
         });
 
+}
+
+async function handleValidator(req) {
+    const validationChecks = [
+        body('description').notEmpty().withMessage('description Name is required'),
+        body('image').notEmpty().withMessage('image Name is required'),
+        body('title').notEmpty().withMessage('title Name is required'),
+    ];
+
+    for (const validationCheck of validationChecks) {
+        await validationCheck.run(req);
+    }
+
+    const errors = validationResult(req);
+    return errors;
 }
 
 exports.aboutus = (req, res) => {

@@ -1,7 +1,14 @@
 const ContactusSchema = require("../../model/setting/contactusSchema");
+const {body, validationResult} = require('express-validator');
 
-exports.createContactus = (req, res) => {
+exports.createContactus = async (req, res) => {
     const contactusSchema = new ContactusSchema(req.body);
+
+    const errors = await handleValidator(req);
+    if (!errors.isEmpty()) {
+        const errorMessages = errors.array().map(error => error.msg);
+        return res.status(400).json({errors: errorMessages[0]});
+    }
 
     console.log(req.body);
     contactusSchema.save()
@@ -14,6 +21,21 @@ exports.createContactus = (req, res) => {
 
 }
 
+async function handleValidator(req) {
+    const validationChecks = [
+        body('phoneNumber').isMobilePhone().withMessage('Invalid phone number'),
+        body('email').isEmail().withMessage('Invalid email'),
+        body('location').notEmpty().withMessage('Location Name is required'),
+        body('name').notEmpty().withMessage('name name is required')
+    ];
+
+    for (const validationCheck of validationChecks) {
+        await validationCheck.run(req);
+    }
+
+    const errors = validationResult(req);
+    return errors;
+}
 exports.contactuss = (req, res) => {
     // result =   object  inside mongo database
     // ContactusSchema.findById(req.params.id)
