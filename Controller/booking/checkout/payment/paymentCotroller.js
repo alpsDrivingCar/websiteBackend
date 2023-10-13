@@ -54,11 +54,26 @@ exports.payment = async (req, res) => {
                 };
             }),
         });
-
+        checkoutInfo.save()
         res.json({url: paymentIntent.url})
     } catch (e) {
         res.status(500).json({error: e.message})
     }
 }
+
+exports.allPayment = async (req, res) => {
+    try {
+        CheckoutInfo.find()
+            .then(result => {
+                res.json({data:result});
+            })
+            .catch(err => {
+                console.log(err);
+            });
+    } catch (e) {
+        res.status(500).json({error: e.message})
+    }
+}
+
 
 

@@ -25,24 +25,6 @@ exports.getBookingInstructors = (req, res) => {
             console.log(err);
         });
 }
-
-exports.bookingInstructorsByPostCodeAndType = (req, res) => {
-    // result =   object  inside mongo database
-    // LessonSchema.findById(req.params.id)
-    const { id, type } = req.params;
-
-    console.log("id:" + id + "type:" + type)
-    InstructorsSchema.findById("64859e62519ba1e3fcc98866")
-        .then((result) => {
-            res.json({data: result});
-
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
-
-
 exports.bookingInstructorsUpdate = (req, res) => {
     // result =   object  inside mongo database
     InstructorsSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
@@ -52,8 +34,6 @@ exports.bookingInstructorsUpdate = (req, res) => {
         .catch((err) => {
             console.log(err);
         });
-
-
 }
 
 exports.deleteBookingInstructors = (req, res) => {
@@ -82,11 +62,19 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
             if (result.length === 0) {
                 // If no data is found, return a "not found" response
                 return res.status(404).json({ message: 'Data not found for the specified postcode.' });
+            }else {
+
+
+
+
+
             }
         })
         .catch((err) => {
             console.log(err);
         });
+
+
 
     InstructorsSchema.findById("64859e62519ba1e3fcc98866")
         .then((result) => {

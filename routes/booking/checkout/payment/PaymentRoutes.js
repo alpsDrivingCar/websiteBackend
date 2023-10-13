@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 router.post("/",paymentServer.payment)
+router.get("/all",paymentServer.allPayment)
 
 module.exports = router
 

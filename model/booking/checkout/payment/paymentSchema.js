@@ -16,7 +16,7 @@ const checkoutInfoSchema = new mongoose.Schema({
                 packageId: String, // Move packageId to items
                 packageName: String, // Move packageName to items
                 dayTime: String, // Change 'time' to 'dayTime' in items
-                availableHours: String // Add availableHours field to items
+                availableHours: [String] // Add availableHours field to items
             },
         ],
     },
