@@ -8,7 +8,7 @@ const stripe = require('stripe')(
     process.env.STRIPE_PRIVATE_KEY
 )
 
-exports.payment = async (req, res) => {
+exports.createPaymentAndGetUrlPayment = async (req, res) => {
 // app.post('/create-checkout', async (req, res) => {
     try {
 
@@ -64,6 +64,20 @@ exports.payment = async (req, res) => {
 exports.allPayment = async (req, res) => {
     try {
         CheckoutInfo.find()
+            .then(result => {
+                res.json({data:result});
+            })
+            .catch(err => {
+                console.log(err);
+            });
+    } catch (e) {
+        res.status(500).json({error: e.message})
+    }
+}
+
+exports.getPayment = async (req, res) => {
+    try {
+        CheckoutInfo.findById(req.params.id)
             .then(result => {
                 res.json({data:result});
             })
