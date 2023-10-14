@@ -4,7 +4,7 @@ const router = express.Router();
 
 router.post("/",paymentServer.createPaymentAndGetUrlPayment)
 router.get("/all",paymentServer.allPayment)
-router.get("/:id",paymentServer.allPayment)
+router.get("/:id",paymentServer.getPayment)
 
 module.exports = router
 

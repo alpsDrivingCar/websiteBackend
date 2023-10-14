@@ -16,23 +16,22 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
 
         // Create a new document based on the schema and save it to MongoDB
         const checkoutInfo = new CheckoutInfo(receivedData);
-        // await checkoutInfo.save();
-
-        // Log the checkoutInfo to the console
-        console.log("Received checkoutInfo:");
-        console.log(checkoutInfo);
+        checkoutInfo.orderInfo.status = "pending"
 
         try {
             // Check if the email exists in your database
-            let existingEmailRecord = await CheckEmail.findOne({ email: receivedData.studentInfo.email, verificationNumber:  receivedData.studentInfo.verificationNumber });
+            let existingEmailRecord = await CheckEmail.findOne({
+                email: receivedData.studentInfo.email,
+                verificationNumber: receivedData.studentInfo.verificationNumber
+            });
 
             if (!existingEmailRecord) {
                 res.status(404).json({error: "Verification number is not valid"})
                 return
             }
 
-        }catch (e) {
-           console.log("sss" + e)
+        } catch (e) {
+            console.log("sss" + e)
         }
 
         console.log("qqq")
@@ -54,8 +53,17 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
                 };
             }),
         });
-        checkoutInfo.save()
-        res.json({url: paymentIntent.url})
+
+        await checkoutInfo.save()
+            .then(result => {
+                res.json({url: paymentIntent.url, data: result})
+            })
+            .catch(err => {
+                res.json({error: err})
+                console.log(err);
+            });
+
+
     } catch (e) {
         res.status(500).json({error: e.message})
     }
@@ -65,7 +73,7 @@ exports.allPayment = async (req, res) => {
     try {
         CheckoutInfo.find()
             .then(result => {
-                res.json({data:result});
+                res.json({data: result});
             })
             .catch(err => {
                 console.log(err);
@@ -77,13 +85,12 @@ exports.allPayment = async (req, res) => {
 
 exports.getPayment = async (req, res) => {
     try {
-        CheckoutInfo.findById(req.params.id)
-            .then(result => {
-                res.json({data:result});
-            })
-            .catch(err => {
-                console.log(err);
-            });
+        const checkoutInfo = await  CheckoutInfo.findById(req.params.id)
+            .populate('orderInfo.instructorsId')
+            .exec()
+        
+        res.json({data: checkoutInfo});
+
     } catch (e) {
         res.status(500).json({error: e.message})
     }

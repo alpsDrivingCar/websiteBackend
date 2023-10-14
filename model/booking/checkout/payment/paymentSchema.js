@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 
 // Define the Mongoose Schema for checkoutInfo
 const checkoutInfoSchema = new mongoose.Schema({
@@ -6,9 +7,14 @@ const checkoutInfoSchema = new mongoose.Schema({
         postCode: String,
         typeOfLesson: String,
         typeOfGearbox: String,
-        instructorsId: String,
+        // instructorsId: String,
+        instructorsId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Instructors',
+        },
         success_url: String,
         cancel_url: String,
+        status: String, //pending , success , failure
         items: [
             {
                 quantity: Number,
