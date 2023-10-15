@@ -41,65 +41,32 @@ exports.bookingPackageByPostCodeAndType = (req, res) => {
         });
 }
 
-// exports.bookingPackageByPostCode = (req, res) => {
-//     const { postcode } = req.query;
-//     const length = postcode.length
-//
-//     // Use the provided postcode to filter packages by postCode field
-//     PackageSchema.find({ 'postCode.postCode': postcode })
-//         .then((result) => {
-//             res.json({ data: result });
-//         })
-//         .catch((err) => {
-//             console.log(err);
-//             res.status(500).json({ error: 'An error occurred while fetching packages.' });
-//         });
-// }
 exports.bookingPackageByPostCode = (req, res) => {
     const { postcode } = req.query;
-    const length = postcode.length;
 
-    PackageSchema.find()
-        .then((result) => {
-            // Filter the packages based on the postcode character comparison
-            const filteredPackages = result.filter((packageItem) =>
-                comparePostcodes(packageItem.postCode , postcode)
-            );
-            res.json({ data: filteredPackages });
+    // Validate if postcode is provided in the query
+    if (!postcode || postcode.length < 3) {
+        return res.status(400).send({ message: "At least the first 3 digits of the postcode are required in the query." });
+    }
+
+    // Create a regex to match the first three digits of the postcode
+    const regex = new RegExp(`^${postcode.slice(0, 3)}`, 'i'); // 'i' makes it case insensitive
+
+    // Query the database for booking packages with postcodes that start with the provided 3 digits
+    PackageSchema.find({ "postCode.postCode": regex })
+        .then((packages) => {
+            if (packages.length === 0) {
+                return res.status(404).send({ message: `No booking packages found for postcode starting with: ${postcode.slice(0, 3)}` });
+            }
+
+            res.send(packages);
         })
         .catch((err) => {
             console.log(err);
-            res.status(500).json({ error: 'An error occurred while fetching packages.' });
+            res.status(500).send({ message: "Error occurred while fetching the booking packages." });
         });
 }
 
-
-// Create a function to compare postcodes character by character
-
-
-function comparePostcodes(listOfPostcodeFromDatabase, queryPostcode) {
-
-    // if (postcodeFromDatabase.length <= queryPostcode.length) {
-    //     return false;
-    // }
-
-    listOfPostcodeFromDatabase.forEach( (rating) => {
-        console.log(rating)
-    });
-
-
-
-
-    for (let index = 0; index < queryPostcode.length; index++) {
-        if (postcodeFromDatabase[index] !== queryPostcode[index]) {
-            return false;
-        }
-    }
-
-
-
-    return true;
-}
 
 exports.bookingPackageUpdate = (req, res) => {
     // result =   object  inside mongo database

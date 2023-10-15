@@ -15,6 +15,10 @@ const checkoutInfoSchema = new mongoose.Schema({
         success_url: String,
         cancel_url: String,
         status: String, //pending , success , failure
+        price: {
+            type: Number,
+            default: 0
+        },
         items: [
             {
                 quantity: Number,
