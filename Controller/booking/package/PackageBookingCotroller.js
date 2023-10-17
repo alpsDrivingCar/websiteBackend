@@ -26,8 +26,6 @@ exports.getBookingPackage = (req, res) => {
 }
 
 exports.bookingPackageByPostCodeAndType = (req, res) => {
-    // result =   object  inside mongo database
-    // LessonSchema.findById(req.params.id)
     const { id, type } = req.params;
 
     console.log("id:" + id + "type:" + type)
@@ -44,15 +42,10 @@ exports.bookingPackageByPostCodeAndType = (req, res) => {
 exports.bookingPackageByPostCode = (req, res) => {
     const { postcode } = req.query;
 
-    // Validate if postcode is provided in the query
     if (!postcode || postcode.length < 3) {
         return res.status(400).send({ message: "At least the first 3 digits of the postcode are required in the query." });
     }
-
-    // Create a regex to match the first three digits of the postcode
     const regex = new RegExp(`^${postcode.slice(0, 3)}`, 'i'); // 'i' makes it case insensitive
-
-    // Query the database for booking packages with postcodes that start with the provided 3 digits
     PackageSchema.find({ "postCode.postCode": regex })
         .then((packages) => {
             if (packages.length === 0) {
@@ -89,3 +82,55 @@ exports.deleteBookingPackage = (req, res) => {
             console.log(err);
         });
 }
+
+
+exports.updateBookingPackage = async (req, res) => {
+    const packageId = req.params.id;
+    if (!packageId) {
+        return res.status(400).send({ message: "BookingPackage id is required" });
+    }
+    req.query
+
+    const updateValues = {
+        slugOfType: "Standard Packages",
+        typeName: "standard_packages"
+    };
+
+    try {
+        const updatedPackage = await PackageSchema.findByIdAndUpdate(
+            packageId,
+            updateValues,
+            { new: true }  // This option returns the modified document rather than the original.
+        );
+
+        if (!updatedPackage) {
+            return res.status(404).send({ message: "BookingPackage not found with id " + packageId });
+        }
+
+        res.send(updatedPackage);
+    } catch (err) {
+        return res.status(500).send({ message: "Error updating BookingPackage with id " + packageId });
+    }
+};
+
+
+
+exports.getPackagesBySlug = async (req, res) => {
+    const slug = req.query.slugOfType; // Assuming you'll be passing the slug as ?slugOfType=value
+
+    if (!slug) {
+        return res.status(400).send({ message: "slugOfType query parameter is required" });
+    }
+
+    try {
+        const packages = await PackageSchema.find({ slugOfType: slug });
+
+        if (packages.length === 0) {
+            return res.status(404).send({ message: "No BookingPackages found for the provided slugOfType." });
+        }
+
+        res.send(packages);
+    } catch (err) {
+        return res.status(500).send({ message: "Error retrieving BookingPackages." });
+    }
+};

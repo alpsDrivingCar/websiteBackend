@@ -1,12 +1,13 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// define the Schema (the structure of the article)
 const bookingPackageSchema = new Schema({
     title: String,
     description: String,
     slugOfGearbox:String,
     gearbox:String,
+    slugOfType:String,
+    typeName:String,
     areas: [
         {
         areaName: String
