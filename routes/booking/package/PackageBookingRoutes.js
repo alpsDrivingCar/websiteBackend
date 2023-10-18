@@ -2,12 +2,12 @@ const server = require('../../../Controller/booking/package/PackageBookingCotrol
 const express = require("express");
 const router = express.Router();
 
-router.get("/all",server.getBookingPackage)
-router.get("/by-post-code",server.bookingPackageByPostCode)
-router.post("/",server.createBookingPackage)
-router.put("/:id",server.updateBookingPackage)
-router.delete("/:id",server.deleteBookingPackage)
-router.get("/slug-type",server.getPackagesBySlug)
+router.get("/all", server.getBookingPackage)
+router.get("/by-post-code", server.bookingPackageByPostCode)
+router.post("/", server.createBookingPackage)
+router.put("/:id", server.updateBookingPackage)
+router.delete("/:id", server.deleteBookingPackage)
+router.get("/slug-type", server.getPackagesBySlug)
 
 
 module.exports = router

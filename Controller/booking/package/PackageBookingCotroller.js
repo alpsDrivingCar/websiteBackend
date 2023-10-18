@@ -83,37 +83,36 @@ exports.deleteBookingPackage = (req, res) => {
         });
 }
 
+exports.updateBookingPackage = (req, res) => {
+    const { id } = req.params;
 
-exports.updateBookingPackage = async (req, res) => {
-    const packageId = req.params.id;
-    if (!packageId) {
-        return res.status(400).send({ message: "BookingPackage id is required" });
-    }
-    req.query
+    // Validation
+    console.log(id)
 
-    const updateValues = {
-        slugOfType: "Standard Packages",
-        typeName: "standard_packages"
-    };
+    PackageSchema.findById(id)
+        .then(existingPackage => {
+            console.log(existingPackage)
+            if (!existingPackage) {
+                return res.status(404).json({ message: 'Booking package not found.' });
+            }
 
-    try {
-        const updatedPackage = await PackageSchema.findByIdAndUpdate(
-            packageId,
-            updateValues,
-            { new: true }  // This option returns the modified document rather than the original.
-        );
+            // Overwrite fields in the existing document with the new values from the request
+            for (let key in req.body) {
+                existingPackage[key] = req.body[key];
+            }
 
-        if (!updatedPackage) {
-            return res.status(404).send({ message: "BookingPackage not found with id " + packageId });
-        }
-
-        res.send(updatedPackage);
-    } catch (err) {
-        return res.status(500).send({ message: "Error updating BookingPackage with id " + packageId });
-    }
-};
-
-
+            // Now save the updated document
+             existingPackage.save();
+        })
+        .then(result => {
+            console.log("existingPackage = ")
+            return res.json({message: 'Booking package updated successfully.',});
+        })
+        .catch(err => {
+            console.log(err);
+            return  res.status(500).json({ message: 'An error occurred while updating the booking package.' });
+        });
+}
 
 exports.getPackagesBySlug = async (req, res) => {
     const slug = req.query.slugOfType; // Assuming you'll be passing the slug as ?slugOfType=value
