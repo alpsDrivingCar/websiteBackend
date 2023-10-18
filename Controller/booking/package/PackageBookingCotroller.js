@@ -1,12 +1,12 @@
 const PackageSchema = require("../../../model/booking/package/packageSchema");
 
 exports.createBookingPackage = (req, res) => {
-    const lessonSchema = new PackageSchema(req.body);
+    const bookingSchema = new PackageSchema(req.body);
 
     console.log(req.body);
-    lessonSchema.save()
+    bookingSchema.save()
         .then(result => {
-            res.json({data : result});
+            res.json({message : "Booking package successfully created" , data : result});
         })
         .catch(err => {
             console.log(err);
