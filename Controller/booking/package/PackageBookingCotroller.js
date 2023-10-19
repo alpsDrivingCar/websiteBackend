@@ -121,8 +121,13 @@ exports.getPackagesBySlug = async (req, res) => {
         return res.status(400).send({ message: "slugOfType query parameter is required" });
     }
 
+    let query = {};
+    if (slug !== "all") {
+        query.slugOfType = slug;
+    }
+
     try {
-        const packages = await PackageSchema.find({ slugOfType: slug });
+        const packages = await PackageSchema.find(query);
 
         if (packages.length === 0) {
             return res.status(404).send({ message: "No BookingPackages found for the provided slugOfType." });
@@ -133,3 +138,6 @@ exports.getPackagesBySlug = async (req, res) => {
         return res.status(500).send({ message: "Error retrieving BookingPackages." });
     }
 };
+
+
+
