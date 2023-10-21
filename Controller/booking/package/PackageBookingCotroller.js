@@ -14,9 +14,11 @@ exports.createBookingPackage = (req, res) => {
 
 }
 
-exports.getBookingPackage = (req, res) => {
+exports.getBookingPackageById = (req, res) => {
     // result = Array of objects inside mongo database
-    PackageSchema.findById("64859e62519ba1e3fcc98866")
+    const { id } = req.params;
+
+    PackageSchema.findById(id)
         .then((result) => {
             res.status(200).json({data: result});
         })
