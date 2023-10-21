@@ -28,14 +28,10 @@ exports.lessons = (req, res) => {
 
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
-
-    // const filter = {
-    //     "postCode": postcode,
-    // };
-
     const filter = {
         "postCode": { $regex: new RegExp("^" + postcode, "i") }
     };
+
 
     if (postcode === undefined || postcode === null) {
         return res.status(404).json({message: 'Postcode is not defined.'});

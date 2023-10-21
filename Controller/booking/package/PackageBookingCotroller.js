@@ -27,19 +27,35 @@ exports.getBookingPackageById = (req, res) => {
         });
 }
 
+
 exports.bookingPackageByPostCodeAndType = (req, res) => {
-    const { id, type } = req.params;
+    const { postCode, type } = req.query;
 
-    console.log("id:" + id + "type:" + type)
-    PackageSchema.findById("64859e62519ba1e3fcc98866")
+
+    if (!postCode || !type) {
+        return res.status(400).send({ message: "Both postCode and type query parameters are required" });
+    }
+
+    const regex = new RegExp(`^${postCode.slice(0, 3)}`, 'i'); // 'i' makes it case insensitive
+
+    // Set up the query to filter by postCode and slugOfType
+    const query = {
+        "postCode.postCode": regex,   // filtering by nested postCode in the array
+        slugOfType: type                 // filtering by slugOfType
+    };
+
+    PackageSchema.find(query)
         .then((result) => {
+            if (result.length === 0) {
+                return res.status(404).send({ message: "No booking packages found for the provided postCode and type." });
+            }
             res.json({data: result});
-
         })
         .catch((err) => {
             console.log(err);
+            res.status(500).send({message: "Error retrieving booking packages."});
         });
-}
+};
 
 exports.bookingPackageByPostCode = (req, res) => {
     const { postcode } = req.query;
@@ -62,18 +78,6 @@ exports.bookingPackageByPostCode = (req, res) => {
         });
 }
 
-
-exports.bookingPackageUpdate = (req, res) => {
-    // result =   object  inside mongo database
-    PackageSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
-        .then((result) => {
-            res.json({data: result});
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-
-}
 
 exports.deleteBookingPackage = (req, res) => {
     PackageSchema.findByIdAndDelete(req.params.id)
