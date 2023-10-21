@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 // router.get("/all", server.getBookingPackage)
-router.get("/:id", server.getBookingPackageById)
+router.get("/by-id/:id", server.getBookingPackageById)
 router.get("/by-post-code", server.bookingPackageByPostCode)
 router.post("/", server.createBookingPackage)
 router.put("/:id", server.updateBookingPackage)
