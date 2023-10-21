@@ -139,7 +139,7 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
                     package: gearbox.packages.map(pkg => {
                         return {
                             numberHour: parseInt(pkg.numberHour),
-                            total: pkg.price
+                            total: convertToNumber(pkg.price)
                         };
                     })
                 };
@@ -154,3 +154,7 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
 };
 
 
+function convertToNumber(value) {
+    const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
+    return parseFloat(withoutCommaAndExtraPeriods);
+}
