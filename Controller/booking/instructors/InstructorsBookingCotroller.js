@@ -79,6 +79,9 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
             });
         }
 
+        console.log("bookingPackages = " +bookingPackages.length )
+
+
         const formattedData = formatDataForBookingInstructors(bookingPackages, instructors);
 
         const bookingInstructor = new InstructorsSchema(formattedData);
@@ -111,20 +114,43 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 };
 
 const formatDataForBookingInstructors = (bookingPackages, instructors) => {
+    // First, group the booking packages by their gearbox type
+    const groupedPackages = bookingPackages.reduce((acc, curr) => {
+        if (!acc[curr.slugOfGearbox]) {
+            acc[curr.slugOfGearbox] = {
+                slug: curr.slugOfGearbox,
+                name: curr.gearbox,
+                packages: []
+            };
+        }
+        acc[curr.slugOfGearbox].packages.push(curr);
+        return acc;
+    }, {});
+
+    // For each gearbox type, map the instructors to their packages
+    const gearboxData = Object.values(groupedPackages).map(gearbox => {
+        return {
+            slug: gearbox.slug,
+            name: gearbox.name,
+            instructors: instructors.map(instructor => {
+                return {
+                    name: `${instructor.firstName} ${instructor.lastName}`,
+                    priceHour: instructor.hourlyCost,
+                    package: gearbox.packages.map(pkg => {
+                        return {
+                            numberHour: parseInt(pkg.numberHour),
+                            total: pkg.price
+                        };
+                    })
+                };
+            })
+        };
+    });
+
     return {
         title: "Your title here",
-        gearbox: bookingPackages.map(bookingPackage => ({
-            slug: bookingPackage.slugOfGearbox,
-            name: bookingPackage.gearbox,
-            instructors: instructors.map(instructor => ({
-                name: `${instructor.firstName} ${instructor.lastName}`,
-                priceHour: instructor.hourlyCost,
-                package: [{
-                    numberHour: parseInt(bookingPackage.numberHour),
-                    total: bookingPackage.price
-                }]
-            }))
-        }))
+        gearbox: gearboxData
     };
 };
+
 
