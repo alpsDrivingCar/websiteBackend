@@ -61,6 +61,8 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
         }
 
         const instructors = await fetchInstructorsByPostcode(postcode);
+        console.log("instructors = " +instructors )
+
         if (!instructors.length) {
             return res.status(404).json({
                 message: 'No trainers available for this PostCode.'
@@ -96,7 +98,10 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
 };
 
 const fetchInstructorsByPostcode = async (postcode) => {
-    const filter = { "postCode": new RegExp(`^${postcode}`, "i") };
+    // const filter = { "postCode": new RegExp(`^${postcode}`, "i") };
+    const filter = {
+        "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
+    };
     return await InstructorsUserSchema.find(filter);
 };
 
@@ -133,13 +138,17 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
             slug: gearbox.slug,
             name: gearbox.name,
             instructors: instructors.map(instructor => {
+                // Use the current gearbox package to calculate the price per hour
+                const pricePerHour = gearbox.packages[0] ? gearbox.packages[0].priecBeforeSele / gearbox.packages[0].numberHour : 0;
+
                 return {
                     name: `${instructor.firstName} ${instructor.lastName}`,
-                    priceHour: instructor.hourlyCost,
+                    priceHour: pricePerHour,
                     package: gearbox.packages.map(pkg => {
                         return {
                             numberHour: parseInt(pkg.numberHour),
-                            total: convertToNumber(pkg.price)
+                            total: convertToNumber(pkg.price),
+                            totalBeforeSele:convertToNumber(pkg.priecBeforeSele)
                         };
                     })
                 };
@@ -148,11 +157,10 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
     });
 
     return {
-        title: "Your title here",
+        title: "Choose Gearbox…",
         gearbox: gearboxData
     };
 };
-
 
 function convertToNumber(value) {
     const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');

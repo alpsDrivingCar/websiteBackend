@@ -15,7 +15,8 @@ const bookingInstructorsSchema = new Schema({
                     package: [
                         {
                             numberHour: Number,
-                            total :Number
+                            total :Number,
+                            totalBeforeSele:Number
                         }
                     ]
                 }
