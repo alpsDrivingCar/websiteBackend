@@ -12,6 +12,7 @@ app.use(bodyParser.urlencoded({extended: true}))
 app.use(express.urlencoded({extended: true}))
 app.use(helmet());
 app.use(cors({ credentials: true, origin: true }));
+app.use(express.static(__dirname, { dotfiles: 'allow' }));
 
 dotenv.config(dotenv);
 
@@ -22,6 +23,7 @@ app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLess
 app.use('/api/booking/packageBooking', require('./routes/booking/package/PackageBookingRoutes'))
 app.use('/api/create-checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
 app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
+app.use('/api/test-booking', require('./routes/booking/testBooking/TestBookingRoutes'))
 
 //Routes setting
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
