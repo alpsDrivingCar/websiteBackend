@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 const checkoutInfoSchema = new mongoose.Schema({
     orderInfo: {
         postCode: String,
-        typeOfLesson: String,
+        typeOfLesson: String,//hot-offer
         typeOfGearbox: String,
         // instructorsId: String,
         instructorsId: {
@@ -15,6 +15,7 @@ const checkoutInfoSchema = new mongoose.Schema({
         success_url: String,
         cancel_url: String,
         status: String, //pending , success , failure
+        testBooking:String, // slug = book, unbook
         price: {
             type: Number,
             default: 0

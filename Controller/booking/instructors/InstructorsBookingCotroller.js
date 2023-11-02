@@ -3,8 +3,6 @@ const InstructorsUserSchema = require("../../../model/user/Instructor");
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
 
-
-
 exports.createBookingInstructors = (req, res) => {
     const lessonSchema = new InstructorsSchema(req.body);
 
