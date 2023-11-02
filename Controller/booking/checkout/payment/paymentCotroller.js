@@ -40,108 +40,131 @@ exports.getPayment = async (req, res) => {
 
 
 exports.createPaymentAndGetUrlPayment = async (req, res) => {
-
     try {
         const receivedData = req.body;
+        const { studentInfo, orderInfo } = receivedData;
 
-        // Validate the verification number with email.
-        const existingEmailRecord = await CheckEmail.findOne({
-            email: receivedData.studentInfo.email,
-            verificationNumber: receivedData.studentInfo.verificationNumber
-        });
-
-        if (!existingEmailRecord) {
-            return res.status(404).json({error: "Verification number is not valid"});
-        }
-
-        let items = [...receivedData.orderInfo.items]; // Copying the items
-
-        if (receivedData.orderInfo.testBooking === 'book') {
-            items.push({
-                name: "Test Booking",
-                quantity: 1,
-                packageId: null, // This can be null or a valid ID if you have one for this package
-                price: 14000 // Converted to the smallest currency unit, pence in this case
-            });
-        }
-
-        const lineItems = await Promise.all(items.map(async item => {
-            if (item.packageId) {
-                const packageId = item.packageId;
-                if (!mongoose.Types.ObjectId.isValid(packageId)) {
-                    throw new Error("Invalid packageId format: " + packageId);
-                }
-
-                let packageResult;
-                if (receivedData.orderInfo.typeOfLesson === "hot-offer") {
-                    const offerSchemaResult = await OfferSchema.findOne(
-                        {'typeOffer.offers._id': new mongoose.Types.ObjectId(packageId)},
-                        {'typeOffer.offers.$': 1}  // Projection to return only the matched offers array
-                    );
-
-                    if (!offerSchemaResult || !offerSchemaResult.typeOffer || offerSchemaResult.typeOffer.length === 0) {
-                        throw new Error("No data based on this id");
-                    }
-
-                    // Extracting the matched offers array from the result
-                    packageResult = offerSchemaResult.typeOffer[0].offers[0];
-                    console.log(packageResult);
-                } else {
-                    packageResult = await PackageSchema.findById(packageId);
-                    if (!packageResult) {
-                        throw new Error("No package found for ID: " + packageId);
-                    }
-                }
-
-                console.log("packageResult  = " +packageResult )
-                
-                return {
-                    price_data: {
-                        currency: 'gbp',
-                        product_data: {
-                            name: item.name,
-                        },
-                        unit_amount: convertToNumber(packageResult.price) * 100, // Convert price to pence
-                    },
-                    quantity: item.quantity,
-                };
-            } else {
-                return {
-                    price_data: {
-                        currency: 'gbp',
-                        product_data: {
-                            name: item.name,
-                        },
-                        unit_amount: convertToNumber(item.price), // Use the provided price if packageId is not set
-                    },
-                    quantity: item.quantity,
-                };
-            }
-        }));
+        await validateVerificationNumber(studentInfo);
+        const lineItems = await generateLineItems(orderInfo);
 
         // Create Stripe payment intent.
-        const paymentIntent = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            success_url: receivedData.orderInfo.success_url,
-            cancel_url: receivedData.orderInfo.cancel_url,
-            line_items: lineItems,
-        });
+        const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
 
         // Save checkoutInfo to the database.
-        const checkoutInfo = new CheckoutInfo({
-            ...receivedData,
-            orderInfo: {...receivedData.orderInfo, status: "pending"}
-        });
-        const savedCheckoutInfo = await checkoutInfo.save();
+        const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
 
-        res.json({url: paymentIntent.url, data: savedCheckoutInfo});
+        res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
     } catch (error) {
-        console.error(error);
-        if (!res.headersSent) { // Check if headers have been sent to prevent "Cannot set headers after they are sent to the client" error
-            return res.status(500).json({error: error.message});
-        }
+        handleError(res, error);
     }
 };
+
+async function validateVerificationNumber(studentInfo) {
+    const existingEmailRecord = await CheckEmail.findOne({
+        email: studentInfo.email,
+        verificationNumber: studentInfo.verificationNumber
+    });
+
+    if (!existingEmailRecord) {
+        throw new Error("Verification number is not valid");
+    }
+}
+
+async function generateLineItems(orderInfo) {
+    let items = [...orderInfo.items];
+
+    if (orderInfo.testBooking === 'book') {
+        items.push({
+            name: "Test Booking",
+            quantity: 1,
+            packageId: null,
+            price: 14000
+        });
+    }
+
+    return Promise.all(items.map(async item => {
+        if (item.packageId) {
+            validatePackageIdFormat(item.packageId);
+
+            let packageResult;
+            if (orderInfo.typeOfLesson === "hot-offer") {
+                packageResult = await fetchOfferPackage(item.packageId);
+            } else {
+                packageResult = await fetchRegularPackage(item.packageId);
+            }
+
+            return {
+                price_data: {
+                    currency: 'gbp',
+                    product_data: { name: item.name },
+                    unit_amount: convertToNumber(packageResult.price) * 100,
+                },
+                quantity: item.quantity,
+            };
+        } else {
+            return {
+                price_data: {
+                    currency: 'gbp',
+                    product_data: { name: item.name },
+                    unit_amount: convertToNumber(item.price),
+                },
+                quantity: item.quantity,
+            };
+        }
+    }));
+}
+
+function validatePackageIdFormat(packageId) {
+    if (!mongoose.Types.ObjectId.isValid(packageId)) {
+        throw new Error("Invalid packageId format: " + packageId);
+    }
+}
+
+async function fetchOfferPackage(packageId) {
+    const offerSchemaResult = await OfferSchema.findOne(
+        { 'typeOffer.offers._id': new mongoose.Types.ObjectId(packageId) },
+        { 'typeOffer.offers.$': 1 }
+    );
+
+    if (!offerSchemaResult || !offerSchemaResult.typeOffer || offerSchemaResult.typeOffer.length === 0) {
+        throw new Error("No data based on this id = " + packageId);
+    }
+
+    return offerSchemaResult.typeOffer[0].offers[0];
+}
+
+async function fetchRegularPackage(packageId) {
+    const packageResult = await PackageSchema.findById(packageId);
+    if (!packageResult) {
+        throw new Error("No package found for ID: " + packageId);
+    }
+    return packageResult;
+}
+
+async function createStripePaymentIntent(orderInfo, lineItems) {
+    return stripe.checkout.sessions.create({
+        mode: 'payment',
+        success_url: orderInfo.success_url,
+        cancel_url: orderInfo.cancel_url,
+        line_items: lineItems,
+    });
+}
+
+async function saveCheckoutInfo(receivedData, orderInfo) {
+    const checkoutInfo = new CheckoutInfo({
+        ...receivedData,
+        orderInfo: { ...orderInfo, status: "pending" }
+    });
+    return checkoutInfo.save();
+}
+
+function handleError(res, error) {
+    console.error(error);
+    if (!res.headersSent) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 
 
 function convertToNumber(value) {
