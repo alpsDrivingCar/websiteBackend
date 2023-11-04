@@ -1,34 +1,82 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test Bookings</title>
+    <meta charset="UTF-8">
+    <title>Test Booking Terms and Conditions - Alps Driving School</title>
+    <style>
+        /* Your CSS styles */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .terms-section {
+            margin-top: 20px;
+        }
+        .terms-section h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+        .terms-section p {
+            text-align: justify;
+            padding: 10px 0;
+        }
+        .terms-section ul {
+            padding-left: 20px;
+        }
+        .terms-section ul li {
+            padding: 5px 0;
+        }
+    </style>
 </head>
 <body>
-<h1>Test Bookings</h1>
-<div id="bookings"></div>
+<div class="container">
+    <h1>Test Booking Terms and Conditions</h1>
 
-<script>
-    fetch('/api/testBookings')
-        .then(response => response.json())
-        .then(data => {
-            const bookingsDiv = document.getElementById('bookings');
-            data.data.forEach(booking => {
-                const div = document.createElement('div');
-                const h2 = document.createElement('h2');
-                const p = document.createElement('p');
+    <div class="terms-section">
+        <h2>Booking a Test</h2>
+        <p>When you book a driving test with Alps Driving School, you agree to the following conditions regarding the scheduling, cancellation, and conduct of the test:</p>
+        <ul>
+            <li>Bookings must be made at least one week in advance to ensure the availability of an instructor and vehicle.</li>
+            <li>Cancellations must be notified at least 48 hours before the scheduled test time to avoid a cancellation fee.</li>
+            <li>You must present a valid learner's permit on the day of the test.</li>
+            <li>Alps Driving School reserves the right to reschedule the test due to unforeseen circumstances such as weather conditions or vehicle issues.</li>
+        </ul>
+    </div>
 
-                h2.innerText = 'Terms and Conditions';
-                p.innerText = booking.termsConditions;
+    <!-- More terms related to the test booking process -->
 
-                div.appendChild(h2);
-                div.appendChild(p);
+    <div class="terms-section">
+        <h2>Payment Terms</h2>
+        <p>All test booking fees must be paid in full at the time of booking. Our accepted payment methods are [insert accepted payment methods here].</p>
+    </div>
 
-                bookingsDiv.appendChild(div);
-            });
-        })
-        .catch(error => {
-            console.error('Error fetching terms and conditions:', error);
-        });
-</script>
+    <div class="terms-section">
+        <h2>Liability and Insurance</h2>
+        <p>Alps Driving School is not responsible for any personal property left in the vehicle during the test. Our vehicles are insured for the duration of the test; however, the examinee may be liable for damages resulting from negligence or failure to follow the instructor's guidance.</p>
+    </div>
+
+    <div class="terms-section">
+        <h2>Success and Retesting</h2>
+        <p>Passing the test is subject to meeting the required standards as set by [insert relevant driving standards authority]. If retesting is required, you can book another test at a reduced rate within [insert time period here].</p>
+    </div>
+
+    <div class="terms-section">
+        <h2>Applicable Law</h2>
+        <p>By booking a test with Alps Driving School, you agree that the laws of <%= location %>, without regard to principles of conflict laws, will govern these terms and conditions.</p>
+    </div>
+
+    <div class="terms-section">
+        <h2>Contact Information</h2>
+        <p>If you have any questions about these Test Booking Terms and Conditions, please contact us at <%= contactInfo %>.</p>
+    </div>
+
+</div>
 </body>
 </html>
