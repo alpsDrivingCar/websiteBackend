@@ -2,6 +2,8 @@ const CheckoutInfo = require("../../../../model/booking/checkout/payment/payment
 const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const OfferSchema = require("../../../../model/offer/offerSchema");
+const moment = require('moment');
+
 
 const bodyParser = require("body-parser");
 const express = require("express");
@@ -15,15 +17,19 @@ exports.allPayment = async (req, res) => {
     try {
         CheckoutInfo.find()
             .then(result => {
-                res.json({data: result});
+                // Reverse the result array before sending the response
+                const reversedResult = result.reverse();
+                res.json({data: reversedResult});
             })
             .catch(err => {
                 console.log(err);
+                res.status(500).json({error: 'An error occurred while fetching payments.'});
             });
     } catch (e) {
-        res.status(500).json({error: e.message})
+        console.log(e);
+        res.status(500).json({error: 'An unexpected error occurred.'});
     }
-}
+};
 
 exports.getPayment = async (req, res) => {
     try {
@@ -151,10 +157,14 @@ async function createStripePaymentIntent(orderInfo, lineItems) {
 }
 
 async function saveCheckoutInfo(receivedData, orderInfo) {
+    // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
+    const formattedDate = moment().format('YYYY-MM-DD : ha');
+
     const checkoutInfo = new CheckoutInfo({
         ...receivedData,
-        orderInfo: { ...orderInfo, status: "pending" }
+        orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}
     });
+
     return checkoutInfo.save();
 }
 

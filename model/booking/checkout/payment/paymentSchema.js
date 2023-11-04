@@ -7,7 +7,6 @@ const checkoutInfoSchema = new mongoose.Schema({
         postCode: String,
         typeOfLesson: String,//hot-offer
         typeOfGearbox: String,
-        // instructorsId: String,
         instructorsId: {
             type: Schema.Types.ObjectId,
             ref: 'Instructors',
@@ -20,6 +19,7 @@ const checkoutInfoSchema = new mongoose.Schema({
             type: Number,
             default: 0
         },
+        bookingDate: String, // Ensure this is set to String
         items: [
             {
                 quantity: Number,
