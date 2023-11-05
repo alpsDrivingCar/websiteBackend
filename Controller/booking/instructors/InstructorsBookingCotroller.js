@@ -144,6 +144,7 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
                     priceHour: pricePerHour,
                     package: gearbox.packages.map(pkg => {
                         return {
+                            id: pkg.id,
                             numberHour: parseInt(pkg.numberHour),
                             total: convertToNumber(pkg.price),
                             totalBeforeSele:convertToNumber(pkg.priecBeforeSele)
