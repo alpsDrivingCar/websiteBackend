@@ -73,13 +73,14 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
         }
 
         const bookingPackages = await fetchBookingPackages(postcode, targetTypeOfLesson.slug);
+        console.log("bookingPackages = "+bookingPackages )
+
         if (!bookingPackages.length) {
             return res.status(404).send({
                 message: "No booking packages found for the given postCode and type."
             });
         }
 
-        console.log("bookingPackages = " +bookingPackages.length )
 
 
         const formattedData = formatDataForBookingInstructors(bookingPackages, instructors);
@@ -109,11 +110,16 @@ const fetchLessonTypeById = async (typeId) => {
 };
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
+
     const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
+    console.log("regexPostcode = " + regexPostcode)
+    console.log("slugOfTypeLesson = " + slugOfTypeLesson)
     return await PackageSchema.find({
         "postCode.postCode": regexPostcode,
         slugOfType: slugOfTypeLesson
     });
+
+
 };
 
 const formatDataForBookingInstructors = (bookingPackages, instructors) => {
@@ -144,7 +150,7 @@ const formatDataForBookingInstructors = (bookingPackages, instructors) => {
                     priceHour: pricePerHour,
                     package: gearbox.packages.map(pkg => {
                         return {
-                            id: pkg.id,
+                            packageId: pkg.id,
                             numberHour: parseInt(pkg.numberHour),
                             total: convertToNumber(pkg.price),
                             totalBeforeSele:convertToNumber(pkg.priecBeforeSele)

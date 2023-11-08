@@ -14,7 +14,7 @@ const bookingInstructorsSchema = new Schema({
                     priceHour: Number,
                     package: [
                         {
-                            id: String,
+                            packageId: String,
                             numberHour: Number,
                             total :Number,
                             totalBeforeSele:Number
