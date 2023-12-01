@@ -33,6 +33,9 @@ app.use('/api/setting/franchise', require('./routes/setting/FranchiseRoutes'))
 //Routes Locationsx
 app.use('/api/locations', require('./routes/locations/LocationsRoutes'))
 
+//Routes Locationsx
+app.use('/api/gift', require('./routes/gift/GiftRoutes'))
+
 
 
 app.use('/api/home', require('./routes/home/HomeRoutes'))
@@ -53,7 +56,7 @@ mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
 }).then(() => {
     // app.listen(3000)
-    app.listen(process.env.PORT || 4000, () => {
+    app.listen(process.env.PORT || 3000, () => {
         console.log("Server Run ")
     })
 }).catch(err => {

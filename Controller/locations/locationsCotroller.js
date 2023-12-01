@@ -17,20 +17,23 @@ exports.createLocations = (req, res) => {
 exports.locationss = (req, res) => {
     // result =   object  inside mongo database
     // LocationsSchema.findById(req.params.id)
-    LocationsSchema.findById("654beda5ab97a73c1a91a53e")
+    console.log("req.body" + req.body)
+    Locations.findByIdAndUpdate("654beda5ab97a73c1a91a53e", req.body, { new: true })
         .then((result) => {
-            res.json(result)
+            res.json({ data: result.data });
         })
         .catch((err) => {
             console.log(err);
+            res.status(500).send(err);
         });
 }
 
 exports.locationsUpdate = (req, res) => {
     // result =   object  inside mongo database
-    LocationsSchema.findByIdAndUpdate("654bebdca0f71b4f75a5fcc8").updateOne(req.body)
+    console.log(req.body)
+    LocationsSchema.findByIdAndUpdate("654beda5ab97a73c1a91a53e").updateOne(req.body)
         .then((result) => {
-            res.json(result)
+            res.json({data : result.data})
         })
         .catch((err) => {
             console.log(err);
