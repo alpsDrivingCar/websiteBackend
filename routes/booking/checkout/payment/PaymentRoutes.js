@@ -5,7 +5,7 @@ const router = express.Router();
 router.post("/",paymentServer.createPaymentAndGetUrlPayment)
 router.get("/all",paymentServer.allPayment)
 router.get("/:id",paymentServer.getPayment)
-router.put("/:id",paymentServer.updateSaveStatus)
+router.put("/:id",paymentServer.updateSaveStatusAndChangedBy)
 
 module.exports = router
 

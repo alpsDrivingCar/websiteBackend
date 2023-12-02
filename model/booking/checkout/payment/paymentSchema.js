@@ -43,6 +43,10 @@ const checkoutInfoSchema = new mongoose.Schema({
         type: String,
         enum: ['un-save', 'save', 'in-progress'],
         default: 'un-save'
+    },
+    changedSaveStatusBy: {
+        type: String, // or Schema.Types.ObjectId if you reference a user model
+        required: false
     }
 });
 

@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const checkEmailSchema = new mongoose.Schema({
     email: String,
     verificationNumber: String
-});     
+});
 
 
 // Create a Mongoose model from the schema
