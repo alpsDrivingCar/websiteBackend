@@ -39,7 +39,11 @@ const checkoutInfoSchema = new mongoose.Schema({
         dateOfBirth: Date,
         verificationNumber: String
     },
-
+    saveStatus: {
+        type: String,
+        enum: ['un-save', 'save', 'in-progress'],
+        default: 'un-save'
+    }
 });
 
 

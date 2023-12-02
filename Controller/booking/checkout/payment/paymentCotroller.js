@@ -44,6 +44,35 @@ exports.getPayment = async (req, res) => {
     }
 }
 
+exports.updateSaveStatus = async (req, res) => {
+    try {
+        const checkoutInfoId = req.params.id; // assuming the ID is passed as a URL parameter
+        const newSaveStatus = req.body.saveStatus; // expecting the new status in the request body
+
+        // Validate the new save status
+        if (!['un-save', 'save', 'in-progress'].includes(newSaveStatus)) {
+            return res.status(400).json({ error: 'Invalid save status' });
+        }
+
+        // Find the document and update its saveStatus
+        const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
+            checkoutInfoId,
+            { $set: { saveStatus: newSaveStatus } },
+            { new: true } // return the updated document
+        );
+
+        if (!updatedCheckoutInfo) {
+            return res.status(404).json({ error: 'CheckoutInfo not found' });
+        }
+
+        res.json({ data: updatedCheckoutInfo });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An unexpected error occurred.' });
+    }
+};
+
+
 
 exports.createPaymentAndGetUrlPayment = async (req, res) => {
     try {
