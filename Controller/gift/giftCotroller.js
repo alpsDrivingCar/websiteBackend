@@ -26,6 +26,19 @@ exports.gifts = (req, res) => {
         });
 }
 
+
+exports.getGiftId = (req, res) => {
+    GiftSchema.findById(req.params.id)
+    // GiftSchema.find()
+        .then((result) => {
+            res.json(result)
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+}
+
+
 exports.giftUpdate = (req, res) => {
     // result =   object  inside mongo database
     GiftSchema.findByIdAndUpdate("6489c7239bdfd1bbc0d33afc").updateOne(req.body)

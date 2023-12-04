@@ -35,6 +35,7 @@ app.use('/api/locations', require('./routes/locations/LocationsRoutes'))
 
 //Routes Locationsx
 app.use('/api/gift', require('./routes/gift/GiftRoutes'))
+app.use('/api/gift/checkout', require('./routes/gift/GiftCheckoutRoutes'))
 
 
 
