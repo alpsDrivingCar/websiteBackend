@@ -2,45 +2,42 @@ const nodemailer = require('nodemailer');
 const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 
 exports.sendEmailForChechEmailValid = async (req, res) => {
-  const { toEmails } = req.body;
+  try {
+    const { toEmails } = req.body;
 
-  // Check if the email exists in your database
-  let existingEmailRecord = await CheckEmail.findOne({ email: toEmails });
+    // Check if the email exists in your database
+    let existingEmailRecord = await CheckEmail.findOne({ email: toEmails });
 
-  if (existingEmailRecord) {
-    // Email already exists, generate a new 4-digit random number and update it
-    const newRandomNumber = generateRandomNumber(1000, 9999); // Generate a new 4-digit number
-    existingEmailRecord.verificationNumber = newRandomNumber.toString(); // Update the random number
-    await existingEmailRecord.save(); // Save the updated record
+    let randomNumber;
+    if (existingEmailRecord) {
+      // Email already exists, generate a new 4-digit random number and update it
+      randomNumber = generateRandomNumber(1000, 9999);
+      existingEmailRecord.verificationNumber = randomNumber.toString();
+      await existingEmailRecord.save();
+    } else {
+      // Email doesn't exist, generate a 4-digit random number and store the email
+      randomNumber = generateRandomNumber(1000, 9999);
+      const newEmailRecord = new CheckEmail({ email: toEmails, verificationNumber: randomNumber.toString() });
+      await newEmailRecord.save();
+    }
 
-    // Send the confirmation email with the new bold 4-digit random number
-    sendConfirmationEmail(toEmails, res, newRandomNumber);
-  } else {
-    // Email doesn't exist, generate a 4-digit random number and store the email
-    const randomNumber = generateRandomNumber(1000, 9999); // Generate a 4-digit number
+    // Send the confirmation email with the 4-digit random number
+    await sendConfirmationEmail(toEmails, randomNumber);
 
-    // Save the email and random number in your database
-    const newEmailRecord = new CheckEmail({ email: toEmails, verificationNumber: randomNumber.toString() });
-    await newEmailRecord.save();
-
-    // Send the confirmation email with the bold 4-digit random number
-    sendConfirmationEmail(toEmails, res, randomNumber);
+    res.status(200).send('Email sent successfully!');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Error occurred' });
   }
 };
 
 function generateRandomNumber(min, max) {
-  // Generate a random 4-digit number between min and max
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function sendConfirmationEmail(toEmails, res, randomNumber = null) {
+async function sendConfirmationEmail(toEmails, randomNumber) {
   const subject = "Confirmation Request for Email";
   let text = "I sent an important email with the subject Request to Get a Lesson in Driving School,";
-
-  if (randomNumber !== null) {
-    text += `To confirm its delivery, please enter this code: <strong>${randomNumber}</strong>.\n`;
-  }
-
+  text += `To confirm its delivery, please enter this code: <strong>${randomNumber}</strong>.\n`;
   text += "\nYour confirmation is much appreciated.";
 
   const transporter = nodemailer.createTransport({
@@ -58,15 +55,13 @@ function sendConfirmationEmail(toEmails, res, randomNumber = null) {
     html: text, // Use HTML for the email body to support the bold formatting
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      res.status(500).send('Error sending email');
-    } else {
-      res.status(200).send('Email sent successfully!');
-    }
+  return new Promise((resolve, reject) => {
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(info);
+      }
+    });
   });
 }
-
-
-
-
