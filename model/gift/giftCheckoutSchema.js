@@ -4,7 +4,6 @@ const giftCheckoutSchema = new mongoose.Schema({
     cardId: {
         type: String,
         required: true,
-        unique: true
     },
     deliverName: {
         type: String,
@@ -25,7 +24,6 @@ const giftCheckoutSchema = new mongoose.Schema({
     senderEmail: {
         type: String,
         required: true,
-        unique: true
     },
     senderOTP: {
         type: String,
@@ -34,6 +32,11 @@ const giftCheckoutSchema = new mongoose.Schema({
     deliverDate: {
         type: Date,
         required: true
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'success', 'failure'],
+        default: 'pending'
     }
 });
 

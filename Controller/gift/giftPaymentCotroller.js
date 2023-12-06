@@ -1,4 +1,4 @@
-const CheckoutInfo = require("../../model/booking/checkout/payment/paymentSchema");
+
 const CheckEmail = require("../../model/booking/checkout/checkEmail/checkEmailSchema");
 const GiftCheckoutSchema = require("../../model/gift/giftCheckoutSchema");
 const Gift = require('../../model/gift/giftSchema');
@@ -28,10 +28,10 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
         const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData,lineItems);
 
         // Save checkoutInfo to the database.
-        // Assuming saveCheckoutInfo is expecting the original data and the created line item
-        const savedCheckoutInfo = await saveCheckoutInfo(giftCheckoutReceivedData, lineItem);
+        // Assuming saveGiftCheckoutSchema is expecting the original data and the created line item
+        const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(giftCheckoutReceivedData, lineItem);
 
-        res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
+        res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
     } catch (error) {
         handleError(res, error);
     }
@@ -99,14 +99,11 @@ async function createStripePaymentIntent(giftCheckoutReceivedData,lineItems) {
     });
 }
 
-async function saveCheckoutInfo(receivedData, orderInfo) {
+async function saveGiftCheckoutSchema(giftCheckoutReceivedData) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
     const formattedDate = moment().format('YYYY-MM-DD : ha');
 
-    const checkoutInfo = new CheckoutInfo({
-        ...receivedData,
-        orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}
-    });
+    const checkoutInfo = new GiftCheckoutSchema({...giftCheckoutReceivedData});
 
     return checkoutInfo.save();
 }
@@ -129,5 +126,56 @@ function convertToNumber(value) {
     const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
     return parseFloat(withoutCommaAndExtraPeriods);
 }
+
+////////////// get CheckoutInfos .///////////////////////////////
+
+exports.getAllCheckoutInfos = async (req, res) => {
+    try {
+        const checkoutInfos = await GiftCheckoutSchema.find({});
+        res.json(checkoutInfos);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.getCheckoutInfoById = async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid ID" });
+        }
+
+        const checkoutInfo = await GiftCheckoutSchema.findById(id);
+
+        if (!checkoutInfo) {
+            return res.status(404).json({ message: "No checkout info found with this ID" });
+        }
+
+        res.json(checkoutInfo);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+exports.updateCheckoutInfo = async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid ID" });
+        }
+
+        const checkoutInfo = await GiftCheckoutSchema.findByIdAndUpdate(id, req.body, { new: true });
+
+        if (!checkoutInfo) {
+            return res.status(404).json({ message: "No checkout info found with this ID" });
+        }
+
+        res.json(checkoutInfo);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 
