@@ -1,9 +1,11 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 const giftCheckoutSchema = new mongoose.Schema({
     cardId: {
-        type: String,
+        type: Schema.Types.ObjectId,
         required: true,
+        ref: 'gifts',
     },
     deliverName: {
         type: String,
