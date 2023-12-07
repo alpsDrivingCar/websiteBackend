@@ -146,7 +146,7 @@ exports.getCheckoutInfoById = async (req, res) => {
             return res.status(400).json({ message: "Invalid ID" });
         }
 
-        const checkoutInfo = await GiftCheckoutSchema.findById(id);
+        const checkoutInfo = await GiftCheckoutSchema.findById(id).populate('cardId');
 
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
@@ -157,6 +157,7 @@ exports.getCheckoutInfoById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 exports.updateCheckoutInfo = async (req, res) => {
     try {
