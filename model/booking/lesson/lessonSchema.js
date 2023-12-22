@@ -9,6 +9,9 @@ const postCodeSchema = new Schema({
         {
             slug: String,
             title: String,
+            description: String,
+            image :String,
+            discount_text:String
         },
     ]
 });
