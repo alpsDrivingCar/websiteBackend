@@ -18,9 +18,9 @@ exports.locationss = (req, res) => {
     // result =   object  inside mongo database
     // LocationsSchema.findById(req.params.id)
     console.log("req.body" + req.body)
-    LocationsSchema.findByIdAndUpdate("654beda5ab97a73c1a91a53e", req.body, { new: true })
+    LocationsSchema.findById("654beda5ab97a73c1a91a53e")
         .then((result) => {
-            res.json({ data: result.data });
+            res.status(200).json({data: result});
         })
         .catch((err) => {
             console.log(err);
