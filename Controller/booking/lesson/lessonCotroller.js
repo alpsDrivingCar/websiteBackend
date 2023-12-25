@@ -25,44 +25,52 @@ exports.lessons = (req, res) => {
             console.log(err);
         });
 }
+
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
 
-    // Check if postcode is long enough
-    if (postcode.length < 3) {
-        return res.status(400).json({message: 'Invalid postcode format.'});
-    }
-
-    // Updated filter to search within 'areas' array for the first 3 characters of the postcode
-    const filter = {
-        "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
-    };
-
-    if (!postcode) {  // Checking for both null and undefined
-        return res.status(404).json({message: 'Postcode is not defined.'});
+    // Return all lessons if postcode is not provided or empty
+    if (!postcode) {
+        LessonSchema.find()
+            .then(lessons => {
+                return res.json(lessons);
+            })
+            .catch(err => {
+                console.log(err);
+                return res.status(500).json({ message: 'Error fetching lessons.' });
+            });
     } else {
+        // Check if postcode is long enough
+        if (postcode.length < 3) {
+            return res.status(400).json({ message: 'Invalid postcode format.' });
+        }
+
+        // Updated filter to search within 'areas' array for the first 3 characters of the postcode
+        const filter = {
+            "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
+        };
+
         InstructorsUserSchema.find(filter)
-            .then((result) => {
-                // console.log(result)
+            .then(result => {
                 if (result.length === 0) {
-                    // If no data is found, return a "not found" response
-                    return res.status(404).json({message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW'});
+                    return res.status(404).json({ message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW' });
                 } else {
                     LessonSchema.findById("64876d775160ba7ae603516e")
-                        .then((lessonResult) => {
-                            return res.json(lessonResult)
+                        .then(lessonResult => {
+                            return res.json(lessonResult);
                         })
-                        .catch((err) => {
+                        .catch(err => {
                             console.log(err);
-                            return res.status(404).json({message: err});
+                            return res.status(404).json({ message: err });
                         });
                 }
-            }).catch((err) => {
-            console.log(err);
-            return res.status(404).json({message: err});
-        });
+            })
+            .catch(err => {
+                console.log(err);
+                return res.status(404).json({ message: err });
+            });
     }
-}
+};
 
 
 exports.lessonUpdate = (req, res) => {

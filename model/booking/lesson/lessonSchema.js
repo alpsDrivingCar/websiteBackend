@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 // define the Schema (the structure of the article)
-const postCodeSchema = new Schema({
+const lessonsSchema = new Schema({
     title: String,
     description: String,
     typeOfLesson: [
@@ -18,7 +18,7 @@ const postCodeSchema = new Schema({
 
 
 // Create a model based on that schema
-const PostCode = mongoose.model("lessons", postCodeSchema);
+const LessonsCode = mongoose.model("lessons", lessonsSchema);
 
-module.exports = PostCode
+module.exports = LessonsCode
 
