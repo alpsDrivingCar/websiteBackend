@@ -31,7 +31,7 @@ exports.lessonByPostCode = async (req, res) => {
 
     // Return all lessons if postcode is not provided or empty
     if (!postcode) {
-        LessonSchema.find()
+        LessonSchema.findById("64876d775160ba7ae603516e")
             .then(lessons => {
                 return res.json(lessons);
             })
