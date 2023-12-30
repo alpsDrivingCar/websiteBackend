@@ -6,7 +6,8 @@ router.get("/all",server.getBookingInstructors)
 router.post("/",server.createBookingInstructors)
 router.put("/",server.bookingInstructorsUpdate)
 router.delete("/:id",server.deleteBookingInstructors)
-router.get("/",server.instructorsByPostcodeAndtype)
+router.get("/packages",server.getBookingPackagesByPostcodeAndtype)
+router.get("/instructors",server.instructorsByPostcodeAndAvailableTimeAndGearBox)
 
 
 module.exports = router

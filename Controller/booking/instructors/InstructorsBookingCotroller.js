@@ -27,6 +27,7 @@ exports.getBookingInstructors = (req, res) => {
             console.log(err);
         });
 }
+
 exports.bookingInstructorsUpdate = (req, res) => {
     // result =   object  inside mongo database
     InstructorsSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
@@ -50,21 +51,52 @@ exports.deleteBookingInstructors = (req, res) => {
 
 
 
-exports.instructorsByPostcodeAndtype = async (req, res) => {
+/////////////////////////// end cred ///////////////////////////////////////
+
+/////////////////////////  Get instructors        ///////////////////////////
+exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
+    try {
+        const { postcode, availableTime, gearbox } = req.query;
+
+        // Check for mandatory parameters
+        if (!postcode || !gearbox) {
+            return res.status(400).json({ message: 'Postcode and gearbox are required query parameters.' });
+        }
+
+        // Construct the filter
+        const filter = {
+            "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
+            // "gearbox": gearbox
+        };
+
+        // // Include availableTime in filter if provided
+        // if (availableTime) {
+        //     filter["availableTimes"] = { $in: [availableTime] };
+        // }
+        console.log("availableTime" + availableTime)
+
+        const instructors = await InstructorsUserSchema.find(filter);
+
+        if (!instructors.length) {
+            return res.status(404).json({ message: 'No instructors found matching the criteria.' });
+        }
+
+        res.json({ data: instructors });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "An error occurred", error });
+    }
+};
+
+
+////////////////////// get Booking   //////////////////
+exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
     try {
         const { postcode, type: typeId } = req.query;
 
         if (!postcode) {
             return res.status(404).json({ message: 'Postcode is not defined.' });
-        }
-
-        const instructors = await fetchInstructorsByPostcode(postcode);
-        console.log("instructors = " +instructors )
-
-        if (!instructors.length) {
-            return res.status(404).json({
-                message: 'No trainers available for this PostCode.'
-            });
         }
 
         const targetTypeOfLesson = await fetchLessonTypeById(typeId);
@@ -81,9 +113,7 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
             });
         }
 
-
-
-        const formattedData = formatDataForBookingInstructors(bookingPackages, instructors);
+        const formattedData = formatDataForBooking(bookingPackages);
 
         const bookingInstructor = new InstructorsSchema(formattedData);
         await bookingInstructor.save();
@@ -96,13 +126,7 @@ exports.instructorsByPostcodeAndtype = async (req, res) => {
     }
 };
 
-const fetchInstructorsByPostcode = async (postcode) => {
-    // const filter = { "postCode": new RegExp(`^${postcode}`, "i") };
-    const filter = {
-        "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
-    };
-    return await InstructorsUserSchema.find(filter);
-};
+
 
 const fetchLessonTypeById = async (typeId) => {
     const lesson = await LessonSchema.findById("64876d775160ba7ae603516e");
@@ -122,42 +146,40 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 
 };
 
-const formatDataForBookingInstructors = (bookingPackages, instructors) => {
-    // First, group the booking packages by their gearbox type
+const formatDataForBooking = (bookingPackages) => {
+    // Group the booking packages by their gearbox type
     const groupedPackages = bookingPackages.reduce((acc, curr) => {
         if (!acc[curr.slugOfGearbox]) {
             acc[curr.slugOfGearbox] = {
                 slug: curr.slugOfGearbox,
                 name: curr.gearbox,
-                packages: []
+                packages: []  // Moved the packages array here
             };
         }
-        acc[curr.slugOfGearbox].packages.push(curr);
+        acc[curr.slugOfGearbox].packages.push({
+            packageId: curr.id,
+            numberHour: parseInt(curr.numberHour),
+            numberOfLessons: parseInt(curr.numberHour) / 2,  // Calculate number of lessons
+            total: convertToNumber(curr.price),
+            totalBeforeSele: convertToNumber(curr.priecBeforeSele)
+        });
         return acc;
     }, {});
 
-    // For each gearbox type, map the instructors to their packages
+    // Map the instructors to each gearbox type
     const gearboxData = Object.values(groupedPackages).map(gearbox => {
         return {
             slug: gearbox.slug,
             name: gearbox.name,
-            instructors: instructors.map(instructor => {
-                // Use the current gearbox package to calculate the price per hour
-                const pricePerHour = gearbox.packages[0] ? gearbox.packages[0].priecBeforeSele / gearbox.packages[0].numberHour : 0;
-
-                return {
-                    name: `${instructor.firstName} ${instructor.lastName}`,
-                    priceHour: pricePerHour,
-                    package: gearbox.packages.map(pkg => {
-                        return {
-                            packageId: pkg.id,
-                            numberHour: parseInt(pkg.numberHour),
-                            total: convertToNumber(pkg.price),
-                            totalBeforeSele:convertToNumber(pkg.priecBeforeSele)
-                        };
-                    })
-                };
-            })
+            package: gearbox.packages,  // Assigning the packages array here
+            // instructors: instructors.map(instructor => {
+            //     // Calculate the price per hour for the instructor
+            //     const pricePerHour = gearbox.packages[0] ? gearbox.packages[0].totalBeforeSele / gearbox.packages[0].numberHour : 0;
+            //     return {
+            //         name: `${instructor.firstName} ${instructor.lastName}`,
+            //         priceHour: pricePerHour
+            //     };
+            // })
         };
     });
 
