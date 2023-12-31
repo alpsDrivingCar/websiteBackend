@@ -1,68 +1,43 @@
 const AboutusSchema = require("../../model/setting/aboutusSchema");
-const {body, validationResult} = require('express-validator');
 
 exports.createAboutus = async (req, res) => {
-    const aboutusSchema = new AboutusSchema(req.body);
-
-    const errors = await handleValidator(req);
-    if (!errors.isEmpty()) {
-        const errorMessages = errors.array().map(error => error.msg);
-        return res.status(400).json({errors: errorMessages[0]});
+    try {
+        const aboutusSchema = new AboutusSchema(req.body);
+        const result = await aboutusSchema.save();
+        res.status(201).json(result);
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
     }
+};
 
-    console.log(req.body);
-    aboutusSchema.save()
-        .then(result => {
-            res.json(result);
-        })
-        .catch(err => {
-            console.log(err);
-        });
 
-}
-
-async function handleValidator(req) {
-    const validationChecks = [
-        body('description').notEmpty().withMessage('description Name is required'),
-        body('image').notEmpty().withMessage('image Name is required'),
-        body('title').notEmpty().withMessage('title Name is required'),
-    ];
-
-    for (const validationCheck of validationChecks) {
-        await validationCheck.run(req);
+exports.aboutus = async (req, res) => {
+    try {
+        const result = await AboutusSchema.findById("6591bc7ea8030987c14d38d0");
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
     }
+};
 
-    const errors = validationResult(req);
-    return errors;
-}
+exports.aboutusUpdate = async (req, res) => {
+    try {
+        const result = await AboutusSchema.findByIdAndUpdate("6591bc7ea8030987c14d38d0", req.body, { new: true });
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
+    }
+};
 
-exports.aboutus = (req, res) => {
-
-    AboutusSchema.findById("64e648c09e3a26ecf93d9651")
-        .then((result) => {
-            res.json(result)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
-
-exports.aboutusUpdate = (req, res) => {
-    AboutusSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
-        .then((result) => {
-            res.json(result)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
-
-exports.deleteAboutus = (req, res) => {
-    AboutusSchema.findByIdAndDelete(req.params.id)
-        .then((result) => {
-            res.send("Delete " + result.response)
-        })
-        .catch((err) => {
-            console.log(err);
-        });
-}
+exports.deleteAboutus = async (req, res) => {
+    try {
+        await AboutusSchema.findByIdAndDelete(req.params.id);
+        res.status(200).send("About us entry deleted successfully.");
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
+    }
+};
