@@ -25,9 +25,7 @@ exports.timeLessons = (req, res) => {
         });
 }
 
-exports.timeLessonByInstructors = (req, res) => {
-    // result =   object  inside mongo database
-    // TimeLessonSchema.findById(req.params.id)
+exports.unAvailableTimeLesson = (req, res) => {
     console.log(req.query)
 
     TimeLessonSchema.findById("64cd116d18343dcb8ce98a1d")

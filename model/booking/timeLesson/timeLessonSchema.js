@@ -25,7 +25,7 @@ const DaySchema = new Schema({
         type: String,
         required: true,
     },
-    availableTimes: {
+    unAvailableTimes: {
         type: [TimeSlotSchema],
         required: true,
     },
