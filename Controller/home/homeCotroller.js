@@ -19,17 +19,11 @@ exports.homes = (req, res) => {
     let isMobile = /mobile/i.test(userAgent);
     console.log("isMobile = " + isMobile)
     console.log("userAgent = " + userAgent)
-    HomeSchema.findById("6489c7239bdfd1bbc0d33afc")
-        .then((result) => {
-            // You can modify the result based on the device type if needed
-            if (isMobile) {
-                // Handle the response for mobile devices
-                // For example, modify 'result' or send a different response
 
-                result.title =  result.title + "..."
-            } else {
-                // Handle the response for non-mobile devices (like browsers)
-            }
+    let id = isMobile ? "659914cd271e61d45d98c53b" : "65991313b4bf8eaf3a858c1b";
+
+    HomeSchema.findById(id)
+        .then((result) => {
             res.json(result);
         })
         .catch((err) => {

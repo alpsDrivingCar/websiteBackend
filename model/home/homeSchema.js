@@ -7,9 +7,16 @@ const homeSchema = new Schema({
         title: String,
         description: String,
         videoLink: String,
-        postCodeButtonText: String,
-        postCodeInputText: String,
-        backgroundImage: String,
+        startButtonText: String,
+        headerImage: String,
+        hotBox: [
+            {
+                icon: String,
+                title: String,
+                description: String,
+                buttonText: String,
+            }
+        ]
     },
     whyAlps: {
         title: String,
