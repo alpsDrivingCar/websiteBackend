@@ -16,12 +16,6 @@ const bookingInstructorsSchema = new Schema({
                     totalBeforeSale: Number,
                     numberOfLessons: Number  // New field added
                 }
-            ],
-            instructors: [
-                {
-                    name: String,
-                    priceHour: Number
-                }
             ]
         }
     ]
