@@ -172,6 +172,7 @@ const formatDataForBooking = (bookingPackages) => {
             acc[curr.slugOfGearbox] = {
                 slug: curr.slugOfGearbox,
                 name: curr.gearbox,
+                selected: curr.slugOfGearbox === 'manual',
                 packages: []  // Moved the packages array here
             };
         }
@@ -187,9 +188,11 @@ const formatDataForBooking = (bookingPackages) => {
 
     // Map the instructors to each gearbox type
     const gearboxData = Object.values(groupedPackages).map(gearbox => {
+
         return {
             slug: gearbox.slug,
             name: gearbox.name,
+            selected: gearbox.slug === 'manual',
             package: gearbox.packages,  // Assigning the packages array here
             // instructors: instructors.map(instructor => {
             //     // Calculate the price per hour for the instructor
