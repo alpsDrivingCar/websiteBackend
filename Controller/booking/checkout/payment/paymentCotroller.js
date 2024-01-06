@@ -111,6 +111,7 @@ async function validateVerificationNumber(studentInfo) {
 async function generateLineItems(orderInfo) {
     let items = [...orderInfo.items];
 
+
     if (orderInfo.testBooking === 'book') {
         items.push({
             name: "Test Booking",
@@ -119,6 +120,13 @@ async function generateLineItems(orderInfo) {
             price: 14000
         });
     }
+    items.push({
+        name: "Transaction fees",
+        quantity: 1,
+        packageId: null,
+        price: 350
+    });
+
 
     return Promise.all(items.map(async item => {
         if (item.packageId) {

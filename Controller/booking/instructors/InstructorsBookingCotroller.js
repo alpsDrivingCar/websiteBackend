@@ -1,4 +1,5 @@
 const InstructorsSchema = require("../../../model/booking/instructors/instructorsSchema");
+const LessonEvent = require("../../../model/booking/instructors/lessonEventSchema");
 const InstructorsUserSchema = require("../../../model/user/Instructor");
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
@@ -50,62 +51,81 @@ exports.deleteBookingInstructors = (req, res) => {
 }
 
 
-
 /////////////////////////// end cred ///////////////////////////////////////
 
 /////////////////////////  Get instructors        ///////////////////////////
 exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     try {
         const { postcode, availableTime, gearbox } = req.query;
+        console.log("Query Params:", postcode, availableTime, gearbox);
 
-        // Check for mandatory parameters
-        if (!postcode || !gearbox) {
-            return res.status(400).json({ message: 'Postcode and gearbox are required query parameters.' });
+        if (!postcode || !gearbox || !availableTime) {
+            return res.status(400).json({ message: 'Postcode, gearbox, and availableTime are required query parameters.' });
         }
 
-        // Construct the filter
         const filter = {
             "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
             // "gearbox": gearbox
         };
 
-        // // Include availableTime in filter if provided
-        // if (availableTime) {
-        //     filter["availableTimes"] = { $in: [availableTime] };
-        // }
-        console.log("availableTime" + availableTime)
+        let instructors = await InstructorsUserSchema.find(filter);
+        if (!instructors.length) {
+            return res.status(404).json({ message: 'No available instructors found for the criteria.' });
+        }
+        // const availableDateTime = new Date(availableTime);
+        const availableDateTime = new Date(availableTime); // Adjust this line in your code
 
-        const instructors = await InstructorsUserSchema.find(filter);
+        instructors = await Promise.all(instructors.map(async (instructor) => {
+            try {
+                console.log("Checking lessons for instructor:", instructor._id);
+                const hasLesson = await LessonEvent.findOne({
+                    instructorId: instructor._id,
+                    startTime: { $lte: availableDateTime },
+                    endTime: { $gte: availableDateTime }
+                });
+
+                console.log( "hasLesson ", hasLesson  + instructor.firstName) ;
+                return hasLesson ? null : instructor;
+            } catch (error) {
+                console.error("Error fetching lessons for instructor", instructor._id, error);
+                // Decide how you want to handle the error. For example, you can:
+                // - return null to exclude this instructor
+                // - return the instructor to include them regardless of the error
+                // - throw the error to stop processing (will be caught by the outer try...catch)
+                return null; // or instructor, or throw error;
+            }
+        }));
+
+        instructors = instructors.filter(instructor => instructor !== null);
 
         if (!instructors.length) {
-            return res.status(404).json({ message: 'No instructors found matching the criteria.' });
+            return res.status(404).json({ message: 'No available instructors found for the criteria.' });
         }
 
         res.json({ data: instructors });
 
     } catch (error) {
-        console.error(error);
+        console.error("Outer Error:", error);
         res.status(500).json({ message: "An error occurred", error });
     }
 };
 
-
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
     try {
-        const { postcode, type: typeId } = req.query;
+        const {postcode, type: typeId} = req.query;
 
         if (!postcode) {
-            return res.status(404).json({ message: 'Postcode is not defined.' });
+            return res.status(404).json({message: 'Postcode is not defined.'});
         }
 
         const targetTypeOfLesson = await fetchLessonTypeById(typeId);
         if (!targetTypeOfLesson) {
-            return res.status(400).send({ message: "Invalid type provided" });
+            return res.status(400).send({message: "Invalid type provided"});
         }
 
         const bookingPackages = await fetchBookingPackages(postcode, targetTypeOfLesson.slug);
-        console.log("bookingPackages = "+bookingPackages )
+        console.log("bookingPackages = " + bookingPackages)
 
         if (!bookingPackages.length) {
             return res.status(404).send({
@@ -118,14 +138,13 @@ exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
         const bookingInstructor = new InstructorsSchema(formattedData);
         await bookingInstructor.save();
 
-        return res.json({ data: bookingInstructor });
+        return res.json({data: bookingInstructor});
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ message: "An error occurred", error });
+        return res.status(500).json({message: "An error occurred", error});
     }
 };
-
 
 
 const fetchLessonTypeById = async (typeId) => {
