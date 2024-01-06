@@ -14,7 +14,10 @@ const bookingInstructorsSchema = new Schema({
                     numberHour: Number,
                     total: Number,
                     totalBeforeSale: Number,
-                    numberOfLessons: Number  // New field added
+                    numberOfLessons: Number,
+                    saveUp: { type: String, default: "Save Up To 20% !" },
+                    priceSave: { type: String, default: "Save £50" },
+
                 }
             ]
         }
