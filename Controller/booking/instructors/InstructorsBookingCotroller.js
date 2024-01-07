@@ -73,7 +73,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             return res.status(404).json({ message: 'No available instructors found for the criteria.' });
         }
         // const availableDateTime = new Date(availableTime);
-        const availableDateTime = new Date(availableTime); // Adjust this line in your code
+        const availableDateTime = availableTime; // Adjust this line in your code
 
         instructors = await Promise.all(instructors.map(async (instructor) => {
             try {
