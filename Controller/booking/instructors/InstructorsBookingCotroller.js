@@ -70,7 +70,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 
         let instructors = await InstructorsUserSchema.find(filter);
         if (!instructors.length) {
-            return res.status(404).json({ message: 'No available instructors found for the criteria.' });
+            return res.json({data: []});
         }
         // const availableDateTime = new Date(availableTime);
         const availableDateTime = availableTime; // Adjust this line in your code
