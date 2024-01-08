@@ -5,7 +5,7 @@ const Schema = mongoose.Schema;
 const checkoutInfoSchema = new mongoose.Schema({
     orderInfo: {
         postCode: String,
-        typeOfLesson: String,//hot-offer
+        typeOfLesson: String,//hot-offer , regular
         typeOfGearbox: String,
         instructorsId: {
             type: Schema.Types.ObjectId,

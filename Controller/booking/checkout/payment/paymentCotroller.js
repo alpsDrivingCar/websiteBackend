@@ -82,7 +82,6 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         const receivedData = req.body;
         const { studentInfo, orderInfo } = receivedData;
 
-        await validateVerificationNumber(studentInfo);
         const lineItems = await generateLineItems(orderInfo);
 
         // Create Stripe payment intent.
@@ -199,7 +198,7 @@ async function createStripePaymentIntent(orderInfo, lineItems) {
 async function saveCheckoutInfo(receivedData, orderInfo) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
     const formattedDate = moment().format('YYYY-MM-DD : ha');
-
+    receivedData.studentInfo.address = receivedData.orderInfo.postCode
     const checkoutInfo = new CheckoutInfo({
         ...receivedData,
         orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}

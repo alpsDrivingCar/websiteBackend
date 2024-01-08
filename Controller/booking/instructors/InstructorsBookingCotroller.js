@@ -73,7 +73,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             return res.json({data: []});
         }
         // const availableDateTime = new Date(availableTime);
-        const availableDateTime = availableTime; // Adjust this line in your code
+        const availableDateTime = new Date(availableTime); // Adjust this line in your code
 
         instructors = await Promise.all(instructors.map(async (instructor) => {
             try {
@@ -166,42 +166,42 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 };
 
 const formatDataForBooking = (bookingPackages) => {
-    // Group the booking packages by their gearbox type
     const groupedPackages = bookingPackages.reduce((acc, curr) => {
         if (!acc[curr.slugOfGearbox]) {
             acc[curr.slugOfGearbox] = {
                 slug: curr.slugOfGearbox,
                 name: curr.gearbox,
                 selected: curr.slugOfGearbox === 'manual',
-                packages: []  // Moved the packages array here
+                packages: []
             };
         }
+
+        const total = convertToNumber(curr.price);
+        const totalBeforeSale = convertToNumber(curr.priecBeforeSele);
+
+        // Calculate the savings
+        const savings = totalBeforeSale - total;
+        const savingsPercentage = (savings / totalBeforeSale) * 100;
+
         acc[curr.slugOfGearbox].packages.push({
             packageId: curr.id,
             numberHour: parseInt(curr.numberHour),
-            numberOfLessons: parseInt(curr.numberHour) / 2,  // Calculate number of lessons
-            total: convertToNumber(curr.price),
-            totalBeforeSele: convertToNumber(curr.priecBeforeSele)
+            numberOfLessons: parseInt(curr.numberHour) / 2,
+            total: total,
+            totalBeforeSale: totalBeforeSale,
+            saveUp: `Save Up To ${savingsPercentage.toFixed(0)}%!`,
+            priceSave: `Save £${savings.toFixed(2)}`
         });
+
         return acc;
     }, {});
 
-    // Map the instructors to each gearbox type
     const gearboxData = Object.values(groupedPackages).map(gearbox => {
-
         return {
             slug: gearbox.slug,
             name: gearbox.name,
             selected: gearbox.slug === 'manual',
-            package: gearbox.packages,  // Assigning the packages array here
-            // instructors: instructors.map(instructor => {
-            //     // Calculate the price per hour for the instructor
-            //     const pricePerHour = gearbox.packages[0] ? gearbox.packages[0].totalBeforeSele / gearbox.packages[0].numberHour : 0;
-            //     return {
-            //         name: `${instructor.firstName} ${instructor.lastName}`,
-            //         priceHour: pricePerHour
-            //     };
-            // })
+            package: gearbox.packages
         };
     });
 
@@ -210,6 +210,7 @@ const formatDataForBooking = (bookingPackages) => {
         gearbox: gearboxData
     };
 };
+
 
 function convertToNumber(value) {
     const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
