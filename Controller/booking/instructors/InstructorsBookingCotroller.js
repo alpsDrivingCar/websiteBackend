@@ -72,27 +72,32 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (!instructors.length) {
             return res.json({data: []});
         }
-        // const availableDateTime = new Date(availableTime);
-        const availableDateTime = new Date(availableTime); // Adjust this line in your code
+
+        // Check if availableTime is an array, if not, make it an array
+        const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
 
         instructors = await Promise.all(instructors.map(async (instructor) => {
             try {
                 console.log("Checking lessons for instructor:", instructor._id);
-                const hasLesson = await LessonEvent.findOne({
-                    instructorId: instructor._id,
-                    startTime: { $lte: availableDateTime },
-                    endTime: { $gte: availableDateTime }
-                });
 
-                console.log( "hasLesson ", hasLesson  + instructor.firstName) ;
-                return hasLesson ? null : instructor;
+                // Check for each available time
+                for (const time of availableTimes) {
+                    const hasLesson = await LessonEvent.findOne({
+                        instructorId: instructor._id,
+                        startTime: { $lte: time },
+                        endTime: { $gte: time }
+                    });
+
+                    if (hasLesson) {
+                        console.log("Instructor unavailable at", time, instructor.firstName);
+                        return null; // Instructor is unavailable, exclude them
+                    }
+                }
+
+                return instructor; // Instructor is available at all provided times
             } catch (error) {
                 console.error("Error fetching lessons for instructor", instructor._id, error);
-                // Decide how you want to handle the error. For example, you can:
-                // - return null to exclude this instructor
-                // - return the instructor to include them regardless of the error
-                // - throw the error to stop processing (will be caught by the outer try...catch)
-                return null; // or instructor, or throw error;
+                return null;
             }
         }));
 
