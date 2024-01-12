@@ -53,16 +53,22 @@ app.use(function (req, res, next) {
 
 
 //mongoose
-const {mongoose} = require('mongoose');
+const { mongoose } = require('mongoose');
+
 mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
 }).then(() => {
-    // app.listen(3000)
-    app.listen(process.env.PORT || 80, () => {
-        console.log("Server Run ")
-    })
+    const port = process.env.PORT || 80;
+    const localUrl = `http://localhost:${port}`;
+    const remoteUrl = 'https://alps-driving-website.herokuapp.com/api/';
+
+    app.listen(port, () => {
+        console.log("Server Run ");
+        console.log(`Local URL: ${localUrl}`);
+        console.log(`Remote URL: ${remoteUrl}`);
+    });
 }).catch(err => {
-        console.log("mongodb Error :" + err)
-    })
+    console.log("mongodb Error :" + err);
+});
 
 module.exports = app
