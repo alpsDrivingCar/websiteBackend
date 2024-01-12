@@ -23,6 +23,7 @@ app.use('/api/booking/packageBooking', require('./routes/booking/package/Package
 app.use('/api/checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
 app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
 app.use('/api/test-booking', require('./routes/booking/testBooking/TestBookingRoutes'))
+app.use('/api/postcode', require('./routes/booking/postcode/PostcodeRoutes'))
 
 //Routes setting
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
