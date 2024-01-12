@@ -2,8 +2,9 @@ const InstructorsUserSchema = require("../../../model/user/Instructor");
 const PostcodeSearch = require("../../../model/postcode/PostcodeSearchSchema");
 
 exports.validateUKPostcode = (req, res) => {
-    const postcode = req.query.postcode;
-    const regexPattern = /^([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) [0-9][A-Za-z]{2})$/;
+    let postcode = req.query.postcode;
+    postcode = postcode.replace(/\s+/g, '').toUpperCase();
+    const regexPattern = /^([Gg][Ii][Rr] ?0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) ?[0-9][A-Za-z]{2})$/;
 
     if (!regexPattern.test(postcode)) {
         return res.status(400).json({ valid: false, message: 'Invalid UK postcode.' });
