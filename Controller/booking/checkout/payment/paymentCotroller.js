@@ -44,6 +44,7 @@ exports.getPayment = async (req, res) => {
     }
 }
 
+
 exports.updateSaveStatusAndChangedBy = async (req, res) => {
     try {
         const checkoutInfoId = req.params.id;
@@ -122,7 +123,7 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
 
         // Save checkoutInfo to the database.
         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
-
+        savedCheckoutInfo.orderInfo.success_url = savedCheckoutInfo.orderInfo.success_url + "/" + savedCheckoutInfo.id
         res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
     } catch (error) {
         handleError(res, error);
