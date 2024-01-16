@@ -118,12 +118,13 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
 
         const lineItems = await generateLineItems(orderInfo);
 
-        // Create Stripe payment intent.
-        const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
 
         // Save checkoutInfo to the database.
         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
-        savedCheckoutInfo.orderInfo.success_url = savedCheckoutInfo.orderInfo.success_url + "/" + savedCheckoutInfo.id
+
+        // Create Stripe payment intent.
+        const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
+
         res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
     } catch (error) {
         handleError(res, error);
@@ -234,10 +235,14 @@ async function saveCheckoutInfo(receivedData, orderInfo) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
     const formattedDate = moment().format('YYYY-MM-DD : ha');
     receivedData.studentInfo.address = receivedData.orderInfo.postCode
+
     const checkoutInfo = new CheckoutInfo({
         ...receivedData,
         orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}
     });
+    orderInfo.success_url = checkoutInfo.orderInfo.success_url + "/" + checkoutInfo.id
+    checkoutInfo.orderInfo = orderInfo
+
 
     return checkoutInfo.save();
 }
