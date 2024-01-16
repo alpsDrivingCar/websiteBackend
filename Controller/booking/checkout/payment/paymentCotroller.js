@@ -240,7 +240,7 @@ async function saveCheckoutInfo(receivedData, orderInfo) {
         ...receivedData,
         orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}
     });
-    orderInfo.success_url = checkoutInfo.orderInfo.success_url + "/" + checkoutInfo.id
+    orderInfo.success_url = checkoutInfo.orderInfo.success_url + "?id=" + checkoutInfo.id
     checkoutInfo.orderInfo = orderInfo
 
 
