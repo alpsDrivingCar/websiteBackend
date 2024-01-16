@@ -77,6 +77,39 @@ exports.updateSaveStatusAndChangedBy = async (req, res) => {
     }
 };
 
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params; // Get the ID from the request parameters
+        const { status } = req.body; // Get the status from the request body
+
+        // Check if the ID is a valid MongoDB ObjectID
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ message: 'Invalid ID format' });
+        }
+
+        // Validate the status
+        const validStatuses = ['pending', 'success', 'failure'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+
+        // Update the status field
+        const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
+            id,
+            { 'orderInfo.status': status },
+            { new: true } // Returns the updated document
+        ).exec();
+
+        if (!updatedCheckoutInfo) {
+            return res.status(404).json({ message: 'Checkout info not found' });
+        }
+
+        res.json({message: "Order status updated successfully!",});
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 exports.createPaymentAndGetUrlPayment = async (req, res) => {
     try {
         const receivedData = req.body;
@@ -95,6 +128,7 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         handleError(res, error);
     }
 };
+
 
 async function validateVerificationNumber(studentInfo) {
     const existingEmailRecord = await CheckEmail.findOne({
