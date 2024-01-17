@@ -1,4 +1,3 @@
-const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
 const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const OfferSchema = require("../../../../model/offer/offerSchema");
@@ -44,72 +43,6 @@ exports.getPayment = async (req, res) => {
     }
 }
 
-
-exports.updateSaveStatusAndChangedBy = async (req, res) => {
-    try {
-        const checkoutInfoId = req.params.id;
-        const { saveStatus, changedSaveStatusBy } = req.body;
-
-        // Validate the new save status
-        if (!['un-save', 'save', 'in-progress'].includes(saveStatus)) {
-            return res.status(400).json({ error: 'Invalid save status' });
-        }
-
-        // Check if changedSaveStatusBy is provided and not empty
-        if (!changedSaveStatusBy || changedSaveStatusBy.trim() === '') {
-            return res.status(400).json({ error: 'changedSaveStatusBy is required' });
-        }
-
-        // Update the document
-        const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
-            checkoutInfoId,
-            { $set: { saveStatus, changedSaveStatusBy } },
-            { new: true } // return the updated document
-        );
-
-        if (!updatedCheckoutInfo) {
-            return res.status(404).json({ error: 'CheckoutInfo not found' });
-        }
-
-        res.json({ data: updatedCheckoutInfo });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An unexpected error occurred.' });
-    }
-};
-
-exports.updateOrderStatus = async (req, res) => {
-    try {
-        const { id } = req.params; // Get the ID from the request parameters
-        const { status } = req.body; // Get the status from the request body
-
-        // Check if the ID is a valid MongoDB ObjectID
-        if (!mongoose.isValidObjectId(id)) {
-            return res.status(400).json({ message: 'Invalid ID format' });
-        }
-
-        // Validate the status
-        const validStatuses = ['pending', 'success', 'failure'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ message: 'Invalid status value' });
-        }
-
-        // Update the status field
-        const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
-            id,
-            { 'orderInfo.status': status },
-            { new: true } // Returns the updated document
-        ).exec();
-
-        if (!updatedCheckoutInfo) {
-            return res.status(404).json({ message: 'Checkout info not found' });
-        }
-
-        res.json({message: "Order status updated successfully!",});
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
 
 exports.createPaymentAndGetUrlPayment = async (req, res) => {
     try {
