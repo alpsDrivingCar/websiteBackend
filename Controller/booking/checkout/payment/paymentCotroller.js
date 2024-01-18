@@ -1,3 +1,4 @@
+const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
 const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const OfferSchema = require("../../../../model/offer/offerSchema");
