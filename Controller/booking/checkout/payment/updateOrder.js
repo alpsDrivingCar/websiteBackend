@@ -38,10 +38,11 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId) {
 
     for (const time of availableHours) {
         console.log("Original Time = " + time);
-        const formattedStartTime = formatTime(time); // Ensure formatTime is defined
-        console.log("Formatted Start Time = " + formattedStartTime);
+        const formattedStartTime = convertToSimpleTimeFormat(time); // Ensure formatTime is defined
+        console.log("Formatted Start Time = " + formattedStartTime );
+        console.log("Formatted Start Time = " + "3:00 AM");
         const formattedDateTime = convertDateToReadableFormat(time);
-        console.log("Formatted Start Time = " + formattedDateTime);
+        // console.log("Formatted Start Time = " + formattedDateTime);
 
 
         // Call addLessonEvent for each time and store the result
@@ -190,10 +191,15 @@ exports.updateSaveStatusAndChangedBy = async (req, res) => {
     }
 };
 
-function formatTime(timeString) {
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', {hour: 'numeric', minute: '2-digit', hour12: true});
+function convertToSimpleTimeFormat(isoDateString) {
+    const date = new Date(isoDateString);
+    return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
 }
+
 function convertDateToReadableFormat(dateString) {
     const date = new Date(dateString);
     return date.toLocaleString('en-US', {
