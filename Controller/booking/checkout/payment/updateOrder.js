@@ -57,9 +57,10 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId) {
 async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
     const typeOfGearbox = updatedCheckoutInfo.orderInfo.typeOfGearbox.toLowerCase()
     try {
+
         const lessonEventData = {
-            "startTime": startTime.toString(),
-            // "startTime": "3:00 AM",
+            // "startTime": startTime.toString(),
+            "startTime": "3:00 AM",
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             // "pupilId": pupilId,
             "pupilId": "65a98b7422778b555b38b105",
