@@ -11,13 +11,14 @@ exports.updateOrderStatus = async (req, res) => {
         // Update status
         const updatedCheckoutInfo = await updateStatusById(id, status);
 
-        const apiResponse = await fireExternalAPI(updatedCheckoutInfo);
-        const pupilId = apiResponse.pupil._id;
+        // const apiResponse = await fireExternalAPI(updatedCheckoutInfo);
+        // const pupilId = apiResponse.pupil._id;
+        const pupilId = "";
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId);
         res.json({
             message: "Order status updated successfully!",
             data: updatedCheckoutInfo,
-            apiResponse: apiResponse, // Include the external API response
+            // apiResponse: apiResponse, // Include the external API response
             addLessonEvent: addLessonEvent1 // Include the external API response
         });
     } catch (error) {
@@ -55,7 +56,8 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
         const lessonEventData = {
             "startTime": startTime,
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
-            "pupilId": pupilId,
+            // "pupilId": pupilId,
+            "pupilId": "65a98b7422778b555b38b105",
             "durationMinutes": "60", // Duration of the lesson in minutes
             "durationHours": "2", // Duration of the lesson in hours
             "gearbox": typeOfGearbox, // Type of gearbox, e.g., automatic or manual
