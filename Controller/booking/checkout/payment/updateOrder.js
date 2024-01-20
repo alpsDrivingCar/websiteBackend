@@ -1,7 +1,7 @@
 const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
 const mongoose = require("mongoose");
 const axios = require('axios');
-const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NDEzNjZmYWNjM2FkNmRlNDU4ZDFjMzAiLCJmaXJzdE5hbWUiOiJtb2hhbW1lZDEiLCJsYXN0TmFtZSI6Im1hbnNvdXIxIiwiZW1haWwiOiJtb2hhbW1lZC5tYW5zb3VyNDAwOUBnbWFpbC5jb20iLCJwYXNzd29yZCI6IiQyYiQxMCRibHh1TndQa05UYmxqL0wxUVM1ZnouQXZwU1EvUk93VEpyaC9qVmRJalI2dGp2b2xScVN5TyIsInBob25lTnVtYmVyIjoiMDc4ODEyMjYwOCIsImlzQWRtaW4iOnRydWUsImlzU3VwZXJ2aXNvciI6ZmFsc2UsImlzSW5zdHJ1Y3RvciI6ZmFsc2UsInJvbGVzIjpbInN1cGVydmlzb3IiXSwiY3JlYXRlZEF0IjoiMjAyMy0wMy0xNlQxODo1OTowNi41MDFaIiwidXBkYXRlZEF0IjoiMjAyNC0wMS0xNlQxNzowMzoxOS4yNzFaIiwiX192IjowLCJwZGZBZG1pbiI6W10sImRlc2NyaXB0aW9uIjoiQmFheiBpcyB0aGUgZmlyc3QgQXJhYmljIHNvY2lhbCBtZWRpYSBwbGF0Zm9ybSB0aGF0IHByb3ZpZGVzIGNvbW11bml0aWVzIGZvciB1c2VycyB0byBjb25uZWN0IHdpdGggb3RoZXJzIHdobyBzaGFyZSBzaW1pbGFyIGludGVyZXN0cywgaG9iYmllcyBhbmQgcGFzc2lvbnMuZWVlZmRcbiIsInByb2ZpbGVJbWFnZSI6Imh0dHBzOi8vZmlyZWJhc2VzdG9yYWdlLmdvb2dsZWFwaXMuY29tL3YwL2IvYWxwcy0xZjYwNi5hcHBzcG90LmNvbS9vL3N1cGVydmlzb3IlMkYxNzA0NTYyODI1MTk1Y3JvcHBlZC1pbWFnZS5qcGc_YWx0PW1lZGlhJnRva2VuPTBhYjg3ZTc1LWQxOTMtNGQyOS04NDI1LWU1NTZmYjc2MjE0YiIsImlhdCI6MTcwNTc0NDMxOSwiZXhwIjoxNzA1ODMwNzE5fQ.xjkWMa8Q5u6LwXeJUlELLysDmc5XlnIgAktNJuCime0"
+
 // In website after booking
 exports.updateOrderStatus = async (req, res) => {
     try {
@@ -10,11 +10,12 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Update status
         const updatedCheckoutInfo = await updateStatusById(id, status);
+        const token = await getAuthToken();
 
-        // const apiResponse = await fireExternalAPI(updatedCheckoutInfo);
-        // const pupilId = apiResponse.pupil._id;
-        const pupilId = "";
-        const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId);
+        const apiResponse = await fireExternalAPI(updatedCheckoutInfo,token);
+        const pupilId = apiResponse.pupil._id;
+        // const pupilId = "";
+        const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId,token);
         res.json({
             message: "Order status updated successfully!",
             data: updatedCheckoutInfo,
@@ -32,7 +33,7 @@ exports.updateOrderStatus = async (req, res) => {
     }
 };
 
-async function processAvailableHours(updatedCheckoutInfo, pupilId) {
+async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     const availableHours = updatedCheckoutInfo.orderInfo.items[0].availableHours;
     let results = []; // Array to store results
 
@@ -46,7 +47,7 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId) {
 
 
         // Call addLessonEvent for each time and store the result
-        const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime);
+        const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime,token);
         results.push(result); // Add result to the array
     }
 
@@ -54,7 +55,7 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId) {
 }
 
 
-async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
+async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,Token) {
     const typeOfGearbox = updatedCheckoutInfo.orderInfo.typeOfGearbox.toLowerCase()
     try {
 
@@ -62,8 +63,8 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
             // "startTime": startTime.toString(),
             "startTime": "3:00 AM",
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
-            // "pupilId": pupilId,
-            "pupilId": "65a98b7422778b555b38b105",
+            "pupilId": pupilId,
+            // "pupilId": "65a98b7422778b555b38b105",
             "durationMinutes": "60", // Duration of the lesson in minutes
             "durationHours": "2", // Duration of the lesson in hours
             "gearbox": typeOfGearbox, // Type of gearbox, e.g., automatic or manual
@@ -74,6 +75,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
         };
 
         const apiUrl = 'https://alps-driving-car.herokuapp.com/api/diary/lesson-event';
+        console.log("token" + token)
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + token
@@ -93,7 +95,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime) {
 }
 
 
-async function fireExternalAPI(updatedCheckoutInfo) {
+async function fireExternalAPI(updatedCheckoutInfo,token) {
     try {
         const apiUrl = 'https://alps-driving-car.herokuapp.com/api/pupil/create';
         const payload = {
@@ -214,3 +216,33 @@ function convertDateToReadableFormat(dateString) {
         hour12: true
     });
 }
+
+async function getAuthToken() {
+    try {
+        // Static login credentials
+        const loginIdentifier = "ammmar40009@gmail.com";
+        const password = "D5aAppfzp";
+
+        // API endpoint
+        const url = 'https://alps-driving-car.herokuapp.com/api/auth/login';
+
+        // Making the POST request to the API
+        const response = await axios.post(url, {
+            loginIdentifier,
+            password
+        });
+
+        // console.log("token" + response.data.user.token)
+        // Extracting the token from the response
+        if (response.data && response.data.user && response.data.user.token) {
+            return response.data.user.token;
+        } else {
+            throw new Error('Token not found in the response');
+        }
+    } catch (error) {
+        console.error('Error fetching auth token:', error);
+        throw error; // Rethrow the error to be handled by the caller
+    }
+}
+
+

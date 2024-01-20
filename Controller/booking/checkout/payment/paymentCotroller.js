@@ -207,9 +207,10 @@ async function saveCheckoutInfo(receivedData, orderInfo) {
     const formattedDate = moment().format('YYYY-MM-DD : ha');
     receivedData.studentInfo.address = receivedData.orderInfo.postCode
     orderInfo.status = "pending"
+    orderInfo.bookingDate = formattedDate
     const checkoutInfo = new CheckoutInfo({
         ...receivedData,
-        orderInfo: {...orderInfo, bookingDate: formattedDate}
+        orderInfo: {...orderInfo}
     });
 
     orderInfo.success_url = checkoutInfo.orderInfo.success_url + "?id=" + checkoutInfo.id
