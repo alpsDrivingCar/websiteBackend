@@ -55,7 +55,7 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
 }
 
 
-async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,Token) {
+async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,token) {
     const typeOfGearbox = updatedCheckoutInfo.orderInfo.typeOfGearbox.toLowerCase()
     try {
 
@@ -89,7 +89,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,Toke
 
         return response.data;
     } catch (error) {
-        const errMsg = error.response.data.message || error.response.statusText || error.message;
+        const errMsg = error.message;
         throw new Error(`Add Lesson API Error: ${errMsg}`);
     }
 }
