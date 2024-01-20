@@ -206,11 +206,12 @@ async function saveCheckoutInfo(receivedData, orderInfo) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
     const formattedDate = moment().format('YYYY-MM-DD : ha');
     receivedData.studentInfo.address = receivedData.orderInfo.postCode
-
+    orderInfo.status = "pending"
     const checkoutInfo = new CheckoutInfo({
         ...receivedData,
-        orderInfo: {...orderInfo, status: "pending", bookingDate: formattedDate}
+        orderInfo: {...orderInfo, bookingDate: formattedDate}
     });
+
     orderInfo.success_url = checkoutInfo.orderInfo.success_url + "?id=" + checkoutInfo.id
     checkoutInfo.orderInfo = orderInfo
 
