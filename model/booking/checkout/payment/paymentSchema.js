@@ -20,6 +20,7 @@ const checkoutInfoSchema = new mongoose.Schema({
             default: 0
         },
         bookingDate: String, // Ensure this is set to String
+        reservationCode:String,
         items: [
             {
                 quantity: Number,

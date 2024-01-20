@@ -3,11 +3,15 @@ const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkE
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const OfferSchema = require("../../../../model/offer/offerSchema");
 const moment = require('moment');
+const crypto = require('crypto');
+const ejs = require('ejs');
+const nodemailer = require('nodemailer');
 
 
 const bodyParser = require("body-parser");
 const express = require("express");
 const mongoose = require("mongoose");
+const fs = require("fs");
 
 
 const stripe = require('stripe')(
@@ -53,18 +57,50 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
 
         const lineItems = await generateLineItems(orderInfo);
 
+        const reservationCode = generateReservationCode(studentInfo.phoneNumber);
+        orderInfo.reservationCode = reservationCode;
 
         // Save checkoutInfo to the database.
         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
 
         // Create Stripe payment intent.
         const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
+        await sendEmail(studentInfo.email,reservationCode);
 
         res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
     } catch (error) {
         handleError(res, error);
     }
 };
+
+async function sendEmail(to,reservationCode) {
+    try {
+        const template = fs.readFileSync('emailTemplate.ejs', 'utf8');
+        const htmlMessage = ejs.render(template, {
+            reservationCode,
+        });
+
+        const mailOptions = {
+        from: 'alpsdrivingschool@gmail.com',
+        to: to,
+        subject: `Your Reservation Confirmation`,
+        html: htmlMessage,
+    };
+
+    const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'alpsdrivingschool@gmail.com',
+            pass: process.env.SECRET_PASSWORD,
+        },
+    });
+    // Send email
+    await transporter.sendMail(mailOptions);
+
+    }catch (e) {
+        console.error('Error sending email:', error);
+    }
+}
 
 
 async function validateVerificationNumber(studentInfo) {
@@ -201,4 +237,11 @@ function convertToNumber(value) {
 
     const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
     return parseFloat(withoutCommaAndExtraPeriods);
+}
+
+function generateReservationCode(orderId) {
+    const hash = crypto.createHash('sha256');
+    const salt = crypto.randomBytes(16).toString('hex');
+    hash.update(`${orderId}${salt}`);
+    return hash.digest('hex').substring(0, 8);
 }
