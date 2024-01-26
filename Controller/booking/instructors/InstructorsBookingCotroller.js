@@ -67,7 +67,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
             // "gearbox": gearbox
         };
-        let filterisPotential = { isPotential: false }; // Add this line to include isPotential filter
+        let filterisPotential = {isPotential: false, AcceptStudent: true}; // Add this line to include isPotential filter
         let instructors = await InstructorsUserSchema.find(filterisPotential);
         if (!instructors.length) {
             return res.json({data: []});
