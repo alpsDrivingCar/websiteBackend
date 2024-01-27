@@ -171,7 +171,10 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 };
 
 const formatDataForBooking = (bookingPackages) => {
+    const order = { 'manual': 1, 'automatic': 2, 'electric': 3 };
+
     const groupedPackages = bookingPackages.reduce((acc, curr) => {
+
         if (!acc[curr.slugOfGearbox]) {
             acc[curr.slugOfGearbox] = {
                 slug: curr.slugOfGearbox,
@@ -200,15 +203,14 @@ const formatDataForBooking = (bookingPackages) => {
 
         return acc;
     }, {});
-
-    const gearboxData = Object.values(groupedPackages).map(gearbox => {
-        return {
+    const gearboxData = Object.values(groupedPackages)
+        .sort((a, b) => order[a.slug] - order[b.slug])
+        .map(gearbox => ({
             slug: gearbox.slug,
             name: gearbox.name,
             selected: gearbox.slug === 'manual',
             package: gearbox.packages
-        };
-    });
+        }));
 
     return {
         title: "Choose Gearbox…",
