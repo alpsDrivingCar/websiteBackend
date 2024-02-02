@@ -60,7 +60,7 @@ mongoose.connect(process.env.DATABASE, {
 }).then(() => {
     const port = process.env.PORT || 3000;
     const localUrl = `http://localhost:${port}`;
-    const remoteUrl = 'https://alps-driving-website.herokuapp.com/api/';
+    const remoteUrl = 'https://alps-driving-website.herokuapp.com';
 
     app.listen(port, () => {
         console.log("Server Run ");

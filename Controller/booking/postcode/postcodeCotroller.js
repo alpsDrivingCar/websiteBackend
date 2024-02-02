@@ -47,19 +47,27 @@ exports.validateUKPostcode = (req, res) => {
 };
 
 
-exports.getPostCodeOfOurInstructors = (req, res) => {
-    // Query the database for instructors who accept students and are not potential
+
+exports.getPostCodeAndGearboxOfOurInstructors = (req, res) => {
     InstructorsUserSchema.find({ AcceptStudent: true, isPotential: false }, 'areas -_id')
         .then((results) => {
             // Extract the areas from the results
-            const areas = results.map(result => result.areas).flat();
-            // Send the areas as a response
-            res.status(200).json({ data: areas });
+            const postCode = results.map(result => result.areas).flat();
+            // Assume gearbox types are predetermined
+            const gearbox = ["Manual", "Automatic", "Electric"];
+            // Structure the response under a `data` key
+            res.status(200).json({
+                data: {
+                    postCode,
+                    gearbox
+                }
+            });
         })
         .catch((error) => {
             // Handle any errors that occur during the query
-            res.status(400).json({ error: error.message });
+            res.status(500).json({ error: error.message });
         });
 };
+
 
 

@@ -4,6 +4,6 @@ const router = express.Router();
 
 // Assuming you want the endpoint to be '/validate-postcode'
 router.get("/validate-postcode", postcodeController.validateUKPostcode);
-router.get("/our-instructors", postcodeController.getPostCodeOfOurInstructors);
+router.get("/postcode-gearbox-our-instructors", postcodeController.getPostCodeAndGearboxOfOurInstructors);
 
 module.exports = router;
