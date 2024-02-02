@@ -148,7 +148,7 @@ async function generateLineItems(orderInfo) {
             return {
                 price_data: {
                     currency: 'gbp',
-                    product_data: { name: item.name },
+                    product_data: { name: packageResult.title },
                     unit_amount: convertToNumber(packageResult.price) * 100,
                 },
                 quantity: item.quantity,
