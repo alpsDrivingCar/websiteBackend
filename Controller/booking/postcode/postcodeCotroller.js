@@ -46,3 +46,20 @@ exports.validateUKPostcode = (req, res) => {
         });
 };
 
+
+exports.getPostCodeOfOurInstructors = (req, res) => {
+    // Query the database for instructors who accept students and are not potential
+    InstructorsUserSchema.find({ AcceptStudent: true, isPotential: false }, 'areas -_id')
+        .then((results) => {
+            // Extract the areas from the results
+            const areas = results.map(result => result.areas).flat();
+            // Send the areas as a response
+            res.status(200).json({ data: areas });
+        })
+        .catch((error) => {
+            // Handle any errors that occur during the query
+            res.status(400).json({ error: error.message });
+        });
+};
+
+
