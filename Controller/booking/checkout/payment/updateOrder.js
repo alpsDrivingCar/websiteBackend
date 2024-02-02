@@ -60,7 +60,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
     try {
 
         const lessonEventData = {
-            "startTime": startTime.toString(),
+            "startTime": startTime,
             // "startTime": "1:47 PM",
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             "pupilId": pupilId,
