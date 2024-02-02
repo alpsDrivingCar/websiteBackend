@@ -12,9 +12,9 @@ exports.updateOrderStatus = async (req, res) => {
         const updatedCheckoutInfo = await updateStatusById(id, status);
         const token = await getAuthToken();
 
-        const apiResponse = await fireExternalAPI(updatedCheckoutInfo,token);
-        const pupilId = apiResponse.pupil._id;
-        // const pupilId = "";
+        // const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
+        // const pupilId = apiResponse.pupil._id;
+        const pupilId = "658415717c82cf2ea24158f1";
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId,token);
         res.json({
             message: "Order status updated successfully!",
@@ -60,8 +60,8 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
     try {
 
         const lessonEventData = {
-            // "startTime": startTime.toString(),
-            "startTime": "3:00 AM",
+            "startTime": startTime.toString(),
+            // "startTime": "1:47 PM",
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             "pupilId": pupilId,
             // "pupilId": "65a98b7422778b555b38b105",
@@ -73,6 +73,12 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
             "dropOffLocation": "home", // Drop-off location
             "date": time // Date and time of the lesson
         };
+
+        console.log(`lessonEventData.startTime ${lessonEventData.startTime}`)
+        console.log(`startTime ${startTime}`)
+
+        if(lessonEventData.startTime ==startTime )
+            console.log(`====`)
 
         const apiUrl = 'https://alps-driving-car.herokuapp.com/api/diary/lesson-event';
         console.log("token" + token)
@@ -95,7 +101,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
 }
 
 
-async function fireExternalAPI(updatedCheckoutInfo,token) {
+async function addPupilfireExternalAPI(updatedCheckoutInfo,token) {
     try {
         const apiUrl = 'https://alps-driving-car.herokuapp.com/api/pupil/create';
         const payload = {
