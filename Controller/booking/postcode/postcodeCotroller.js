@@ -46,19 +46,19 @@ exports.validateUKPostcode = (req, res) => {
         });
 };
 
-
-
 exports.getPostCodeAndGearboxOfOurInstructors = (req, res) => {
     InstructorsUserSchema.find({ AcceptStudent: true, isPotential: false }, 'areas -_id')
         .then((results) => {
-            // Extract the areas from the results
-            const postCode = results.map(result => result.areas).flat();
+            // Extract the areas from the results, flatten the array, convert all to uppercase, and trim spaces to ensure uniqueness
+            const allPostCodes = results.map(result => result.areas.map(area => area.toUpperCase().trim())).flat();
+            // Remove duplicates by converting the array to a Set, then spread it back into an array
+            const uniquePostCodes = [...new Set(allPostCodes)];
             // Assume gearbox types are predetermined
             const gearbox = ["Manual", "Automatic", "Electric"];
             // Structure the response under a `data` key
             res.status(200).json({
                 data: {
-                    postCode,
+                    postCode: uniquePostCodes,
                     gearbox
                 }
             });
