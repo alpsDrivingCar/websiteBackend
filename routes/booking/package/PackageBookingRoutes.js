@@ -8,7 +8,7 @@ router.get("/by-post-code-and-type", server.bookingPackageByPostCodeAndType)
 router.post("/", server.createBookingPackage)
 router.put("/:id", server.updateBookingPackage)
 router.delete("/:id", server.deleteBookingPackage)
-router.get("/slug-type", server.getPackagesBySlug)
+router.post("/slug-type", server.getPackagesBySlug)
 
 
 module.exports = router

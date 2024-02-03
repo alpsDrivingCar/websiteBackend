@@ -126,32 +126,6 @@ exports.updateBookingPackage = (req, res) => {
             return res.status(500).json({message: 'An error occurred while updating the booking package.'});
         });
 }
-//
-// exports.getPackagesBySlug = async (req, res) => {
-//     const slug = req.query.slugOfType; // Assuming you'll be passing the slug as ?slugOfType=value
-//
-//     if (!slug) {
-//         return res.status(400).send({message: "slugOfType query parameter is required"});
-//     }
-//
-//     let query = {};
-//     if (slug !== "all") {
-//         query.slugOfType = slug;
-//     }
-//
-//     try {
-//         const packages = await PackageSchema.find(query);
-//
-//         if (packages.length === 0) {
-//             return res.status(404).send({message: "No BookingPackages found for the provided slugOfType."});
-//         }
-//
-//         res.send(packages);
-//     } catch (err) {
-//         return res.status(500).send({message: "Error retrieving BookingPackages."});
-//     }
-// };
-
 
 exports.getPackagesBySlug = async (req, res) => {
     const { postCode, gearbox } = req.body; // Extract filtering criteria from the request body
