@@ -128,8 +128,14 @@ exports.updateBookingPackage = (req, res) => {
 }
 exports.getPackagesBySlug = async (req, res) => {
     const { postCode, gearbox } = req.body;
+    const slug = req.query.slugOfType; // Extract slug from query parameters
 
     let query = {};
+
+    // Apply slug filter unless the slug is 'all'
+    if (slug !== "all") {
+        query.slugOfType = slug;
+    }
 
     // Only add gearbox to the query if it is provided and not empty
     if (gearbox && gearbox.length > 0) {
@@ -138,6 +144,7 @@ exports.getPackagesBySlug = async (req, res) => {
 
     // Only add postCode to the query if it is provided and not empty
     if (postCode && postCode.length > 0) {
+        // Using regex to match the first 3 characters of postCode, case-insensitive
         const regexes = postCode.map(code => new RegExp(`^${code.slice(0, 3)}`, 'i'));
         query['postCode.postCode'] = { $in: regexes };
     }
