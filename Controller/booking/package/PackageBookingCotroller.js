@@ -126,39 +126,31 @@ exports.updateBookingPackage = (req, res) => {
             return res.status(500).json({message: 'An error occurred while updating the booking package.'});
         });
 }
-
 exports.getPackagesBySlug = async (req, res) => {
-    const { postCode, gearbox } = req.body; // Extract filtering criteria from the request body
+    const { postCode, gearbox } = req.body;
 
-    // Validation to ensure the gearbox array is provided
-    if (!gearbox) {
-        return res.status(400).send({message: "Gearbox array is required in the request body."});
+    let query = {};
+
+    // Only add gearbox to the query if it is provided and not empty
+    if (gearbox && gearbox.length > 0) {
+        query.gearbox = { $in: gearbox };
     }
 
-    let query = {
-        gearbox: { $in: gearbox }, // Filters documents that have any of the specified gearboxes
-    };
-
-    // Additional filtering for postCode if provided
-    if (postCode && postCode.length) {
-        // Generate regex for each postCode, targeting the first 3 characters
+    // Only add postCode to the query if it is provided and not empty
+    if (postCode && postCode.length > 0) {
         const regexes = postCode.map(code => new RegExp(`^${code.slice(0, 3)}`, 'i'));
-        // Update the query to include the regex match for postCodes
         query['postCode.postCode'] = { $in: regexes };
     }
 
     try {
         const packages = await PackageSchema.find(query);
 
-        // Check if any packages were found
         if (packages.length === 0) {
             return res.status(404).send({message: "No BookingPackages found for the provided filters."});
         }
 
-        // Respond with the found packages
         res.send(packages);
     } catch (err) {
-        // Handle errors that occur during the database query
         return res.status(500).send({message: "Error retrieving BookingPackages."});
     }
 };
