@@ -6,6 +6,8 @@ router.get("/",aboutusServer.aboutus)
 router.post("/",aboutusServer.createAboutus)
 router.delete("/:id",aboutusServer.deleteAboutus)
 router.put("/",aboutusServer.aboutusUpdate)
+router.get('/:id', aboutusServer.getAboutById);
+
 
 module.exports = router
 

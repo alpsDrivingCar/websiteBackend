@@ -68,3 +68,33 @@ exports.deleteContactus = (req, res) => {
             console.log(err);
         });
 }
+
+exports.getAllContactUs = async (req, res) => {
+    try {
+        const results = await ContactusSchema.find();
+        if (results.length === 0) {
+            res.json({ data: [] });
+        } else {
+            res.json({ data: results });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
+    }
+};
+
+exports.getContactUsById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const result = await ContactusSchema.findById(id);
+
+        if (!result) {
+            res.status(404).json({ message: "Contact Us information not found" });
+        } else {
+            res.json({data: result});
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(err);
+    }
+};
