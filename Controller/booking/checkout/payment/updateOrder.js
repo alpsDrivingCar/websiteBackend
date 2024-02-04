@@ -81,7 +81,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
         if(lessonEventData.startTime ==startTime )
             console.log(`====`)
 
-        const apiUrl = 'http://localhost:3000/api/diary/lesson-event';
+        const apiUrl = 'https://alps-driving-car.herokuapp.com/api/diary/lesson-event';
         console.log("token" + token)
         const headers = {
             'Content-Type': 'application/json',
