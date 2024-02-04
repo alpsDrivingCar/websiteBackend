@@ -14,9 +14,16 @@ exports.createAboutus = async (req, res) => {
 
 exports.aboutus = async (req, res) => {
     try {
-        const result = await AboutusSchema.findById("6591bc7ea8030987c14d38d0");
-        res.json(result);
+        const result = await AboutusSchema.find();
+
+        // Check if the result array is empty
+        if (result.length === 0) {
+            res.json({ message: "No records found" });
+        } else {
+            res.json({ data: result });
+        }
     } catch (err) {
+        // Handle errors and respond with an error message and status code
         res.status(500).json({ error: "Internal server error" });
         console.error(err);
     }
