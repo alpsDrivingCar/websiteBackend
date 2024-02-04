@@ -12,14 +12,14 @@ exports.updateOrderStatus = async (req, res) => {
         const updatedCheckoutInfo = await updateStatusById(id, status);
         const token = await getAuthToken();
 
-        // const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
-        // const pupilId = apiResponse.pupil._id;
-        const pupilId = "658415717c82cf2ea24158f1";
+        const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
+        const pupilId = apiResponse.pupil._id;
+        // const pupilId = "658415717c82cf2ea24158f1";
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId,token);
         res.json({
             message: "Order status updated successfully!",
             data: updatedCheckoutInfo,
-            // apiResponse: apiResponse, // Include the external API response
+            apiResponse: apiResponse, // Include the external API response
             addLessonEvent: addLessonEvent1 // Include the external API response
         });
     } catch (error) {
