@@ -4,9 +4,13 @@ const Schema = mongoose.Schema;
 // define the Schema (the structure of the article)
 const contactusSchema = new Schema({
     email: String,
-    phoneNumber:String,
-    location:String,
-    name:String,
+    phoneNumber: String,
+    location: String,
+    name: String,
+    description: {
+        type: String,
+        required: true,
+    },
 });
 
 
