@@ -117,24 +117,30 @@ async function validateVerificationNumber(studentInfo) {
 async function generateLineItems(orderInfo) {
     let items = [...orderInfo.items];
 
+    // Initialize total price if not already
+    if (typeof orderInfo.price !== 'number' || isNaN(orderInfo.price)) {
+        orderInfo.price = 0;
+    }
 
+    // Add test booking and transaction fees to the items list
     if (orderInfo.testBooking === 'book') {
         items.push({
             name: "Test Booking",
             quantity: 1,
             packageId: null,
-            price: 14000
+            price: 14000 // Assuming price is in pence
         });
     }
     items.push({
         name: "Transaction fees",
         quantity: 1,
         packageId: null,
-        price: 350
+        price: 350 // Assuming price is in pence
     });
 
+    const lineItems = await Promise.all(items.map(async item => {
+        let unitAmount;
 
-    return Promise.all(items.map(async item => {
         if (item.packageId) {
             validatePackageIdFormat(item.packageId);
 
@@ -145,25 +151,37 @@ async function generateLineItems(orderInfo) {
                 packageResult = await fetchRegularPackage(item.packageId);
             }
 
-            return {
-                price_data: {
-                    currency: 'gbp',
-                    product_data: { name: packageResult.title },
-                    unit_amount: convertToNumber(packageResult.price) * 100,
-                },
-                quantity: item.quantity,
-            };
+            // Validate packageResult and packageResult.price before using them
+            if (packageResult && !isNaN(parseFloat(packageResult.price))) {
+                unitAmount = convertToNumber(packageResult.price) * 100;
+                orderInfo.price = convertToNumber(packageResult.price);
+            } else {
+                throw new Error('Invalid package price');
+            }
         } else {
-            return {
-                price_data: {
-                    currency: 'gbp',
-                    product_data: { name: item.name },
-                    unit_amount: convertToNumber(item.price),
-                },
-                quantity: item.quantity,
-            };
+            // Validate item.price before using it
+            if (!isNaN(parseFloat(item.price))) {
+                unitAmount = convertToNumber(item.price);
+            } else {
+                throw new Error('Invalid item price');
+            }
         }
+
+        // Add to total price
+        // orderInfo.price += unitAmount * item.quantity;
+
+        return {
+            price_data: {
+                currency: 'gbp',
+                product_data: { name: item.name || packageResult?.title },
+                unit_amount: unitAmount,
+            },
+            quantity: item.quantity,
+        };
     }));
+
+    // Return line items
+    return lineItems;
 }
 
 function validatePackageIdFormat(packageId) {
@@ -204,6 +222,8 @@ async function createStripePaymentIntent(orderInfo, lineItems) {
 
 async function saveCheckoutInfo(receivedData, orderInfo) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
+
+    orderInfo.price
     const formattedDate = moment().format('YYYY-MM-DD : ha');
     receivedData.studentInfo.address = receivedData.orderInfo.postCode
     orderInfo.status = "pending"

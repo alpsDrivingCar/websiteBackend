@@ -34,6 +34,10 @@ const checkoutInfoSchema = new mongoose.Schema({
     },
     studentInfo: {
         name: String,
+        pupilId: {
+            type: Schema.Types.ObjectId,
+            ref: 'Pupil',
+        },
         phoneNumber: String,
         email: String,
         address: String,

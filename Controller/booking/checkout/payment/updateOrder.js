@@ -9,11 +9,15 @@ exports.updateOrderStatus = async (req, res) => {
         const {status} = req.body;
 
         // Update status
-        const updatedCheckoutInfo = await updateStatusById(id, status);
+        var updatedCheckoutInfo = await updateStatusById(id, status);
         const token = await getAuthToken();
 
         const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
         const pupilId = apiResponse.pupil._id;
+
+        // add updatePupilIdById here
+        updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
+
         // const pupilId = "658415717c82cf2ea24158f1";
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId,token);
         res.json({
@@ -38,14 +42,8 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     let results = []; // Array to store results
 
     for (const time of availableHours) {
-        console.log("Original Time = " + time);
         const formattedStartTime = convertToSimpleTimeFormat(time); // Ensure formatTime is defined
-        console.log("Formatted Start Time = " + formattedStartTime );
-        console.log("Formatted Start Time = " + "3:00 AM");
         const formattedDateTime = convertDateToReadableFormat(time);
-        // console.log("Formatted Start Time = " + formattedDateTime);
-
-
         // Call addLessonEvent for each time and store the result
         const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime,token);
         results.push(result); // Add result to the array
@@ -166,6 +164,30 @@ async function updateStatusById(id, status) {
     return updatedCheckoutInfo;
 }
 
+
+async function updatePupilIdById(id, pupilId) {
+    if (!mongoose.isValidObjectId(id)) {
+        throw new Error('Invalid ID format');
+    }
+
+    // Assuming pupilId validation is required; adjust as necessary
+    if (!pupilId || typeof pupilId !== 'string') {
+        throw new Error('Invalid pupilId value');
+    }
+
+    // Adjust the field to match your schema if necessary
+    const updatedDocument = await CheckoutInfo.findByIdAndUpdate(
+        id,
+        { 'studentInfo.pupilId': pupilId }, // Update the pupilId field
+        { new: true }
+    ).exec();
+
+    if (!updatedDocument) {
+        throw new Error('Document not found');
+    }
+    console.log(`updatedDocument ${updatedDocument}`)
+    return updatedDocument;
+}
 
 /// IN DASHBORD
 // //////////todo test 
