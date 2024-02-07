@@ -50,7 +50,7 @@ exports.getBookingDetails = async (req, res) => {
         });
 
         // Send the mapped booking details as a response
-        res.json({bookingDetails: bookingDetails});
+        res.json({bookingDetails: bookingDetails[0]});
 
     } catch (error) {
         console.error(error);
