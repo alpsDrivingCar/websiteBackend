@@ -1,5 +1,6 @@
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const InstructorsUserSchema = require("../../../model/user/Instructor");
+const PackageSchema = require("../../../model/booking/package/packageSchema");
 
 exports.createLesson = (req, res) => {
     const lessonSchema = new LessonSchema(req.body);
@@ -27,34 +28,50 @@ exports.lessons = (req, res) => {
 }
 
 exports.lessonByPostCode = async (req, res) => {
-    const postcode = req.query.postCode;
+    try {
+        // Fetch the lesson document by ID
+        const lessonDocument = await LessonSchema.findById("64876d775160ba7ae603516e");
+        if (!lessonDocument) {
+            return res.status(404).json({ message: 'Lesson not found.' });
+        }
 
-    // Updated filter to search within 'areas' array for the first 3 characters of the postcode
-    const filter = {
-        "areas": {$regex: new RegExp("^" + postcode.substring(0, 3), "i")}
-    };
+        // Check each typeOfLesson for available booking packages
+        const filteredTypeOfLesson = await Promise.all(lessonDocument.typeOfLesson.map(async (lessonType) => {
+            const hasBookingPackages = await fetchBookingPackages(lessonType.slug);
+            return hasBookingPackages ? lessonType : null;
+        })).then(results => results.filter(lessonType => lessonType !== null));
 
-    InstructorsUserSchema.find(filter)
-        .then(result => {
-            if (result.length === 0) {
-                return res.status(404).json({message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW'});
-            } else {
-                LessonSchema.findById("64876d775160ba7ae603516e")
-                    .then(lessonResult => {
-                        return res.json(lessonResult);
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        return res.status(404).json({message: err});
-                    });
-            }
-        })
-        .catch(err => {
-            console.log(err);
-            return res.status(404).json({message: err});
+        // If none of the lesson types have booking packages, return an error
+        if (filteredTypeOfLesson.length === 0) {
+            return res.status(404).json({ message: 'No booking packages available for any lesson types.' });
+        }
+
+        // Return filtered lesson types with available booking packages
+        res.json({
+            _id: lessonDocument._id,
+            title: lessonDocument.title,
+            description: lessonDocument.description,
+            typeOfLesson: filteredTypeOfLesson
         });
 
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ message: 'An error occurred while processing your request.', error: err.message });
+    }
 };
+
+const fetchBookingPackages = async (slugOfTypeLesson) => {
+    try {
+        // Assuming PackageSchema is correctly imported and set up
+        const packages = await PackageSchema.find({ slugOfType: slugOfTypeLesson });
+        console.log(`packages.length ${packages.length} of ${slugOfTypeLesson}`);
+        return packages.length > 0;
+    } catch (err) {
+        console.error(`Error fetching packages for slug ${slugOfTypeLesson}:`, err);
+        throw new Error(`Failed to fetch booking packages for slug ${slugOfTypeLesson}`);
+    }
+};
+
 
 
 exports.lessonUpdate = (req, res) => {
