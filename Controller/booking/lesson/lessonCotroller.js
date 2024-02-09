@@ -1,5 +1,6 @@
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const InstructorsUserSchema = require("../../../model/user/Instructor");
+const PackageSchema = require("../../../model/booking/package/packageSchema");
 
 exports.createLesson = (req, res) => {
     const lessonSchema = new LessonSchema(req.body);
@@ -29,32 +30,56 @@ exports.lessons = (req, res) => {
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
 
-    // Updated filter to search within 'areas' array for the first 3 characters of the postcode
     const filter = {
-        "areas": {$regex: new RegExp("^" + postcode.substring(0, 3), "i")}
+        "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
     };
 
-    InstructorsUserSchema.find(filter)
-        .then(result => {
-            if (result.length === 0) {
-                return res.status(404).json({message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW'});
-            } else {
-                LessonSchema.findById("64876d775160ba7ae603516e")
-                    .then(lessonResult => {
-                        return res.json(lessonResult);
-                    })
-                    .catch(err => {
-                        console.log(err);
-                        return res.status(404).json({message: err});
-                    });
-            }
-        })
-        .catch(err => {
-            console.log(err);
-            return res.status(404).json({message: err});
+    try {
+        const instructors = await InstructorsUserSchema.find(filter);
+        if (instructors.length === 0) {
+            return res.status(404).json({ message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW' });
+        }
+
+        const lessonResult = await LessonSchema.findById("64876d775160ba7ae603516e");
+        if (!lessonResult) {
+            return res.status(404).json({ message: 'Lesson not found.' });
+        }
+
+        // Assuming lessonResult.typeOfLesson is an array from your previous message
+        const promises = lessonResult.typeOfLesson.map(async (type) => {
+            const hasBookingPackages = await fetchBookingPackages(postcode,type.slug);
+            return hasBookingPackages ? type : null;
         });
 
+        const filteredTypes = (await Promise.all(promises)).filter(type => type !== null);
+
+        // Modify lessonResult to only include types with available booking packages
+        lessonResult.typeOfLesson = filteredTypes;
+
+        res.json(lessonResult);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'An error occurred while processing your request.', error: err.message });
+    }
 };
+
+
+const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
+    // Adjust the regex to be even more inclusive if needed, or keep it targeted to the first 3 characters
+    const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
+
+    console.log("regexPostcode = " + regexPostcode);
+    console.log("slugOfTypeLesson = " + slugOfTypeLesson);
+
+    const packages = await PackageSchema.find({
+        "postCode.postCode": regexPostcode,
+        slugOfType: slugOfTypeLesson
+    });
+
+    return packages.length > 0;
+};
+
 
 
 exports.lessonUpdate = (req, res) => {
