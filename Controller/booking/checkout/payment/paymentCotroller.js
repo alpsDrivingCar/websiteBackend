@@ -151,6 +151,7 @@ async function generateLineItems(orderInfo) {
                 packageResult = await fetchRegularPackage(item.packageId);
             }
 
+            item.name = packageResult.title;
             // Validate packageResult and packageResult.price before using them
             if (packageResult && !isNaN(parseFloat(packageResult.price))) {
                 unitAmount = convertToNumber(packageResult.price) * 100;
