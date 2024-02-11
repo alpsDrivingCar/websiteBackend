@@ -1,6 +1,12 @@
 const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
+const PupilUserSchema = require("../../../../model/user/Pupil");
 const mongoose = require("mongoose");
 const axios = require('axios');
+const nodemailer = require('nodemailer');
+const ejs = require('ejs');
+const fs = require("fs");
+
+
 
 // In website after booking
 exports.updateOrderStatus = async (req, res) => {
@@ -13,6 +19,7 @@ exports.updateOrderStatus = async (req, res) => {
         const token = await getAuthToken();
 
         const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
+        console.log(`apiResponse.pupil._id ${apiResponse.pupil._id}`)
         const pupilId = apiResponse.pupil._id;
 
         // add updatePupilIdById here
@@ -100,8 +107,22 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
 }
 
 
-async function addPupilfireExternalAPI(updatedCheckoutInfo,token) {
+async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
     try {
+        // Check in the database first
+        const existingPupil = await PupilUserSchema.findOne({ phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber });
+        if (existingPupil) {
+            console.log(`Existing pupil found: ${existingPupil}`);
+            //here i need send email
+            await sendWelcomeEmail(existingPupil.email, {
+                name: existingPupil.firstName,
+                phoneNumber: existingPupil.phoneNumber
+            });
+
+            return { pupil: existingPupil, isNew: false }; // Indicate that this is not a new entry
+        }
+
+        // Proceed with external API call if pupil not found
         const apiUrl = 'https://alps-driving-car.herokuapp.com/api/pupil/create';
         const payload = {
             "firstName": updatedCheckoutInfo.studentInfo.name,
@@ -116,31 +137,53 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo,token) {
             'Authorization': 'Bearer ' + token
         };
 
-        console.log("payload" + " firstName = " + payload.firstName + ", lastName= " + payload.lastName + " ,phoneNumber=" + payload.phoneNumber + ", email=" + payload.email + ", instructorsid=" + payload.instructors)
-        const response = await axios.post(apiUrl, payload, {headers});
+        const response = await axios.post(apiUrl, payload, { headers });
 
         // Check if the response status is not in the 2xx range
         if (response.status < 200 || response.status >= 300) {
             throw new Error(`API responded with status code ${response.status}`);
         }
-
-        return response.data;
+        console.log()
+        return response.data; // Indicate that this is a new entry
     } catch (error) {
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx or specific error message
-            const errMsg = error.response.data.msg || error.response.statusText;
-            throw new Error(`API Error: ${errMsg}`);
-        } else if (error.request) {
-            // The request was made but no response was received
-            throw new Error('API did not respond');
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            throw new Error('Error in setting up the API request');
-        }
+        handleApiError(error);
+    }
+}
+function handleApiError(error) {
+    if (error.response) {
+        const errMsg = error.response.data.msg || error.response.statusText;
+        throw new Error(`API Error: ${errMsg}`);
+    } else if (error.request) {
+        throw new Error('API did not respond');
+    } else {
+        throw new Error('Error in setting up the API request ' + error.message);
     }
 }
 
+async function sendWelcomeEmail(email, data) {
+    const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'alpsdrivingschool@gmail.com',
+            pass: process.env.SECRET_PASSWORD,
+        },
+    });
+
+    // Read the ejs template
+    const template = fs.readFileSync('addNewOrderEmailTemplate.ejs', 'utf8');
+
+    const htmlMessage = ejs.render(template, data);
+
+    const mailOptions = {
+        from: 'alpsdrivingschool@gmail.com',
+        to: email,
+        subject: `Welcome to Alps Driving School`,
+        html: htmlMessage,
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+}
 async function updateStatusById(id, status) {
     if (!mongoose.isValidObjectId(id)) {
         throw new Error('Invalid ID format');
@@ -171,7 +214,7 @@ async function updatePupilIdById(id, pupilId) {
     }
 
     // Assuming pupilId validation is required; adjust as necessary
-    if (!pupilId || typeof pupilId !== 'string') {
+    if (!pupilId) {
         throw new Error('Invalid pupilId value');
     }
 

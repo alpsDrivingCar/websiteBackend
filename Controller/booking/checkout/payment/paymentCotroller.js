@@ -75,7 +75,7 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
 
 async function sendEmail(to,reservationCode) {
     try {
-        const template = fs.readFileSync('emailTemplate.ejs', 'utf8');
+        const template = fs.readFileSync('reservationConfirmationEmailTemplate.ejs', 'utf8');
         const htmlMessage = ejs.render(template, {
             reservationCode,
         });
@@ -98,7 +98,7 @@ async function sendEmail(to,reservationCode) {
     await transporter.sendMail(mailOptions);
 
     }catch (e) {
-        console.error('Error sending email:', error);
+        console.error('Error sending email:', e);
     }
 }
 
