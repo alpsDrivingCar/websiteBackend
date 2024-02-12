@@ -1,11 +1,18 @@
 const InstructorsUserSchema = require("../../../model/user/Instructor");
 const PostcodeSearch = require("../../../model/postcode/PostcodeSearchSchema");
+const PackageSchema = require("../../../model/booking/package/packageSchema");
 
-exports.validateUKPostcode = (req, res) => {
+exports.validateUKPostcode = async (req, res)  => {
     let postcode = req.query.postcode;
     postcode = postcode.replace(/\s+/g, '').toUpperCase();
-    const regexPattern = /^([Gg][Ii][Rr] ?0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) ?[0-9][A-Za-z]{2})$/;
 
+    // Check for booking packages first
+    const hasPackages = await fetchBookingPackages(postcode);
+    if (!hasPackages) {
+        return res.status(404).json({ message: 'No trainers found. Please try another PostCode, such as NN2 8FW.' });
+    }
+
+    const regexPattern = /^([Gg][Ii][Rr] ?0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9]?[A-Za-z])))) ?[0-9][A-Za-z]{2})$/;
     if (!regexPattern.test(postcode)) {
         return res.status(400).json({ valid: false, message: 'Invalid UK postcode.' });
     }
@@ -44,6 +51,19 @@ exports.validateUKPostcode = (req, res) => {
             console.error(err);
             return res.status(500).json({ message: 'An error occurred while processing your request.' });
         });
+};
+
+const fetchBookingPackages = async (postcode) => {
+    // Adjust the regex to be even more inclusive if needed, or keep it targeted to the first 3 characters
+    const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
+
+    console.log("regexPostcode = " + regexPostcode);
+
+    const packages = await PackageSchema.find({
+        "postCode.postCode": regexPostcode,
+    });
+
+    return packages.length > 0;
 };
 
 exports.getPostCodeAndGearboxOfOurInstructors = (req, res) => {
