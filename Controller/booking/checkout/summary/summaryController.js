@@ -4,60 +4,71 @@ const CheckoutInfo = require("../../../../model/booking/checkout/payment/payment
 
 exports.getBookingDetails = async (req, res) => {
     try {
-        // Extract instructorsId and pupilId from query parameters or request body
-        const {instructorsId, pupilId} = req.query; // or req.body, depending on how you're sending data
+        const { pupilId } = req.query;
 
-        // Validate IDs
-        if (!mongoose.isValidObjectId(instructorsId) || !mongoose.isValidObjectId(pupilId)) {
-            return res.status(400).json({error: "Invalid instructor or pupil ID"});
+        if (!mongoose.isValidObjectId(pupilId)) {
+            return res.status(400).json({ error: "Invalid pupil ID" });
         }
 
-        // Perform the query to get booking details
         const checkoutInfoData = await CheckoutInfo.find({
-            'orderInfo.instructorsId': instructorsId,
             'studentInfo.pupilId': pupilId
-        }).populate('orderInfo.instructorsId')
-            .populate('orderInfo.instructorsId')// Populate to get instructor details
-            .exec();
+        }).populate('orderInfo.instructorsId').exec();
 
         if (checkoutInfoData.length === 0) {
-            return res.status(404).json({message: "No booking details found for the given instructor and pupil IDs"});
+            return res.status(404).json({ message: "No booking details found" });
         }
 
-        const bookingDetails = checkoutInfoData.map(info => {
-            const lessons = info.orderInfo.items.map((item, index) => {
-                return {
+        let allLessons = [];
+        let instructorsMap = new Map();
+        let totalPrice = 0; // Initialize total price
+
+        checkoutInfoData.forEach(info => {
+            const instructorId = info.orderInfo.instructorsId._id.toString();
+            const instructorName = `${info.orderInfo.instructorsId.firstName} ${info.orderInfo.instructorsId.lastName}`;
+            const instructorInitials = getInitials(info.orderInfo.instructorsId.firstName, info.orderInfo.instructorsId.lastName); // Ensure this function exists
+
+            if (!instructorsMap.has(instructorId)) {
+                instructorsMap.set(instructorId, {
+                    name: instructorName,
+                    id: instructorId,
+                    initials: instructorInitials
+                });
+            }
+
+            info.orderInfo.items.forEach((item, index) => {
+                allLessons.push({
                     lessonNumber: `Lesson ${index + 1}`,
                     reservationCode: info.orderInfo.reservationCode,
                     bookingDate: new Date(item.availableHours[0]).toLocaleDateString(),
                     bookingTime: `${new Date(item.availableHours[0]).toLocaleTimeString()} - ${new Date(item.availableHours[1]).toLocaleTimeString()}`,
                     price: info.orderInfo.price,
-                    status: mapStatus(info.orderInfo.status) // Assuming you have a function to map status
-                };
+                    status: mapStatus(info.orderInfo.status), // Ensure this function exists
+                    instructor_name: instructorName
+                });
             });
 
-            return {
-                numberOfLessons: `${lessons.length} Lessons`,
-                testBooking: info.orderInfo.testBooking === 'book' ? 'Yes' : 'No',
-                postCode: info.orderInfo.postCode,
-                price: info.orderInfo.price,
-                instructor: {
-                    name: `${info.orderInfo.instructorsId.firstName} ${info.orderInfo.instructorsId.lastName}`,
-                    initials: getInitials(info.orderInfo.instructorsId.firstName, info.orderInfo.instructorsId.lastName)
-                },
-                lessons: lessons
-            };
+            // Sum up the prices from each CheckoutInfo entry
+            totalPrice += info.orderInfo.price;
         });
 
-        // Send the mapped booking details as a response
-        res.json({bookingDetails: bookingDetails[0]});
+        let instructorsArray = Array.from(instructorsMap.values());
 
+        // Include the total price for all bookings
+        const bookingDetails = {
+            numberOfLessons: `${allLessons.length} Lessons`,
+            testBooking: checkoutInfoData.some(info => info.orderInfo.testBooking === 'book') ? 'Yes' : 'No',
+            postCode: checkoutInfoData[0].orderInfo.postCode, // Assuming consistency; adjust as needed
+            totalPrice, // Total price from all CheckoutInfo entries
+            instructors: instructorsArray,
+            lessons: allLessons
+        };
+
+        res.json({ bookingDetails });
     } catch (error) {
         console.error(error);
-        res.status(500).json({error: "An error occurred while fetching booking details"});
+        res.status(500).json({ error: "An error occurred while fetching booking details" });
     }
 };
-
 
 function getInitials(firstName, lastName) {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
