@@ -36,14 +36,20 @@ exports.getBookingDetails = async (req, res) => {
             }
 
             info.orderInfo.items.forEach((item, index) => {
-                allLessons.push({
-                    lessonNumber: `Lesson ${index + 1}`,
-                    reservationCode: info.orderInfo.reservationCode,
-                    bookingDate: new Date(item.availableHours[0]).toLocaleDateString(),
-                    bookingTime: `${new Date(item.availableHours[0]).toLocaleTimeString()} - ${new Date(item.availableHours[1]).toLocaleTimeString()}`,
-                    price: info.orderInfo.price,
-                    status: mapStatus(info.orderInfo.status), // Ensure this function exists
-                    instructor_name: instructorName
+                // Assuming each item's availableHours is an array of [startTime, endTime] pairs
+                item.availableHours.forEach((hours, hoursIndex) => {
+                    const startTime = new Date(hours[0]);
+                    const endTime = new Date(hours[1]);
+
+                    allLessons.push({
+                        lessonNumber: `Lesson ${index + 1}.${hoursIndex + 1}`, // Adjusted to account for multiple slots per item
+                        reservationCode: info.orderInfo.reservationCode,
+                        bookingDate: startTime.toLocaleDateString(),
+                        bookingTime: `${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`,
+                        price: info.orderInfo.price,
+                        status: mapStatus(info.orderInfo.status), // Assuming mapStatus function exists and works as expected
+                        instructor_name: instructorName // Assuming instructorName is defined elsewhere
+                    });
                 });
             });
 
