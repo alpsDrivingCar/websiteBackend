@@ -36,18 +36,27 @@ exports.getBookingDetails = async (req, res) => {
             }
 
             info.orderInfo.items.forEach((item, index) => {
-                // Assuming each item's availableHours is an array of [startTime, endTime] pairs
-                item.availableHours.forEach((hours, hoursIndex) => {
-                    const startTime = new Date(hours[0]);
-                    const endTime = new Date(hours[1]);
+                // Example: Assuming a fixed 2-hour duration for each lesson
+                const durationHours = 2; // Duration in hours
+
+                item.availableHours.forEach((startTime, hoursIndex) => {
+                    console.log(`Start Time: ${startTime}`); // Log start time
+
+                    // Calculate endTime by adding durationHours to startTime
+                    let endTime = new Date(startTime);
+                    endTime.setHours(startTime.getHours() + durationHours);
+
+                    // Format bookingDate and bookingTime
+                    let bookingDate = startTime.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                    let bookingTime = `${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} - ${endTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 
                     allLessons.push({
-                        lessonNumber: `Lesson ${index + 1}.${hoursIndex + 1}`, // Adjusted to account for multiple slots per item
+                        lessonNumber: `Lesson ${index + 1}.${hoursIndex + 1}`,
                         reservationCode: info.orderInfo.reservationCode,
-                        bookingDate: startTime.toLocaleDateString(),
-                        bookingTime: `${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`,
+                        bookingDate: bookingDate,
+                        bookingTime: bookingTime,
                         price: info.orderInfo.price,
-                        status: mapStatus(info.orderInfo.status), // Assuming mapStatus function exists and works as expected
+                        status: mapStatus(info.orderInfo.status), // Ensure mapStatus function exists and works as expected
                         instructor_name: instructorName // Assuming instructorName is defined elsewhere
                     });
                 });
