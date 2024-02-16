@@ -12,7 +12,7 @@ const offerSchema = new Schema({
                     type: Schema.Types.ObjectId,
                     required: true,
                     ref: 'bookingPackage',
-                }
+                },
                 icon: String,
                 title: String,
                 price: String,
