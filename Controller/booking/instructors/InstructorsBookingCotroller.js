@@ -199,7 +199,7 @@ const formatDataForBooking = (bookingPackages) => {
             total: total,
             totalBeforeSale: totalBeforeSale,
             saveUp: `Save Up To ${savingsPercentage.toFixed(0)}%!`,
-            priceSave: `Save £${savings.toFixed(2)}`
+            priceSave: `Saving of £${savings.toFixed(2)}`
         });
 
         return acc;
