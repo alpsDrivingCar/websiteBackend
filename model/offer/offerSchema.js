@@ -16,7 +16,6 @@ const offerSchema = new Schema({
                 icon: String,
                 title: String,
                 price: String,
-                typeLessonId:String,
                 offerFeature: [
                     {
                         name: String
