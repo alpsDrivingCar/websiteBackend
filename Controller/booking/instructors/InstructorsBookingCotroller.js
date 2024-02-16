@@ -119,38 +119,67 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
     try {
-        const {postcode, type: typeId} = req.query;
+        const {postcode, type: typeId, packageId} = req.query;
 
         if (!postcode) {
             return res.status(404).json({message: 'Postcode is not defined.'});
         }
 
-        const targetTypeOfLesson = await fetchLessonTypeById(typeId);
-        if (!targetTypeOfLesson) {
-            return res.status(400).send({message: "Invalid type provided"});
-        }
+        // Directly fetch and format booking packages based on the provided parameters
+        const formattedData = await fetchAndFormatBookingPackages(postcode, typeId, packageId);
 
-        const bookingPackages = await fetchBookingPackages(postcode, targetTypeOfLesson.slug);
-        console.log("bookingPackages = " + bookingPackages)
-
-        if (!bookingPackages.length) {
-            return res.status(404).send({
-                message: "No booking packages found for the given postCode and type."
-            });
-        }
-
-        const formattedData = formatDataForBooking(bookingPackages);
-
+        // Create a new InstructorsSchema instance with the formatted data and save it
         const bookingInstructor = new InstructorsSchema(formattedData);
         await bookingInstructor.save();
 
         return res.json({data: bookingInstructor});
-
     } catch (error) {
         console.error(error);
-        return res.status(500).json({message: "An error occurred", error});
+        // Use the error message directly for simplicity in this example
+        // Adjust status codes and messages as necessary for your application's needs
+        return res.status(500).json({message: error.message});
     }
 };
+
+
+async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
+    let formattedData;
+
+    if (packageId) {
+        // Fetch a single booking package by ID and ensure it matches the postcode
+        const bookingPackage = await fetchPackageById(packageId);
+        if (!bookingPackage) {
+            throw new Error("No booking package found for the given packageId and postcode.");
+        }
+        formattedData = formatDataForBooking([bookingPackage]); // Format single package
+    } else if (typeId) {
+        // Fetch booking packages by type and postcode
+        const targetTypeOfLesson = await fetchLessonTypeById(typeId);
+        if (!targetTypeOfLesson) {
+            throw new Error("Invalid type provided");
+        }
+        const bookingPackages = await fetchBookingPackages(postcode, targetTypeOfLesson.slug);
+        if (!bookingPackages.length) {
+            throw new Error("No booking packages found for the given postcode and type.");
+        }
+        formattedData = formatDataForBooking(bookingPackages); // Format multiple packages
+    } else {
+        throw new Error('Either type or packageId must be provided.');
+    }
+
+    return formattedData;
+}
+async function fetchPackageById(packageId) {
+    try {
+        console.log(packageId)
+        const bookingPackage = await PackageSchema.findById(packageId);
+        return bookingPackage;
+    } catch (error) {
+        console.error('Error fetching package by ID:', error);
+        throw error; // Rethrow the error to be handled by the caller
+    }
+}
+
 
 
 const fetchLessonTypeById = async (typeId) => {
