@@ -62,10 +62,11 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (!postcode || !gearbox || !availableTime) {
             return res.status(400).json({ message: 'Postcode, gearbox, and availableTime are required query parameters.' });
         }
+        const regexPattern = new RegExp(gearbox, "i");
 
         const filter = {
             "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
-            "gearbox": gearbox, // Uncomment and populate this line as necessary
+            "gearbox": { $regex: regexPattern },
             "isPotential": false, // Include isPotential in the main filter
             "AcceptStudent": true // Include AcceptStudent in the main filter
         };
