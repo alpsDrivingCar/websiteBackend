@@ -66,10 +66,8 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
 
         const lessonEventData = {
             "startTime": startTime,
-            // "startTime": "1:47 PM",
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             "pupilId": pupilId,
-            // "pupilId": "65a98b7422778b555b38b105",
             "durationMinutes": "60", // Duration of the lesson in minutes
             "durationHours": "2", // Duration of the lesson in hours
             "gearbox": typeOfGearbox, // Type of gearbox, e.g., automatic or manual
@@ -110,7 +108,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
 async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
     try {
         // Check in the database first
-        const existingPupil = await PupilUserSchema.findOne({ phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber });
+        const existingPupil = await PupilUserSchema.findOne({ email: updatedCheckoutInfo.studentInfo.email });
         if (existingPupil) {
             console.log(`Existing pupil found: ${existingPupil}`);
             //here i need send email
