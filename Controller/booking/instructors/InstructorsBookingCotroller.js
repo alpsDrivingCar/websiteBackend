@@ -65,7 +65,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 
         const filter = {
             "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
-            // "gearbox": gearbox, // Uncomment and populate this line as necessary
+            "gearbox": gearbox, // Uncomment and populate this line as necessary
             "isPotential": false, // Include isPotential in the main filter
             "AcceptStudent": true // Include AcceptStudent in the main filter
         };
