@@ -130,7 +130,6 @@ exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
 
         // Create a new InstructorsSchema instance with the formatted data and save it
         const bookingInstructor = new InstructorsSchema(formattedData);
-        await bookingInstructor.save();
 
         return res.json({data: bookingInstructor});
     } catch (error) {
@@ -203,13 +202,25 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 const formatDataForBooking = (bookingPackages) => {
     const order = { 'manual': 1, 'automatic': 2, 'electric': 3 };
 
-    const groupedPackages = bookingPackages.reduce((acc, curr) => {
+    // Check if 'manual' exists in the booking packages
+    let selectedGearbox = bookingPackages.some(package => package.slugOfGearbox === 'manual') ? 'manual' : '';
 
+    // If 'manual' doesn't exist, check if 'automatic' exists
+    if (!selectedGearbox) {
+        selectedGearbox = bookingPackages.some(package => package.slugOfGearbox === 'automatic') ? 'automatic' : '';
+    }
+
+    // If neither 'manual' nor 'automatic' exists, default to 'electric'
+    if (!selectedGearbox) {
+        selectedGearbox = 'electric';
+    }
+
+    const groupedPackages = bookingPackages.reduce((acc, curr) => {
         if (!acc[curr.slugOfGearbox]) {
             acc[curr.slugOfGearbox] = {
                 slug: curr.slugOfGearbox,
                 name: curr.gearbox,
-                selected: curr.slugOfGearbox === 'manual',
+                selected: curr.slugOfGearbox === selectedGearbox,
                 packages: []
             };
         }
@@ -233,12 +244,13 @@ const formatDataForBooking = (bookingPackages) => {
 
         return acc;
     }, {});
+
     const gearboxData = Object.values(groupedPackages)
         .sort((a, b) => order[a.slug] - order[b.slug])
         .map(gearbox => ({
             slug: gearbox.slug,
             name: gearbox.name,
-            selected: gearbox.slug === 'manual',
+            selected: gearbox.slug === selectedGearbox,
             package: gearbox.packages
         }));
 
