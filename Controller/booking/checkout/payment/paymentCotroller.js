@@ -59,7 +59,6 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         const { studentInfo, orderInfo } = receivedData;
 
         const isAvailable = await checkInstructorAvailability(orderInfo);
-
         if (!isAvailable) {
             return res.status(404).json({ message: 'Instructor has become unavailable at the requested times.' });
         }
@@ -271,23 +270,38 @@ async function createStripePaymentIntent(orderInfo, lineItems) {
 }
 
 async function saveCheckoutInfo(receivedData, orderInfo) {
-    // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
+    const formattedDate = moment().format('YYYY-MM-DD : ha'); // Format the date
+    receivedData.studentInfo.address = receivedData.orderInfo.postCode;
+    orderInfo.status = "pending";
+    orderInfo.bookingDate = formattedDate;
 
-    orderInfo.price
-    const formattedDate = moment().format('YYYY-MM-DD : ha');
-    receivedData.studentInfo.address = receivedData.orderInfo.postCode
-    orderInfo.status = "pending"
-    orderInfo.bookingDate = formattedDate
-    const checkoutInfo = new CheckoutInfo({
-        ...receivedData,
-        orderInfo: {...orderInfo}
-    });
+    // Check if checkoutInfoId is provided to update existing checkoutInfo
+    if (orderInfo.checkoutInfoId) {
+        const checkoutInfoToUpdate = await CheckoutInfo.findById(orderInfo.checkoutInfoId);
+        if (!checkoutInfoToUpdate) {
+            throw new Error('CheckoutInfo not found.');
+        }
 
-    orderInfo.success_url = checkoutInfo.orderInfo.success_url + "?id=" + checkoutInfo.id
-    checkoutInfo.orderInfo = orderInfo
+        // Update the checkoutInfo with new data
+        checkoutInfoToUpdate.orderInfo = { ...checkoutInfoToUpdate.orderInfo, ...orderInfo };
+        checkoutInfoToUpdate.studentInfo = { ...checkoutInfoToUpdate.studentInfo, ...receivedData.studentInfo };
 
+        // You might need to update other fields as necessary
+        checkoutInfoToUpdate.orderInfo.success_url += "?id=" + checkoutInfoToUpdate._id; // Assuming you need to append the ID
 
-    return checkoutInfo.save();
+        return checkoutInfoToUpdate.save();
+    } else {
+        // If checkoutInfoId is not provided, create new checkoutInfo
+        const checkoutInfo = new CheckoutInfo({
+            ...receivedData,
+            orderInfo: { ...orderInfo }
+        });
+
+        orderInfo.success_url += "?id=" + checkoutInfo._id; // Append the new ID to the success_url
+        checkoutInfo.orderInfo = orderInfo;
+
+        return checkoutInfo.save();
+    }
 }
 
 function handleError(res, error) {
