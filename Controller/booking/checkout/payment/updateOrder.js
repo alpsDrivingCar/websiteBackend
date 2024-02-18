@@ -15,11 +15,19 @@ exports.updateOrderStatus = async (req, res) => {
         const {status} = req.body;
 
         // Update status
-        var updatedCheckoutInfo = await updateStatusById(id, status);
-        const token = await getAuthToken();
+        var updateResult = await updateStatusById(id, status);
 
-        const apiResponse = await addPupilfireExternalAPI(updatedCheckoutInfo,token);
-        console.log(`apiResponse.pupil._id ${apiResponse.pupil._id}`)
+        if (updateResult.alreadyUpdated) {
+            // If the order was already updated to "success", return a message indicating so
+            return res.json({
+                message: "Order status was already updated to success previously!",
+                data: updateResult.checkoutInfo
+            });
+        }
+
+        // Proceed with the rest of the logic if the update was actually performed
+        const token = await getAuthToken();
+        const apiResponse = await addPupilfireExternalAPI(updateResult.checkoutInfo, token);
         const pupilId = apiResponse.pupil._id;
 
         // add updatePupilIdById here
@@ -27,7 +35,7 @@ exports.updateOrderStatus = async (req, res) => {
 
         // const pupilId = "658415717c82cf2ea24158f1";
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId,token);
-        res.json({
+        return res.json({
             message: "Order status updated successfully!",
             data: updatedCheckoutInfo,
             apiResponse: apiResponse, // Include the external API response
@@ -192,17 +200,28 @@ async function updateStatusById(id, status) {
         throw new Error('Invalid status value');
     }
 
-    const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
-        id,
-        {'orderInfo.status': status},
-        {new: true}
-    ).exec();
-
-    if (!updatedCheckoutInfo) {
+    // First, find the existing CheckoutInfo to check its current status
+    const existingCheckoutInfo = await CheckoutInfo.findById(id).exec();
+    if (!existingCheckoutInfo) {
         throw new Error('Checkout info not found');
     }
 
-    return updatedCheckoutInfo;
+    // Check if the current status is already "success"
+    if (existingCheckoutInfo.orderInfo.status === 'success') {
+        // Since the status is already "success", we don't proceed with the update
+        // Instead, return the existingCheckoutInfo and possibly indicate that no update was needed
+        return { alreadyUpdated: true, checkoutInfo: existingCheckoutInfo };
+    }
+
+    // If the status is not "success", proceed with the update
+    const updatedCheckoutInfo = await CheckoutInfo.findByIdAndUpdate(
+        id,
+        { 'orderInfo.status': status },
+        { new: true }
+    ).exec();
+
+    // Return the updatedCheckoutInfo along with an indication that an update was performed
+    return { alreadyUpdated: false, checkoutInfo: updatedCheckoutInfo };
 }
 
 
