@@ -2,6 +2,9 @@ const CheckoutInfo = require("../../../../model/booking/checkout/payment/payment
 const CheckEmail = require("../../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const OfferSchema = require("../../../../model/offer/offerSchema");
+const InstructorsUserSchema = require("../../../../model/user/Instructor");
+const LessonEvent = require("../../../../model/booking/instructors/lessonEventSchema");
+
 const moment = require('moment');
 const crypto = require('crypto');
 const ejs = require('ejs');
@@ -55,6 +58,12 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         const receivedData = req.body;
         const { studentInfo, orderInfo } = receivedData;
 
+        const isAvailable = await checkInstructorAvailability(orderInfo);
+
+        if (!isAvailable) {
+            return res.status(404).json({ message: 'Instructor has become unavailable at the requested times.' });
+        }
+
         const lineItems = await generateLineItems(orderInfo);
 
         const reservationCode = generateReservationCode(studentInfo.phoneNumber);
@@ -72,6 +81,46 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         handleError(res, error);
     }
 };
+
+async function checkInstructorAvailability(orderInfo) {
+    const { items, instructorsId } = orderInfo; // Assuming instructorsId is a single ID, not an array
+
+    // Ensure required information is provided
+    if (!items || items.length === 0 || !instructorsId) {
+        throw new Error('Order items and instructor ID are required parameters.');
+    }
+
+    // Extracting availableHours from all items into a single array of Date objects
+    let availableTimes = items.reduce((acc, item) => {
+        if (item.availableHours && Array.isArray(item.availableHours)) {
+            const timesAsDates = item.availableHours.map(time => new Date(time));
+            acc = acc.concat(timesAsDates);
+        }
+        return acc;
+    }, []);
+
+    if (availableTimes.length === 0) {
+        console.log('No available times found in the order items.');
+        return false; // Indicating no available times to check against
+    }
+
+    // Check availability for the specified instructor at each provided time
+    for (const time of availableTimes) {
+        const hasLesson = await LessonEvent.findOne({
+            instructorId: instructorsId, // Directly use the single ID provided
+            startTime: { $lte: time },
+            endTime: { $gte: time }
+        });
+        if (hasLesson) {
+            // This instructor is not available at this time
+            return false; // Instructor is unavailable at least one of the provided times
+        }
+    }
+
+    // If the loop completes without finding any unavailability, the instructor is available
+    return true; // The instructor is available at all provided times
+}
+
 
 async function sendEmail(to,reservationCode) {
     try {
