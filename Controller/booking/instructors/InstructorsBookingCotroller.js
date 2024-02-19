@@ -106,7 +106,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         instructors = instructors.filter(instructor => instructor !== null);
 
         if (!instructors.length) {
-            return res.status(404).json({ message: 'No available instructors found for the criteria.' });
+            return res.json({data: []});
         }
 
         res.json({ data: instructors });
