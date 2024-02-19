@@ -76,7 +76,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
             "startTime": startTime,
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             "pupilId": pupilId,
-            "durationMinutes": "60", // Duration of the lesson in minutes
+            "durationMinutes": "120", // Duration of the lesson in minutes
             "durationHours": "2", // Duration of the lesson in hours
             "gearbox": typeOfGearbox, // Type of gearbox, e.g., automatic or manual
             "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson, // Type of lesson, e.g., regular, intensive
