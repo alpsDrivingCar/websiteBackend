@@ -36,6 +36,11 @@ const homeSchema = new Schema({
         offers: [
             {
                 icon: String,
+                packageId:{
+                    type: Schema.Types.ObjectId,
+                    required: true,
+                    ref: 'bookingPackage',
+                },
                 title: String,
                 price: String,
                 offerFeature: [
