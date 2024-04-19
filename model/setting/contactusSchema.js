@@ -7,6 +7,7 @@ const contactusSchema = new Schema({
     phoneNumber: String,
     location: String,
     name: String,
+    contactUsType: String,
     description: {
         type: String,
         required: true,
