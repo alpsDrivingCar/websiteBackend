@@ -22,7 +22,7 @@ exports.getBookingInstructors = (req, res) => {
     // result = Array of objects inside mongo database
     InstructorsSchema.findById("64859e62519ba1e3fcc98866")
         .then((result) => {
-            res.status(200).json({data: result});
+            res.status(200).json({ data: result });
         })
         .catch((err) => {
             console.log(err);
@@ -33,7 +33,7 @@ exports.bookingInstructorsUpdate = (req, res) => {
     // result =   object  inside mongo database
     InstructorsSchema.findByIdAndUpdate("64859e62519ba1e3fcc98866").updateOne(req.body)
         .then((result) => {
-            res.json({data: result});
+            res.json({ data: result });
         })
         .catch((err) => {
             console.log(err);
@@ -106,7 +106,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         instructors = instructors.filter(instructor => instructor !== null);
 
         if (!instructors.length) {
-            return res.json({data: []});
+            return res.json({ data: [] });
         }
 
         res.json({ data: instructors });
@@ -120,10 +120,10 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
     try {
-        const {postcode, type: typeId, packageId} = req.query;
+        const { postcode, type: typeId, packageId } = req.query;
 
         if (!postcode) {
-            return res.status(404).json({message: 'Postcode is not defined.'});
+            return res.status(404).json({ message: 'Postcode is not defined.' });
         }
 
         // Directly fetch and format booking packages based on the provided parameters
@@ -132,15 +132,24 @@ exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
         // Create a new InstructorsSchema instance with the formatted data and save it
         const bookingInstructor = new InstructorsSchema(formattedData);
 
-        return res.json({data: bookingInstructor});
+        // Sort the data by price
+        const sortedData = sortDataByNumberHour(bookingInstructor);
+
+        return res.json({ data: sortedData });
     } catch (error) {
         console.error(error);
         // Use the error message directly for simplicity in this example
         // Adjust status codes and messages as necessary for your application's needs
-        return res.status(500).json({message: error.message});
+        return res.status(500).json({ message: error.message });
     }
 };
 
+function sortDataByNumberHour(formattedData) {
+    formattedData.gearbox.forEach(gearbox => {
+        gearbox.package.sort((a, b) => a.numberHour - b.numberHour);
+    });
+    return formattedData;
+}
 
 async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
     let formattedData;
@@ -171,14 +180,15 @@ async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
 }
 async function fetchPackageById(packageId) {
     try {
-        console.log(packageId)
-        const bookingPackage = await PackageSchema.findById(packageId);
+        console.log(packageId);
+        const bookingPackage = await PackageSchema.findById(packageId).sort({ "gearbox": 1 });
         return bookingPackage;
     } catch (error) {
         console.error('Error fetching package by ID:', error);
         throw error; // Rethrow the error to be handled by the caller
     }
 }
+
 
 
 
@@ -227,8 +237,8 @@ const formatDataForBooking = (bookingPackages) => {
         }
 
         console.log(`curr ${curr.title}`);
-        const total = convertToNumber(curr.price,"price");
-        const totalBeforeSale = convertToNumber(curr.priecBeforeSele,"priecBeforeSele");
+        const total = convertToNumber(curr.price, "price");
+        const totalBeforeSale = convertToNumber(curr.priecBeforeSele, "priecBeforeSele");
 
         // Calculate the savings
         const savings = totalBeforeSale - total;
@@ -263,12 +273,12 @@ const formatDataForBooking = (bookingPackages) => {
 };
 
 
-function convertToNumber(value,name) {
+function convertToNumber(value, name) {
     console.log(`value ${value}`);
-    if(value){
+    if (value) {
         const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
         return parseFloat(withoutCommaAndExtraPeriods);
-    }else {
+    } else {
         console.error(`Cannot convert '${value}' to a number in function '${name}'`);
         throw new Error(`Cannot convert '${value}' to a number in function '${name}'`);
     }
