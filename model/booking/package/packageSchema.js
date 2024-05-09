@@ -22,6 +22,8 @@ const bookingPackageSchema = new Schema({
     price: String,
     priecBeforeSele: String,
     numberHour: String,
+},{
+  timestamps: true  // Adds createdAt and updatedAt timestamps
 });
 
 

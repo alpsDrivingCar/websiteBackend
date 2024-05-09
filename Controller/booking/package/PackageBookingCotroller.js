@@ -150,7 +150,7 @@ exports.getPackagesBySlug = async (req, res) => {
     }
 
     try {
-        const packages = await PackageSchema.find(query);
+        const packages = await PackageSchema.find(query).sort({ createdAt: -1 });
 
         if (packages.length === 0) {
             return res.status(404).send({message: "No BookingPackages found for the provided filters."});
