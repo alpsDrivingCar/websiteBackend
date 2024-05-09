@@ -226,8 +226,9 @@ const formatDataForBooking = (bookingPackages) => {
             };
         }
 
-        const total = convertToNumber(curr.price);
-        const totalBeforeSale = convertToNumber(curr.priecBeforeSele);
+        console.log(`curr ${curr.title}`);
+        const total = convertToNumber(curr.price,"price");
+        const totalBeforeSale = convertToNumber(curr.priecBeforeSele,"priecBeforeSele");
 
         // Calculate the savings
         const savings = totalBeforeSale - total;
@@ -262,7 +263,14 @@ const formatDataForBooking = (bookingPackages) => {
 };
 
 
-function convertToNumber(value) {
-    const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
-    return parseFloat(withoutCommaAndExtraPeriods);
+function convertToNumber(value,name) {
+    console.log(`value ${value}`);
+    if(value){
+        const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');
+        return parseFloat(withoutCommaAndExtraPeriods);
+    }else {
+        console.error(`Cannot convert '${value}' to a number in function '${name}'`);
+        throw new Error(`Cannot convert '${value}' to a number in function '${name}'`);
+    }
+
 }
