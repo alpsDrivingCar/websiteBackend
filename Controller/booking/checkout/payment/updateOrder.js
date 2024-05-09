@@ -58,9 +58,10 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
 
     for (const time of availableHours) {
         const formattedStartTime = convertToSimpleTimeFormat(time); // Ensure formatTime is defined
+        const formattedEndTime = addTwoHours(formattedStartTime); // Calculate endTime
         const formattedDateTime = convertDateToReadableFormat(time);
         // Call addLessonEvent for each time and store the result
-        const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime,token);
+        const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime,formattedEndTime,token);
         results.push(result); // Add result to the array
     }
 
@@ -68,10 +69,16 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
 }
 
 
-async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,token) {
+async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,formattedEndTime,token) {
     const typeOfGearbox = updatedCheckoutInfo.orderInfo.typeOfGearbox.toLowerCase()
     try {
 
+        // console.log(`startTime  ${startTime}`);
+        // console.log(`instructorId  ${updatedCheckoutInfo.orderInfo.instructorsId.toString()}`);
+        // console.log(`pupilId  ${pupilId}`);
+        // console.log(`gearbox  ${typeOfGearbox}`);
+        // console.log(`lessonType Web site lessons/661f96868ef5f48b31d1a241 `);
+        // console.log(`date  ${time}`);
         const lessonEventData = {
             "startTime": startTime,
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
@@ -82,7 +89,10 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
             "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson, // Type of lesson, e.g., regular, intensive
             "pickUpLocation": "home", // Pickup location
             "dropOffLocation": "home", // Drop-off location
-            "date": time // Date and time of the lesson
+            "date": time, // Date and time of the lesson,
+            "endTime": formattedEndTime,
+           "lessonType": "Web site lessons/661f96868ef5f48b31d1a241"
+
         };
 
 
@@ -102,12 +112,13 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,toke
         const response = await axios.post(apiUrl, lessonEventData, {headers});
 
         if (response.status < 200 || response.status >= 300) {
-            throw new Error(`API responded with status code ${response.status}`);
+            throw new Error(`API responded with status code ${response.status} ${response.message}`);
         }
 
         return response.data;
     } catch (error) {
         const errMsg = error.message;
+        console.log(`error ${error}`);
         throw new Error(`Add Lesson API Error: ${errMsg}`);
     }
 }
@@ -157,8 +168,12 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
 }
 function handleApiError(error) {
     if (error.response) {
-        const errMsg = error.response.data.msg || error.response.statusText;
-        throw new Error(`API Error: ${errMsg}`);
+        const errMsg = (error.response.data && error.response.data.msg) || error.response.statusText || error.message;
+        if (errMsg) {
+            throw new Error(`API Error: ${errMsg}`);
+        } else {
+            throw new Error('An error occurred on the server.');
+        }
     } else if (error.request) {
         throw new Error('API did not respond');
     } else {
@@ -286,12 +301,14 @@ exports.updateSaveStatusAndChangedBy = async (req, res) => {
 
 function convertToSimpleTimeFormat(isoDateString) {
     const date = new Date(isoDateString);
-    return date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    });
+    return date;
 }
+function addTwoHours(date) {
+    const newDate = new Date(date);
+    newDate.setHours(newDate.getHours() + 2);
+    return newDate;
+}
+
 
 function convertDateToReadableFormat(dateString) {
     const date = new Date(dateString);
