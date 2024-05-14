@@ -25,6 +25,7 @@ app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
 
 app.use('/api/setting/contactUs', require('./routes/setting/ContacUsRoutes'))
+app.use('/api/faqs', require('./routes/fqa/FqaRoute'))
 
 
 
@@ -41,7 +42,7 @@ mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
 }).then(() => {
     // app.listen(3000)
-    app.listen(process.env.PORT || 3000, () => {
+    app.listen(process.env.PORT || 8000, () => {
         console.log("Server Run ")
     })
 }).catch(err => {
