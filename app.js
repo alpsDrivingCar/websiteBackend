@@ -61,7 +61,7 @@ const { mongoose } = require('mongoose');
 mongoose.connect(process.env.DATABASE, {
     useNewUrlParser: true, useUnifiedTopology: true,
 }).then(() => {
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 8000;
     const localUrl = `http://localhost:${port}`;
     const remoteUrl = 'https://alps-driving-website.herokuapp.com';
 
