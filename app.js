@@ -39,6 +39,8 @@ app.use('/api/locations', require('./routes/locations/LocationsRoutes'))
 app.use('/api/gift', require('./routes/gift/GiftRoutes'))
 app.use('/api/gift/checkout', require('./routes/gift/GiftCheckoutRoutes'))
 
+//Routes fqa
+app.use('/api/faqs', require('./routes/fqa/FqaRoute'))
 
 
 app.use('/api/home', require('./routes/home/HomeRoutes'))
