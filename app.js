@@ -42,6 +42,9 @@ app.use('/api/gift/checkout', require('./routes/gift/GiftCheckoutRoutes'))
 //Routes fqa
 app.use('/api/faqs', require('./routes/fqa/FqaRoute'))
 
+//Routes franchise
+app.use('/api/franchise', require('./routes/franchise/franchiseRoute'))
+
 
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
