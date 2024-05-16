@@ -28,7 +28,15 @@ const franchiseOpportunitySchema = new mongoose.Schema({
         type: String,
         required: true
     }],
-    sections: [sectionSchema]
+    sections: [sectionSchema],
+    contactUsTitle: {
+        type: String,
+        required: true
+    },
+    contactUsDescription: {
+        type: String,
+        required: true
+    },
 }, {
     timestamps: true,
 });
