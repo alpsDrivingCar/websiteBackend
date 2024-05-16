@@ -20,10 +20,10 @@ const franchiseOpportunitySchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    benefits: [{
+    benefits: {
         type: String,
         required: true
-    }],
+    },
     investmentDetails: [{
         type: String,
         required: true
