@@ -35,17 +35,34 @@ async function handleValidator(req) {
     const errors = validationResult(req);
     return errors;
 }
-
-exports.franchise = (req, res) => {
-
-    FranchiseSchema.findById("64e648c09e3a26ecf93d9651")
+exports.allFranchise = (req, res) => {
+    FranchiseSchema.find()
+        .sort({ createdAt: -1 })
         .then((result) => {
-            res.json(result)
+            res.json(result);
         })
         .catch((err) => {
             console.log(err);
-        });
+            res.status(500).json({ error: 'Internal Server Error' });
+        })
 }
+
+
+exports.getById = (req, res) => {
+    const { id } = req.params; // Extract the id from request parameters
+    FranchiseSchema.findById(id) // Use the extracted id to find the document
+        .then((result) => {
+            if (result) {
+                res.json(result); // If document is found, send it as JSON response
+            } else {
+                res.status(404).json({ error: 'Document not found' }); // If document is not found, send 404 status with error message
+            }
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status(500).json({ error: 'Internal Server Error' }); // Handle other errors with 500 status and error message
+        });
+};
 
 exports.franchiseUpdate = (req, res) => {
     FranchiseSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
