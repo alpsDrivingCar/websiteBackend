@@ -48,6 +48,22 @@ exports.joinus = (req, res) => {
         });
 };
 
+exports.joinusById = (req, res) => {
+    const id = req.params.id; // Get the ID from request parameters
+
+    JoinusSchema.findById(id)
+        .then((result) => {
+            if (!result) {
+                return res.status(404).json({ error: 'Join us data not found' }); // If no document found with the given ID
+            }
+            res.json({ data: result });
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status(500).json({ error: 'An error occurred while fetching join us data' });
+        });
+};
+
 exports.joinusUpdate = (req, res) => {
     JoinusSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
         .then((result) => {
