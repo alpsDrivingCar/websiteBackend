@@ -37,15 +37,16 @@ async function handleValidator(req) {
 }
 
 exports.joinus = (req, res) => {
-
-    JoinusSchema.findById("64e648c09e3a26ecf93d9651")
+    JoinusSchema.find()
+        .sort({ createdAt: -1 }) // Sort by createdAt field in descending order (newest to oldest)
         .then((result) => {
-            res.json(result)
+            res.json({ data: result });
         })
         .catch((err) => {
             console.log(err);
+            res.status(500).json({ error: 'An error occurred while fetching join us data' });
         });
-}
+};
 
 exports.joinusUpdate = (req, res) => {
     JoinusSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
