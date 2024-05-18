@@ -5,14 +5,14 @@ const Schema = mongoose.Schema;
 const lessonsSchema = new Schema({
     title: String,
     description: String,
-    classDurationHours  : String,
     typeOfLesson: [
         {
             slug: String,
             title: String,
             description: String,
             image :String,
-            discount_text:String
+            discount_text:String,
+            classDurationHours  : String,
         },
     ]
 });
