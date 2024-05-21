@@ -126,8 +126,14 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
 
 async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
     try {
-        // Check in the database first
-        const existingPupil = await PupilUserSchema.findOne({ email: updatedCheckoutInfo.studentInfo.email });
+        // Check if the pupil exists by email or phone number
+        const existingPupil = await PupilUserSchema.findOne({
+            $or: [
+                { email: updatedCheckoutInfo.studentInfo.email },
+                { phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber }
+            ]
+        });
+
         if (existingPupil) {
             console.log(`Existing pupil found: ${existingPupil}`);
             //here i need send email
@@ -160,12 +166,13 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         if (response.status < 200 || response.status >= 300) {
             throw new Error(`API responded with status code ${response.status}`);
         }
-        console.log()
+
         return response.data; // Indicate that this is a new entry
     } catch (error) {
         handleApiError(error);
     }
 }
+
 function handleApiError(error) {
     if (error.response) {
         const errMsg = (error.response.data && error.response.data.msg) || error.response.statusText || error.message;
