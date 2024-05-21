@@ -40,6 +40,8 @@ const giftCheckoutSchema = new mongoose.Schema({
         enum: ['pending', 'success', 'failure'],
         default: 'pending'
     }
+},{
+    timestamps:true
 });
 
 const GiftCheckout = mongoose.model('GiftCheckout', giftCheckoutSchema);

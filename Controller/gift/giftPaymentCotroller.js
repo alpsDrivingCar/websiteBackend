@@ -131,7 +131,9 @@ function convertToNumber(value) {
 
 exports.getAllCheckoutInfos = async (req, res) => {
     try {
-        const checkoutInfos = await GiftCheckoutSchema.find({}).populate('cardId');
+        const checkoutInfos = await GiftCheckoutSchema.find({})
+        .sort({ createdAt: -1 })
+        .populate('cardId');
         res.json(checkoutInfos);
     } catch (error) {
         res.status(500).json({ message: error.message });
