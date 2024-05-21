@@ -79,7 +79,8 @@ exports.deleteContactus = (req, res) => {
 
 exports.getAllContactUs = async (req, res) => {
     try {
-        const results = await ContactusSchema.find();
+        const results = await ContactusSchema.find()
+        .sort({ createdAt: -1 });
         res.json({ data: results });
     } catch (err) {
         console.error(err);
