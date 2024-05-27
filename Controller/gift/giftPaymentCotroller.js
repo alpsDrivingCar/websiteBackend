@@ -175,7 +175,7 @@ exports.updateCheckoutInfo = async (req, res) => {
             return res.status(404).json({ message: "No checkout info found with this ID" });
         }
 
-        res.json(checkoutInfo);
+        res.json({data:checkoutInfo});
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

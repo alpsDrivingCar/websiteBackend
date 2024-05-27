@@ -4,13 +4,24 @@ const Schema = mongoose.Schema;
 const bookingPackageSchema = new Schema({
     title: String,
     description: String,
-    slugOfGearbox:String,
-    gearbox:String,
-    slugOfType:String,
-    typeName:String,
+    slugOfGearbox: String,
+    gearbox: String,
+    slugOfType: {
+        type: String,
+        enum: [
+            "our_offers_packages",
+            "standard_packages",
+            "intensive_courses",
+            "refresher_lessons",
+            "pass_plus_course",
+            "tesla_model_y_courses"
+        ],
+        required: true
+    },
+    typeName: String,
     areas: [
         {
-        areaName: String
+            areaName: String
         }
     ],
     postCode: [
@@ -22,6 +33,7 @@ const bookingPackageSchema = new Schema({
     price: String,
     priecBeforeSele: String,
     numberHour: String,
+    features: { type: [String]},
 },{
   timestamps: true  // Adds createdAt and updatedAt timestamps
 });
