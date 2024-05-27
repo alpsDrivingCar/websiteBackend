@@ -24,12 +24,12 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
         const lineItem = await generateLineItem(giftCheckoutReceivedData);
         const lineItems = [lineItem]
 
-        // Assuming createStripePaymentIntent is expecting an array of line items
-        const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData,lineItems);
-
         // Save checkoutInfo to the database.
         // Assuming saveGiftCheckoutSchema is expecting the original data and the created line item
         const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(giftCheckoutReceivedData, lineItem);
+
+        // Assuming createStripePaymentIntent is expecting an array of line items
+        const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData,lineItems,savedGiftCheckoutSchema);
 
         res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
     } catch (error) {
@@ -90,7 +90,8 @@ function validatePackageIdFormat(packageId) {
 
 
 
-async function createStripePaymentIntent(giftCheckoutReceivedData,lineItems) {
+async function createStripePaymentIntent(giftCheckoutReceivedData,lineItems,savedGiftCheckoutSchema) {
+    giftCheckoutReceivedData.success_url += "?id=" + savedGiftCheckoutSchema._id;
     return stripe.checkout.sessions.create({
         mode: 'payment',
         success_url: giftCheckoutReceivedData.success_url,
