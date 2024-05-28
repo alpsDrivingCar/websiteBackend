@@ -15,7 +15,7 @@ exports.createHome = (req, res) => {
 }
 
 exports.homes = (req, res) => {
-    HomeSchema.findById("659914cd271e61d45d98c53b")
+    HomeSchema.findById("65991313b4bf8eaf3a858c1b")
         .then((result) => {
             res.json(result);
         })
