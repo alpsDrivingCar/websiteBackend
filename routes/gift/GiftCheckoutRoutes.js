@@ -1,4 +1,4 @@
-const giftServer = require('../../Controller/gift/giftPaymentCotroller')
+const giftServer = require('../../Controller/gift/cards/giftPaymentCotroller')
 const express = require("express");
 const router = express.Router();
 

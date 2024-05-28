@@ -38,6 +38,7 @@ app.use('/api/locations', require('./routes/locations/LocationsRoutes'))
 //Routes Locationsx
 app.use('/api/gift', require('./routes/gift/GiftRoutes'))
 app.use('/api/gift/checkout', require('./routes/gift/GiftCheckoutRoutes'))
+app.use('/api/gift/info', require('./routes/gift/GiftInfoRoutes'))
 
 //Routes fqa
 app.use('/api/faqs', require('./routes/fqa/FqaRoute'))

@@ -1,4 +1,4 @@
-const GiftSchema = require("../../model/gift/giftSchema");
+const GiftSchema = require("../../../model/gift/giftSchema");
 
 exports.createGift = (req, res) => {
     const giftSchema = new GiftSchema(req.body);
@@ -15,8 +15,6 @@ exports.createGift = (req, res) => {
 }
 
 exports.gifts = (req, res) => {
-    // result =   object  inside mongo database
-    // GiftSchema.findById(req.params.id)
     GiftSchema.find()
         .then((result) => {
             res.json(result)

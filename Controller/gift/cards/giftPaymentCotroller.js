@@ -1,7 +1,7 @@
 
-const CheckEmail = require("../../model/booking/checkout/checkEmail/checkEmailSchema");
-const GiftCheckoutSchema = require("../../model/gift/giftCheckoutSchema");
-const Gift = require('../../model/gift/giftSchema');
+const CheckEmail = require("../../../model/booking/checkout/checkEmail/checkEmailSchema");
+const GiftCheckoutSchema = require("../../../model/gift/giftCheckoutSchema");
+const Gift = require('../../../model/gift/giftSchema');
 
 const moment = require('moment');
 
@@ -143,14 +143,8 @@ exports.getAllCheckoutInfos = async (req, res) => {
 
 exports.getCheckoutInfoById = async (req, res) => {
     try {
-        const id = req.params.id;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid ID" });
-        }
-
-        const checkoutInfo = await GiftCheckoutSchema.findById(id).populate('cardId');
-
+       
+        const checkoutInfo = await GiftCheckoutSchema.findById("66558b1f9d072e90e338c9ba")
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
         }
