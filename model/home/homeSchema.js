@@ -9,15 +9,7 @@ const homeSchema = new Schema({
         videoLink: String,
         startButtonText: String,
         headerImage: String,
-        hotBoxMobile: [
-            {
-                icon: String,
-                title: String,
-                description: String,
-                buttonText: String,
-            }
-        ],
-        hotBoxDesktop: [
+        hotBox: [
             {
                 icon: String,
                 title: String,

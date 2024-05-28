@@ -15,30 +15,13 @@ exports.createHome = (req, res) => {
 }
 
 exports.homes = (req, res) => {
-    const userAgent = req.headers['user-agent'];
-    const isMobile = /mobile/i.test(userAgent);
-
-    console.log("isMobile = " + isMobile);
-    console.log("userAgent = " + userAgent);
-
-    const id = "66559eadbdb78e10ec85442f"
-
-    HomeSchema.findById(id)
+    HomeSchema.findById("659914cd271e61d45d98c53b")
         .then((result) => {
-            if (!result) {
-                return res.status(404).json({ message: 'Home not found' });
-            }
-
-            const response = {
-                ...result.toObject(),
-                hotBox: isMobile ? result.hotBoxMobile : result.hotBoxDesktop
-            };
-
-            res.json(response);
+            res.json(result);
         })
         .catch((err) => {
-            console.error(err);
-            res.status(500).json({ message: 'Error retrieving data' });
+            console.log(err);
+            res.status(500).send("Error retrieving data");
         });
 }
 
