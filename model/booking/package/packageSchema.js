@@ -37,7 +37,8 @@ const bookingPackageSchema = new Schema({
         {
             feature: String,
         }
-    ]
+    ],
+    image:  String,
 },{
   timestamps: true  // Adds createdAt and updatedAt timestamps
 });
