@@ -22,6 +22,8 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
 
         // Generate a line item for the received data
         const lineItem = await generateLineItem(giftCheckoutReceivedData);
+    console.log("ss");
+
         const lineItems = [lineItem]
 
         // Save checkoutInfo to the database.
@@ -30,6 +32,7 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
 
         // Assuming createStripePaymentIntent is expecting an array of line items
         const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData,lineItems,savedGiftCheckoutSchema);
+
 
         res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
     } catch (error) {
@@ -52,8 +55,11 @@ async function validateVerificationNumber(giftCheckoutReceivedData) {
     }
 }
 async function generateLineItem(giftCheckoutItem) {
+
     if (giftCheckoutItem.cardId) {
         validatePackageIdFormat(giftCheckoutItem.cardId);
+
+        console.log(`giftResult ${giftCheckoutItem.cardId}`);
 
         let giftResult = await fetchGiftById(giftCheckoutItem.cardId);
 

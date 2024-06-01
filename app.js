@@ -31,6 +31,7 @@ app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
 app.use('/api/setting/joinus', require('./routes/setting/JoinUsRoutes'))
 app.use('/api/setting/contactUs', require('./routes/setting/ContactusRoutes'))
 app.use('/api/setting/franchise', require('./routes/setting/FranchiseRoutes'))
+app.use('/api/setting/testBooking', require('./routes/setting/TestBookingRouter'))
 
 //Routes Locationsx
 app.use('/api/locations', require('./routes/locations/LocationsRoutes'))
