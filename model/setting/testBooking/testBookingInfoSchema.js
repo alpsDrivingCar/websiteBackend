@@ -14,6 +14,10 @@ const testBookingSchema = new Schema({
     type: String,
     required: false, // Assuming the image URL is optional
   },
+  contactSectionData: {
+    phoneNumber:  String,
+    whatsNumber: String
+  },
 }, {
   timestamps: true
 });

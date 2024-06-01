@@ -33,7 +33,11 @@ const bookingPackageSchema = new Schema({
     price: String,
     priecBeforeSele: String,
     numberHour: String,
-    features: { type: [String]},
+    features: [
+        {
+            feature: String,
+        }
+    ]
 },{
   timestamps: true  // Adds createdAt and updatedAt timestamps
 });
