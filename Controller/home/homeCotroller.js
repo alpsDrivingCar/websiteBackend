@@ -34,7 +34,7 @@ exports.homes = (req, res) => {
                     }
 
                     // Add packages to the result.newOffers.packages
-                    homeData.ourOffer = packages;
+                    homeData.ourOffer.offers = packages;
                     res.json({ data: homeData });
                 });
         })
