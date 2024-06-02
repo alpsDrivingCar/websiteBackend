@@ -1,24 +1,32 @@
 const FranchiseSchema = require("../../model/setting/franchiseSchema");
 const {body, validationResult} = require('express-validator');
+const NotificationCreator = require("../notification/notificationCreator");
 
 exports.createFranchise = async (req, res) => {
-    const franchiseSchema = new FranchiseSchema(req.body);
     const errors = await handleValidator(req);
     if (!errors.isEmpty()) {
         const errorMessages = errors.array().map(error => error.msg);
-        return res.status(400).json({errors: errorMessages[0]});
+        return res.status(400).json({ errors: errorMessages[0] });
     }
 
-    console.log(req.body);
+    const franchiseSchema = new FranchiseSchema(req.body);
+   
     franchiseSchema.save()
-        .then(result => {
-            res.json(result);
+        .then(async result => {
+            // Create notification after saving franchise
+            try {
+                await NotificationCreator.createWebsiteAdminNotification(req.body.name, "Franchise", result._id, "franchise");
+                res.json(result);
+            } catch (notificationErr) {
+                console.error(notificationErr);
+                res.status(500).json({ error: "An error occurred while creating the notification" });
+            }
         })
         .catch(err => {
-            console.log(err);
+            console.error(err);
+            res.status(500).json({ error: "An internal server error occurred" });
         });
-
-}
+};
 
 async function handleValidator(req) {
     const validationChecks = [

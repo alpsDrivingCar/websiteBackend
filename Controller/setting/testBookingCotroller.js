@@ -1,10 +1,18 @@
 const TestBookingInfo = require("../../model/setting/testBooking/testBookingInfoSchema");
+const NotificationCreator = require("../notification/notificationCreator");
 
 /// info 
+
 exports.createTestBooking = async (req, res) => {
     const testBooking = new TestBookingInfo(req.body);
     try {
         const result = await testBooking.save();
+        try {
+            await NotificationCreator.createWebsiteAdminNotification(req.body.name, "TestBooking", result._id, "TestBooking");
+        } catch (notificationErr) {
+            console.error(notificationErr);
+            return res.status(500).json({ error: "An error occurred while creating the notification" });
+        }
         res.json(result);
     } catch (err) {
         console.log(err);

@@ -1,5 +1,6 @@
 const ContactusSchema = require("../../model/setting/contactusSchema");
 const {body, validationResult} = require('express-validator');
+const NotificationCreator = require("../notification/notificationCreator");
 
 exports.createContactus = async (req, res) => {
     const errors = await handleValidator(req);
@@ -11,12 +12,18 @@ exports.createContactus = async (req, res) => {
 
     const contactus = new ContactusSchema(req.body);
     contactus.save()
-        .then(result => {
-            res.json(result);
+        .then(async result => {
+            // Create notification after saving contactus
+            try {
+                await NotificationCreator.createWebsiteAdminNotification(req.body.name, "Contactus", result._id, "contactus");
+                res.json(result);
+            } catch (notificationErr) {
+                console.error(notificationErr);
+                res.status(500).json({ error: "An error occurred while creating the notification" });
+            }
         })
         .catch(err => {
             console.error(err);
-            // Now, use the 500 status code for internal server error
             res.status(500).json({ error: "An internal server error occurred" });
         });
 };
