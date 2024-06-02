@@ -30,27 +30,13 @@ const homeSchema = new Schema({
             }
         ]
     },
-    ourOffer: {
-        title: String,
-        description: String,
-        offers: [
-            {
-                icon: String,
-                packageId:{
-                    type: Schema.Types.ObjectId,
-                    required: true,
-                    ref: 'bookingPackage',
-                },
-                title: String,
-                price: String,
-                offerFeature: [
-                    {
-                        name: String
-                    }
-                ]
-            }
-        ]
-    },
+    ourOffer: [
+        {
+             type: Schema.Types.ObjectId,
+             required: true,
+             ref: 'bookingPackage',
+        }
+    ],
     workProcess: {
         title: String,
         description: String,

@@ -1,4 +1,5 @@
 const HomeSchema = require("../../model/home/homeSchema");
+const PackageSchema = require("../../model/booking/package/packageSchema");
 
 exports.createHome = (req, res) => {
     const homeSchema = new HomeSchema(req.body);
@@ -15,9 +16,27 @@ exports.createHome = (req, res) => {
 }
 
 exports.homes = (req, res) => {
-    HomeSchema.findById("65991313b4bf8eaf3a858c1b")
-        .then((result) => {
-            res.json(result);
+    const packageQuery = {
+        slugOfType: "our_offers_packages" // filtering by slugOfType
+    };
+
+   
+    PackageSchema.find(packageQuery)
+        .then((packages) => {
+            if (packages.length === 0) {
+                return res.status(404).send({ message: "No booking packages found for the provided postCode and type." });
+            }
+
+            return HomeSchema.findById("65991313b4bf8eaf3a858c1b")
+                .then((homeData) => {
+                    if (!homeData) {
+                        return res.status(404).send({ message: "Home data not found." });
+                    }
+
+                    // Add packages to the result.newOffers.packages
+                    homeData.ourOffer = packages;
+                    res.json({ data: homeData });
+                });
         })
         .catch((err) => {
             console.log(err);
