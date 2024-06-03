@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Gift Card - Alps Driving School</title>
+    <style>
+        body,
+        html {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #ffffff;
+        }
+
+        .email-container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: #F6F9FE;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 9999px;
+            background-color: #F6F9FE;
+            text-align: center;
+            margin: 20px auto;
+        }
+
+        .title {
+            color: #222;
+            text-align: center;
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 32px;
+            font-weight: 400;
+            line-height: normal;
+            margin: 0;
+        }
+
+        .body-text {
+            color: #565656;
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: normal;
+            margin: 0;
+            text-transform: capitalize;
+            padding: 20px 0;
+        }
+
+        .body-text p {
+            margin: 0 0 10px;
+        }
+
+        .gift-card {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .gift-card img {
+            max-width: 50%;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .highlight {
+            color: #E43C3E;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .message {
+            font-style: italic;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .usage {
+            font-size: 16px;
+            color: #222;
+        }
+    </style>
+</head>
+
+<body>
+    <table role="presentation" width="100%" height="100%" style="background-color: #ffffff;" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+            <td align="center" valign="top" style="padding: 40px 0;">
+                <table class="email-container" role="presentation" cellpadding="0" cellspacing="0" border="0" style="background-color: #F6F9FE; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+                    <!-- Logo -->
+                    <tr>
+                        <td align="center" style="padding: 10px;">
+                            <div class="logo">
+                                <img src="https://firebasestorage.googleapis.com/v0/b/alps-1f606.appspot.com/o/email%2FFrame%20(1).png?alt=media&token=afdcbfc0-5b1c-45a3-bc63-e84654bbc72e" alt="Alps Driving School logo" width="100" height="100" style="border-radius: 9999px;">
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Title -->
+                    <tr>
+                        <td align="center" style="padding: 10px;">
+                            <h1 style="color: #222; text-align: center; font-family: 'Poppins', Arial, sans-serif; font-size: 32px; font-weight: 400; line-height: normal; margin: 0;">You've Received a Gift!</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 10px;">
+                            <div class="body-text">
+                                <p style="font-size: 18px;">Dear <%= deliverName %>,</p>
+                                <p style="font-size: 16px;">You have received a <span class="highlight"><%= cardName %> Gift Card Worth £<%= price %></span> from <%= senderName %>.</p>
+                                <p style="font-size: 16px;">Here's a special message from <%= senderName %>:</p>
+                                <p class="message">"<%= message %>"</p>
+                                <p class="usage">You can use this card for booking lessons at Alps Driving School.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 0 10px;"> <!-- Horizontal padding only -->
+                            <div class="gift-card">
+                                <img src="<%= cardImage %>" alt="Gift Card">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 10px;">
+                            <div class="body-text">
+                                <p style="font-size: 16px;">For any enquiries or further assistance, please contact us:</p>
+                                <p style="font-size: 16px;">Office: 0800 669 6700</p>
+                                <p style="font-size: 16px;">WhatsApp: +44 7946 044334</p>
+                                <p style="font-size: 16px;">
+                                    <strong>Working time:</strong><br>
+                                    Mon - Fri: 09.00 AM - 18.00 PM,<br>
+                                    Sat: 09:00 AM - 14:00 PM
+                                </p>
+                                <p style="font-size: 16px;">We are here to help ensure that your experience is smooth and enjoyable.</p>
+                                <p style="font-size: 16px;">Warm regards,</p>
+                                <p style="font-size: 16px;">The Alps Driving School Team</p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

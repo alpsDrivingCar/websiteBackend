@@ -37,7 +37,7 @@ exports.updateOrderStatus = async (req, res) => {
          if (status === "success") {
             try {
                 const orderText  = `New Order From  ${updateResult.checkoutInfo.studentInfo.name}`;
-                await NotificationCreator.createWebsiteAdminNotification(orderText, "New Order", id, "lessonsOrder");
+                await NotificationCreator.createWebsiteAdminNotification(orderText, "Order", id, "lessonsOrder");
             } catch (notificationErr) {
                 console.error(notificationErr);
                 return res.status(500).json({ error: "An error occurred while creating the notification" });

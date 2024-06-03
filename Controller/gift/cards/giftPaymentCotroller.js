@@ -3,6 +3,9 @@ const CheckEmail = require("../../../model/booking/checkout/checkEmail/checkEmai
 const GiftCheckoutSchema = require("../../../model/gift/giftCheckoutSchema");
 const Gift = require('../../../model/gift/giftSchema');
 const NotificationCreator = require("../../notification/notificationCreator");
+const nodemailer = require('nodemailer');
+const fs = require("fs");
+const ejs = require('ejs');
 
 const moment = require('moment');
 
@@ -23,7 +26,7 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
 
         // Generate a line item for the received data
         const lineItem = await generateLineItem(giftCheckoutReceivedData);
-    console.log("ss");
+        console.log("ss");
 
         const lineItems = [lineItem]
 
@@ -32,7 +35,7 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
         const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(giftCheckoutReceivedData, lineItem);
 
         // Assuming createStripePaymentIntent is expecting an array of line items
-        const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData,lineItems,savedGiftCheckoutSchema);
+        const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema);
 
 
         res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
@@ -67,7 +70,7 @@ async function generateLineItem(giftCheckoutItem) {
         return {
             price_data: {
                 currency: 'gbp',
-                product_data: {name: giftResult.name},
+                product_data: { name: giftResult.name },
                 unit_amount: convertToNumber(giftResult.price) * 100,
             },
             quantity: 1,
@@ -97,7 +100,7 @@ function validatePackageIdFormat(packageId) {
 
 
 
-async function createStripePaymentIntent(giftCheckoutReceivedData,lineItems,savedGiftCheckoutSchema) {
+async function createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema) {
     giftCheckoutReceivedData.success_url += "?id=" + savedGiftCheckoutSchema._id;
     return stripe.checkout.sessions.create({
         mode: 'payment',
@@ -111,7 +114,7 @@ async function saveGiftCheckoutSchema(giftCheckoutReceivedData) {
     // Format the current date as "YYYY-MM-DD : ha" (e.g., "2023-11-04 : 3pm")
     const formattedDate = moment().format('YYYY-MM-DD : ha');
 
-    const checkoutInfo = new GiftCheckoutSchema({...giftCheckoutReceivedData});
+    const checkoutInfo = new GiftCheckoutSchema({ ...giftCheckoutReceivedData });
 
     return checkoutInfo.save();
 }
@@ -119,7 +122,7 @@ async function saveGiftCheckoutSchema(giftCheckoutReceivedData) {
 function handleError(res, error) {
     console.error(error);
     if (!res.headersSent) {
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 }
 
@@ -140,8 +143,8 @@ function convertToNumber(value) {
 exports.getAllCheckoutInfos = async (req, res) => {
     try {
         const checkoutInfos = await GiftCheckoutSchema.find({})
-        .sort({ createdAt: -1 })
-        .populate('cardId');
+            .sort({ createdAt: -1 })
+            .populate('cardId');
         res.json(checkoutInfos);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -186,7 +189,7 @@ exports.updateCheckoutInfo = async (req, res) => {
             return res.status(400).json({ message: "Status is required" });
         }
 
-        const checkoutInfo = await GiftCheckoutSchema.findByIdAndUpdate(id, updateData, { new: true });
+        const checkoutInfo = await GiftCheckoutSchema.findByIdAndUpdate(id, updateData, { new: true }).populate('cardId');
 
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
@@ -197,6 +200,7 @@ exports.updateCheckoutInfo = async (req, res) => {
             try {
                 const senderText = `Gift Order from ${checkoutInfo.senderName} to ${checkoutInfo.deliverName}`;
                 await NotificationCreator.createWebsiteAdminNotification(senderText, "Gift Order", id, "giftCheckout");
+                await sendGiftEmail(checkoutInfo);
             } catch (notificationErr) {
                 console.error(notificationErr);
                 return res.status(500).json({ error: "An error occurred while creating the notification" });
@@ -208,4 +212,38 @@ exports.updateCheckoutInfo = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+async function sendGiftEmail(checkoutInfo) {
+    const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'alpsdrivingschool@gmail.com',
+            pass: process.env.SECRET_PASSWORD,
+        },
+    });
+
+    // Read the ejs template
+    const template = fs.readFileSync('giftEmailTemplate.ejs', 'utf8');
+
+    const data = {
+        deliverName: checkoutInfo.deliverName,
+        cardName: checkoutInfo.cardId.name,
+        price: checkoutInfo.cardId.price,
+        message: checkoutInfo.message,
+        cardImage: checkoutInfo.cardId.image,
+        senderName: checkoutInfo.senderName
+    };
+
+    const htmlMessage = ejs.render(template, data);
+
+    const mailOptions = {
+        from: 'alpsdrivingschool@gmail.com',
+        to: checkoutInfo.deliverEmail,
+        subject: `You've received a gift from ${checkoutInfo.senderName}`,
+        html: htmlMessage,
+    };
+
+    // Send email
+    await transporter.sendMail(mailOptions);
+}
 
