@@ -150,8 +150,16 @@ exports.getAllCheckoutInfos = async (req, res) => {
 
 exports.getCheckoutInfoById = async (req, res) => {
     try {
-       
-        const checkoutInfo = await GiftCheckoutSchema.findById("66558b1f9d072e90e338c9ba")
+        const id = req.params.id; // Retrieve the ID from request parameters
+
+        // Validate the ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid ID" });
+        }
+
+        // Find the checkout info by ID
+        const checkoutInfo = await GiftCheckoutSchema.findById(id);
+
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
         }
@@ -161,7 +169,6 @@ exports.getCheckoutInfoById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 exports.updateCheckoutInfo = async (req, res) => {
     try {
