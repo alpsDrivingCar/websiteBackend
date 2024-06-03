@@ -158,7 +158,7 @@ exports.getCheckoutInfoById = async (req, res) => {
         }
 
         // Find the checkout info by ID
-        const checkoutInfo = await GiftCheckoutSchema.findById(id);
+        const checkoutInfo = await GiftCheckoutSchema.findById(id).populate('cardId');;
 
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
