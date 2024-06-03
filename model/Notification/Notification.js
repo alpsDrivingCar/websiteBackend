@@ -34,6 +34,8 @@ const notificationReplacementSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+},{
+    timestamps:true
 });
 
 const notificationSchema = new mongoose.Schema({

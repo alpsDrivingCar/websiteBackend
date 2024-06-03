@@ -2,6 +2,7 @@
 const CheckEmail = require("../../../model/booking/checkout/checkEmail/checkEmailSchema");
 const GiftCheckoutSchema = require("../../../model/gift/giftCheckoutSchema");
 const Gift = require('../../../model/gift/giftSchema');
+const NotificationCreator = require("../../notification/notificationCreator");
 
 const moment = require('moment');
 
@@ -170,16 +171,34 @@ exports.updateCheckoutInfo = async (req, res) => {
             return res.status(400).json({ message: "Invalid ID" });
         }
 
-        const checkoutInfo = await GiftCheckoutSchema.findByIdAndUpdate(id, req.body, { new: true });
+        // Ensure only the status field is being updated
+        const updateData = {};
+        if (req.body.status) {
+            updateData.status = req.body.status;
+        } else {
+            return res.status(400).json({ message: "Status is required" });
+        }
+
+        const checkoutInfo = await GiftCheckoutSchema.findByIdAndUpdate(id, updateData, { new: true });
 
         if (!checkoutInfo) {
             return res.status(404).json({ message: "No checkout info found with this ID" });
         }
 
-        res.json({data:checkoutInfo});
+        // Check if status is "success"
+        if (updateData.status === "success") {
+            try {
+                const senderText = `Gift Order from ${checkoutInfo.senderName} to ${checkoutInfo.deliverName}`;
+                await NotificationCreator.createWebsiteAdminNotification(senderText, "Gift Order", id, "giftCheckout");
+            } catch (notificationErr) {
+                console.error(notificationErr);
+                return res.status(500).json({ error: "An error occurred while creating the notification" });
+            }
+        }
+
+        res.json({ status: "success" });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
-
 
