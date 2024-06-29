@@ -6,6 +6,11 @@ const bookingPackageSchema = new Schema({
     description: String,
     slugOfGearbox: String,
     gearbox: String,
+    status: {
+        type: String,
+        enum: ['active', 'inactive'],
+        default: 'active',
+      },
     slugOfType: {
         type: String,
         enum: [
