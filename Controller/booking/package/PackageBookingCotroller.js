@@ -126,6 +126,36 @@ exports.updateBookingPackage = (req, res) => {
             return res.status(500).json({message: 'An error occurred while updating the booking package.'});
         });
 }
+
+// API to update the status of a booking package
+exports.updateBookingPackageStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status value
+    const validStatuses = ['active', 'inactive'];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: 'Invalid status value.' });
+    }
+
+    try {
+        const updatedPackage = await PackageSchema.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+
+        if (!updatedPackage) {
+            return res.status(404).json({ message: 'Booking package not found.' });
+        }
+
+        res.json({ message: 'Booking package updated successfully.', data: updatedPackage });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'An error occurred while updating the booking package.' });
+    }
+};
+
 exports.getPackagesBySlug = async (req, res) => {
     const { postCode, gearbox } = req.body;
     const slug = req.query.slugOfType; // Extract slug from query parameters

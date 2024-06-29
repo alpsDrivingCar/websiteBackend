@@ -7,6 +7,7 @@ router.get("/by-post-code", server.bookingPackageByPostCode)
 router.get("/by-post-code-and-type", server.bookingPackageByPostCodeAndType)
 router.post("/", server.createBookingPackage)
 router.put("/:id", server.updateBookingPackage)
+router.put("/:id/status", server.updateBookingPackageStatus)  
 router.delete("/:id", server.deleteBookingPackage)
 router.post("/slug-type", server.getPackagesBySlug)
 
