@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const InstructorSchema = new mongoose.Schema(
+const TraineeSchema = new mongoose.Schema(
     {
         firstName: {
             type: String,
@@ -10,7 +10,7 @@ const InstructorSchema = new mongoose.Schema(
         },
         userType: {
             type: String,
-            default: "instructor"
+            default: "trainer"
         },
         lastName: {
             type: String,
@@ -18,43 +18,22 @@ const InstructorSchema = new mongoose.Schema(
             min: 3,
             max: 20,
         },
-        trainers: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Trainee'
-            },
-        ],
         middleName: {
             type: String,
             min: 3,
             max: 20,
         },
-        gender: {
-            type: Number,
-            enum: [0, 1, 2],
-        },
-
-        email: {
-            type: String,
-            required: true,
-            unique: true,
-        },
         password: {
             type: String,
         },
-
-        phoneNumber: {
+        address: {
             type: String,
             required: true,
-            unique: true,
         },
-        carReg: {
-            type: String,
-            default: '',
-        },
-        city: {
+        streetName: {
             type: String,
         },
+
         county: {
             type: String,
         },
@@ -64,19 +43,10 @@ const InstructorSchema = new mongoose.Schema(
         drivingLicencesNo: {
             type: String,
         },
+        city: {
+            type: String,
+        },
         ADINo: {
-            type: String,
-        },
-        address: {
-            type: String,
-        },
-        streetName: {
-            type: String,
-        },
-        ADILicencesStartingDate: {
-            type: String,
-        },
-        ADILicencesExpiryDate: {
             type: String,
         },
         locationBased: {
@@ -85,28 +55,22 @@ const InstructorSchema = new mongoose.Schema(
         areasCovered: {
             type: String,
         },
+        trainerExperience: {
+            type: String,
+        },
+        trainerPassRate: {
+            type: String,
+        },
         privateNotes: {
             type: String,
         },
-        hearAboutUs: {
-            type: String,
-        },
         pointsOnLicence: {
-            type: String,
-        },
-        heldUkLicence: {
             type: String,
         },
         contractStartDate: {
             type: String,
         },
         contractExpiryDate: {
-            type: String,
-        },
-        trainerLicencesStartingDate: {
-            type: String,
-        },
-        trainerLicenceExpiryDate: {
             type: String,
         },
         complaints: {
@@ -118,40 +82,50 @@ const InstructorSchema = new mongoose.Schema(
         referrals: {
             type: String,
         },
-        DBSCheckDate: {
+        ADILicenceStartingDate: {
             type: String,
         },
-        p1PassDate: {
+        ADINO: {
             type: String,
         },
-        p2PassDate: {
-            type: String,
-        },
-        p3PassDate: {
-            type: String,
-        },
-        p2TrainingHours: {
-            type: String,
-        },
-        p3TrainingHours: {
-            type: String,
-        },
+
         standardCheckTrainingHours: {
             type: String,
         },
         standardCheckPassDate: {
             type: String,
         },
+        orditPassDate: {
+            type: String,
+        },
+        orditTrainingHours: {
+            type: String,
+        },
+        orditLicenceStartingDate: {
+            type: String,
+        },
+        orditLicenceExpiryDate: {
+            type: String,
+        },
+        dbsCheckDate: {
+            type: String,
+        },
         extraQualification: {
             type: String,
         },
+
         languageSpoken: {
             type: String,
         },
-        jobHours: {
+
+        gapsInBetweenLessons: {
             type: String,
         },
-        gapsInBetweenLessons: {
+        gender: {
+            type: Number,
+            enum: [0, 1, 2],
+        },
+        jobHours: {
             type: String,
         },
         dualControls: {
@@ -169,40 +143,48 @@ const InstructorSchema = new mongoose.Schema(
         endPaymentDate: {
             type: String,
         },
-        trainerExperience: {
+
+        email: {
             type: String,
+            required: true,
+            unique: true,
         },
-        trainerPassRate: {
+
+        phoneNumber: {
             type: String,
+            required: true,
+            unique: true,
         },
         dateOfBirth: {
             type: String,
         },
-        PDIimage: {
+        appProgress: {
+            type: String,
+        },
+        ADIimage: {
             type: Array,
         },
-        PDIFile: {
+        roles: {
             type: Array,
         },
-
-        amountRequired: {
-            type: Number,
+        gearbox: {
+            type: String,
+            enum: ['automatic', 'manual', 'electric', 'electric & manual', 'automatic & manual', 'electric & automatic'],
+            required: true,
+            default: 'manual',
         },
-        amountPaid: {
-            type: Number,
+        status: {
+            type: String,
+            enum: ['active', 'inactive'],
+            default: 'active',
         },
-        totalAmount: {
-            type: Number,
+        profileImage: {
+            type: String,
+            default: '',
         },
-        percentage: {
-            type: Number,
-            default: 0,
-        },
-        numOfHours: {
-            type: Number,
-        },
-        hourlyCost: {
-            type: Number,
+        description: {
+            type: String,
+            default: '',
         },
         areas: {
             type: Array,
@@ -215,53 +197,14 @@ const InstructorSchema = new mongoose.Schema(
         travelingTime: {
             type: String,
         },
-        roles: {
-            type: Array,
-        },
-        isPotential: {
-            type: Boolean,
-            default: false,
-        },
-        instructorLevel: {
-            type: String,
-            default: "part2",// "part3" , part2
-        },
-        notificationStatus: {
-            type: String,
-            enum: ['enableEmail', 'disableEmail'], // Corrected the typo here
-            default: "enableEmail",
-        },
-        status: {
-            type: String,
-            enum: ['active', 'inactive'],
-            default: 'active',
-        },
-        gearbox: {
-            type: String,
-            enum: ['automatic', 'manual', 'electric', 'electric & manual', 'automatic & manual', 'electric & automatic', 'unknown'],
-            required: true,
-            default: 'manual',
-        },
-        profileImage: {
-            type: String,
-            default: '',
-        },
-        description: {
-            type: String,
-            default: '',
-        },
-        carModel: {
-            type: String,
-            default: ""
-        },
-    },
 
+    },
     {
         timestamps: true,
-    }
+    },
 );
 
+const Trainee =
+    mongoose.models.User || mongoose.model('Trainee', TraineeSchema);
 
-const Instructor = mongoose.model("Instructors", InstructorSchema);
-
-module.exports = Instructor
+module.exports = Trainee;

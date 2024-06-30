@@ -1,6 +1,7 @@
 const InstructorsSchema = require("../../../model/booking/instructors/instructorsSchema");
 const LessonEvent = require("../../../model/booking/instructors/lessonEventSchema");
 const InstructorsUserSchema = require("../../../model/user/Instructor");
+const TraineesUserSchema = require("../../../model/user/Trainees");
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
 
@@ -53,63 +54,77 @@ exports.deleteBookingInstructors = (req, res) => {
 
 /////////////////////////// end cred ///////////////////////////////////////
 
-/////////////////////////  Get instructors        ///////////////////////////
+// Function to get instructors and trainees by postcode, available time, and gearbox
 exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     try {
         const { postcode, availableTime, gearbox } = req.query;
-        console.log("Query Params:", postcode, availableTime, gearbox);
 
-        if (!postcode || !gearbox || !availableTime) {
-            return res.status(400).json({ message: 'Postcode, gearbox, and availableTime are required query parameters.' });
+        if (!postcode || !availableTime) {
+            return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
         }
-        const regexPattern = new RegExp(gearbox, "i");
 
-        const filter = {
-            "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") },
+        const regexPattern = new RegExp(gearbox, "i");
+        const postcodePattern = new RegExp("^" + postcode.substring(0, 3), "i");
+
+        // Define filter criteria for instructors
+        const instructorFilter = {
+            "areas": { $regex: postcodePattern },
             "gearbox": { $regex: regexPattern },
-            "isPotential": false, // Include isPotential in the main filter
-            "AcceptStudent": true // Include AcceptStudent in the main filter
+            "AcceptStudent": true
         };
 
-        let instructors = await InstructorsUserSchema.find(filter);
-        if (!instructors.length) {
-            return res.json({data: []});
+        // Define filter criteria for trainers (without gearbox)
+        const trainerFilter = {
+            "areas": { $regex: postcodePattern },
+            "gearbox": { $regex: regexPattern },
+            "AcceptStudent": true
+        };
+
+        // Find instructors and trainees
+        let [instructors, trainers] = await Promise.all([
+            InstructorsUserSchema.find(instructorFilter),
+            TraineesUserSchema.find(trainerFilter)
+        ]);
+
+        let users = [...instructors, ...trainers];
+
+        if (!users.length) {
+            return res.json({ data: [] });
         }
         // Check if availableTime is an array, if not, make it an array
         const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
 
-        instructors = await Promise.all(instructors.map(async (instructor) => {
+        // Filter users based on available time
+        users = await Promise.all(users.map(async (user) => {
             try {
-                console.log("Checking lessons for instructor:", instructor._id);
-
-                // Check for each available time
                 for (const time of availableTimes) {
                     const hasLesson = await LessonEvent.findOne({
-                        instructorId: instructor._id,
+                        $or: [
+                            { instructorId: user._id },
+                            { trainerId: user._id }
+                        ],
                         startTime: { $lte: time },
                         endTime: { $gte: time }
                     });
 
                     if (hasLesson) {
-                        console.log("Instructor unavailable at", time, instructor.firstName);
-                        return null; // Instructor is unavailable, exclude them
+                        return null;
                     }
                 }
-
-                return instructor; // Instructor is available at all provided times
+                return user;
             } catch (error) {
-                console.error("Error fetching lessons for instructor", instructor._id, error);
+                console.error("Error fetching lessons for user", user._id, error);
                 return null;
             }
         }));
 
-        instructors = instructors.filter(instructor => instructor !== null);
+        users = users.filter(user => user !== null);
 
-        if (!instructors.length) {
+        if (!users.length) {
             return res.json({ data: [] });
         }
 
-        res.json({ data: instructors });
+        res.json({ data: users });
 
     } catch (error) {
         console.error("Outer Error:", error);
