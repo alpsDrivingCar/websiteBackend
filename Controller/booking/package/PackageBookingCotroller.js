@@ -27,56 +27,72 @@ exports.getBookingPackageById = (req, res) => {
         });
 }
 
-
 exports.bookingPackageByPostCodeAndType = (req, res) => {
-    const {postCode, type} = req.query;
-
+    const { postCode, type } = req.query;
 
     if (!postCode || !type) {
-        return res.status(400).send({message: "Both postCode and type query parameters are required"});
+        return res.status(400).send({ message: "Both postCode and type query parameters are required" });
     }
 
-    const regex = new RegExp(`^${postCode.slice(0, 3)}`, 'i'); // 'i' makes it case insensitive
+    const areaLength = determinePostcodeAreaLength(postCode);
+    const regex = new RegExp(`^${postCode.slice(0, areaLength)}`, 'i'); // 'i' makes it case insensitive
 
     // Set up the query to filter by postCode and slugOfType
     const query = {
         "postCode.postCode": regex,   // filtering by nested postCode in the array
-        slugOfType: type                 // filtering by slugOfType
+        slugOfType: type              // filtering by slugOfType
     };
 
     PackageSchema.find(query)
         .then((result) => {
             if (result.length === 0) {
-                return res.status(404).send({message: "No booking packages found for the provided postCode and type."});
+                return res.status(404).send({ message: "No booking packages found for the provided postCode and type." });
             }
-            res.json({data: result});
+            res.json({ data: result });
         })
         .catch((err) => {
             console.log(err);
-            res.status(500).send({message: "Error retrieving booking packages."});
+            res.status(500).send({ message: "Error retrieving booking packages." });
         });
 };
 
+
+const determinePostcodeAreaLength = (postcode) => {
+    switch (postcode.length) {
+        case 5:
+            return 2;
+        case 6:
+            return 3;
+        case 7:
+            return 4;
+        default:
+            return 3; // Default value, can be adjusted as needed
+    }
+};
+
 exports.bookingPackageByPostCode = (req, res) => {
-    const {postcode} = req.query;
+    const { postcode } = req.query;
 
     if (!postcode || postcode.length < 3) {
-        return res.status(400).send({message: "At least the first 3 digits of the postcode are required in the query."});
+        return res.status(400).send({ message: "At least the first 3 digits of the postcode are required in the query." });
     }
-    const regex = new RegExp(`^${postcode.slice(0, 3)}`, 'i'); // 'i' makes it case insensitive
-    PackageSchema.find({"postCode.postCode": regex})
+
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const regex = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i'); // 'i' makes it case insensitive
+
+    PackageSchema.find({ "postCode.postCode": regex })
         .then((packages) => {
             if (packages.length === 0) {
-                return res.status(404).send({message: `No booking packages found for postcode starting with: ${postcode.slice(0, 3)}`});
+                return res.status(404).send({ message: `No booking packages found for postcode starting with: ${postcode.slice(0, areaLength)}` });
             }
 
             res.send(packages);
         })
         .catch((err) => {
             console.log(err);
-            res.status(500).send({message: "Error occurred while fetching the booking packages."});
+            res.status(500).send({ message: "Error occurred while fetching the booking packages." });
         });
-}
+};
 
 
 exports.deleteBookingPackage = (req, res) => {
@@ -174,8 +190,11 @@ exports.getPackagesBySlug = async (req, res) => {
 
     // Only add postCode to the query if it is provided and not empty
     if (postCode && postCode.length > 0) {
-        // Using regex to match the first 3 characters of postCode, case-insensitive
-        const regexes = postCode.map(code => new RegExp(`^${code.slice(0, 3)}`, 'i'));
+        // Using regex to match the determined length of postcode area, case-insensitive
+        const regexes = postCode.map(code => {
+            const areaLength = determinePostcodeAreaLength(code);
+            return new RegExp(`^${code.slice(0, areaLength)}`, 'i');
+        });
         query['postCode.postCode'] = { $in: regexes };
     }
 
@@ -183,14 +202,15 @@ exports.getPackagesBySlug = async (req, res) => {
         const packages = await PackageSchema.find(query).sort({ createdAt: -1 });
 
         if (packages.length === 0) {
-            return res.status(404).send({message: "No BookingPackages found for the provided filters."});
+            return res.status(404).send({ message: "No BookingPackages found for the provided filters." });
         }
 
         res.send(packages);
     } catch (err) {
-        return res.status(500).send({message: "Error retrieving BookingPackages."});
+        return res.status(500).send({ message: "Error retrieving BookingPackages." });
     }
 };
+
 
 
 

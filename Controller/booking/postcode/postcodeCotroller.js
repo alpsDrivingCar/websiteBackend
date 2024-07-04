@@ -2,7 +2,7 @@ const InstructorsUserSchema = require("../../../model/user/Instructor");
 const PostcodeSearch = require("../../../model/postcode/PostcodeSearchSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
 
-exports.validateUKPostcode = async (req, res)  => {
+exports.validateUKPostcode = async (req, res) => {
     let postcode = req.query.postcode;
     postcode = postcode.replace(/\s+/g, '').toUpperCase();
 
@@ -17,8 +17,13 @@ exports.validateUKPostcode = async (req, res)  => {
         return res.status(400).json({ valid: false, message: 'Invalid UK postcode.' });
     }
 
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const areaRegex = new RegExp("^" + postcode.substring(0, areaLength), "i");
+
     const filter = {
-        "areas": {$regex: new RegExp("^" + postcode.substring(0, 3), "i")}
+        "areas": { $regex: areaRegex },
+        "AcceptStudent": true,
+        "status": "active"
     };
 
     InstructorsUserSchema.find(filter)
@@ -53,9 +58,23 @@ exports.validateUKPostcode = async (req, res)  => {
         });
 };
 
+const determinePostcodeAreaLength = (postcode) => {
+    switch (postcode.length) {
+        case 5:
+            return 2;
+        case 6:
+            return 3;
+        case 7:
+            return 4;
+        default:
+            return 3; // Default value, can be adjusted as needed
+    }
+};
+
+
 const fetchBookingPackages = async (postcode) => {
-    // Adjust the regex to be even more inclusive if needed, or keep it targeted to the first 3 characters
-    const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
 
     console.log("regexPostcode = " + regexPostcode);
 

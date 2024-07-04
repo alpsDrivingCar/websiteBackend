@@ -63,8 +63,9 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
         }
 
+        const areaLength = determinePostcodeAreaLength(postcode);
+        const postcodePattern = new RegExp("^" + postcode.substring(0, areaLength), "i");
         const regexPattern = new RegExp(gearbox, "i");
-        const postcodePattern = new RegExp("^" + postcode.substring(0, 3), "i");
 
         // Define filter criteria for instructors
         const instructorFilter = {
@@ -131,6 +132,20 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         res.status(500).json({ message: "An error occurred", error });
     }
 };
+
+const determinePostcodeAreaLength = (postcode) => {
+    switch (postcode.length) {
+        case 5:
+            return 2;
+        case 6:
+            return 3;
+        case 7:
+            return 4;
+        default:
+            return 3; // Default value, can be adjusted as needed
+    }
+};
+
 
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
@@ -213,16 +228,15 @@ const fetchLessonTypeById = async (typeId) => {
 };
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
 
-    const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
     console.log("regexPostcode = " + regexPostcode)
     console.log("slugOfTypeLesson = " + slugOfTypeLesson)
     return await PackageSchema.find({
         "postCode.postCode": regexPostcode,
         slugOfType: slugOfTypeLesson
     });
-
-
 };
 
 const formatDataForBooking = (bookingPackages) => {

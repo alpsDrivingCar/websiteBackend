@@ -30,8 +30,15 @@ exports.lessons = (req, res) => {
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
 
+    if (!postcode) {
+        return res.status(400).json({ message: 'PostCode is required.' });
+    }
+
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const areaRegex = new RegExp("^" + postcode.substring(0, areaLength), "i");
+
     const filter = {
-        "areas": { $regex: new RegExp("^" + postcode.substring(0, 3), "i") }
+        "areas": { $regex: areaRegex }
     };
 
     try {
@@ -47,7 +54,7 @@ exports.lessonByPostCode = async (req, res) => {
 
         // Assuming lessonResult.typeOfLesson is an array from your previous message
         const promises = lessonResult.typeOfLesson.map(async (type) => {
-            const hasBookingPackages = await fetchBookingPackages(postcode,type.slug);
+            const hasBookingPackages = await fetchBookingPackages(postcode, type.slug);
             return hasBookingPackages ? type : null;
         });
 
@@ -64,10 +71,22 @@ exports.lessonByPostCode = async (req, res) => {
     }
 };
 
+const determinePostcodeAreaLength = (postcode) => {
+    switch (postcode.length) {
+        case 5:
+            return 2;
+        case 6:
+            return 3;
+        case 7:
+            return 4;
+        default:
+            return 3; // Default value, can be adjusted as needed
+    }
+};
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
-    // Adjust the regex to be even more inclusive if needed, or keep it targeted to the first 3 characters
-    const regexPostcode = new RegExp(`^${postcode.slice(0, 3)}`, 'i');
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
 
     console.log("regexPostcode = " + regexPostcode);
     console.log("slugOfTypeLesson = " + slugOfTypeLesson);

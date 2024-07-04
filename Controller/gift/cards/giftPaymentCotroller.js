@@ -10,8 +10,6 @@ const ejs = require('ejs');
 const moment = require('moment');
 
 
-const bodyParser = require("body-parser");
-const express = require("express");
 const mongoose = require("mongoose");
 
 const stripe = require('stripe')(
