@@ -15,7 +15,7 @@ exports.getBookingDetails = async (req, res) => {
         }).populate('orderInfo.instructorsId').exec();
 
         if (checkoutInfoData.length === 0) {
-            return res.status(404).json({ message: "No booking details found" });
+            return res.json({ data: [] });
         }
 
         let allLessons = [];
