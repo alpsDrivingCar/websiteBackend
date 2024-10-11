@@ -64,14 +64,15 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         }
 
         const areaLength = determinePostcodeAreaLength(postcode);
-        const postcodePattern = new RegExp("^" + postcode.substring(0, areaLength), "i");
+        const areaPrefix = postcode.substring(0, areaLength).trim();
+        const postcodePattern = new RegExp("^" + areaPrefix, "i");
         const regexPattern = new RegExp(gearbox, "i");
 
         // Define filter criteria for instructors
         const instructorFilter = {
             "areas": { $regex: postcodePattern },
-            "gearbox": { $regex: regexPattern },
-            "AcceptStudent": true
+            "AcceptStudent": true,
+            "status": "active"
         };
 
         // Define filter criteria for trainers (without gearbox)
@@ -80,6 +81,12 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             "gearbox": { $regex: regexPattern },
             "AcceptStudent": true
         };
+        // Conditionally add gearbox filter if gearbox is not "all"
+        if (gearbox && gearbox.toLowerCase() !== "all") {
+            const regexPattern = new RegExp(gearbox, "i");
+            instructorFilter["gearbox"] = { $regex: regexPattern };
+            trainerFilter["gearbox"] = { $regex: regexPattern };
+        }
 
         // Find instructors and trainees
         let [instructors, trainers] = await Promise.all([
@@ -229,7 +236,8 @@ const fetchLessonTypeById = async (typeId) => {
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
     const areaLength = determinePostcodeAreaLength(postcode);
-    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
+    const areaPrefix = postcode.substring(0, areaLength).trim();
+    const regexPostcode = new RegExp("^" + areaPrefix, "i");
 
     console.log("regexPostcode = " + regexPostcode)
     console.log("slugOfTypeLesson = " + slugOfTypeLesson)

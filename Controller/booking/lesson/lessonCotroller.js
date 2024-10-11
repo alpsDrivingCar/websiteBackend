@@ -35,7 +35,8 @@ exports.lessonByPostCode = async (req, res) => {
     }
 
     const areaLength = determinePostcodeAreaLength(postcode);
-    const areaRegex = new RegExp("^" + postcode.substring(0, areaLength), "i");
+    const areaPrefix = postcode.substring(0, areaLength).trim();
+    const areaRegex = new RegExp("^" + areaPrefix, "i");
 
     const filter = {
         "areas": { $regex: areaRegex }
@@ -86,7 +87,8 @@ const determinePostcodeAreaLength = (postcode) => {
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
     const areaLength = determinePostcodeAreaLength(postcode);
-    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
+    const areaPrefix = postcode.substring(0, areaLength).trim();
+    const regexPostcode = new RegExp("^" + areaPrefix, "i");
 
     console.log("regexPostcode = " + regexPostcode);
     console.log("slugOfTypeLesson = " + slugOfTypeLesson);
