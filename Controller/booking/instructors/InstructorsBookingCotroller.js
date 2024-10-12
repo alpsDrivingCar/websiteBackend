@@ -243,7 +243,8 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
     console.log("slugOfTypeLesson = " + slugOfTypeLesson)
     return await PackageSchema.find({
         "postCode.postCode": regexPostcode,
-        slugOfType: slugOfTypeLesson
+        slugOfType: slugOfTypeLesson,
+        status: "active"
     });
 };
 
