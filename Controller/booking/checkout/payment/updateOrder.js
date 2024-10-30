@@ -6,6 +6,9 @@ const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const fs = require("fs");
 const NotificationCreator = require("../../../notification/notificationCreator");
+const dotenv = require("dotenv");
+
+dotenv.config(dotenv);
 
 
 exports.updateOrderStatus = async (req, res) => {
@@ -111,7 +114,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
         if(lessonEventData.startTime ==startTime )
             console.log(`====`)
 
-        const apiUrl = 'https://alps-driving-car.herokuapp.com/api/diary/lesson-event';
+        const apiUrl = `${process.env.DASHBOARD_URL}/api/diary/lesson-event`;
         console.log("token" + token)
         const headers = {
             'Content-Type': 'application/json',
@@ -155,7 +158,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         }
 
         // Proceed with external API call if pupil not found
-        const apiUrl = 'https://alps-driving-car.herokuapp.com/api/pupil/create';
+        const apiUrl = `${process.env.DASHBOARD_URL}/api/pupil/create`;
         const payload = {
             "firstName": updatedCheckoutInfo.studentInfo.name,
             "lastName": updatedCheckoutInfo.studentInfo.name,
@@ -346,7 +349,7 @@ async function getAuthToken() {
         const password = "D5aAppfzp";
 
         // API endpoint
-        const url = 'https://alps-driving-car.herokuapp.com/api/auth/login';
+        const url = `${process.env.DASHBOARD_URL}/api/auth/login`;
 
         // Making the POST request to the API
         const response = await axios.post(url, {
