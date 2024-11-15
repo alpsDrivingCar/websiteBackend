@@ -91,6 +91,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
         // console.log(`gearbox  ${typeOfGearbox}`);
         // console.log(`lessonType Web site lessons/661f96868ef5f48b31d1a241 `);
         // console.log(`date  ${time}`);
+        // console.log(`endTime  ${formattedEndTime}`);
         const lessonEventData = {
             "startTime": startTime,
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
@@ -345,8 +346,8 @@ function convertDateToReadableFormat(dateString) {
 async function getAuthToken() {
     try {
         // Static login credentials
-        const loginIdentifier = "ammmar40009@gmail.com";
-        const password = "D5aAppfzp";
+        const loginIdentifier = `${process.env.DASHBOARD_LOGIN_IDENTITIFER}`;
+        const password = `${process.env.DASHBOARD_LOGIN_PASSWORD}`;
 
         // API endpoint
         const url = `${process.env.DASHBOARD_URL}/api/auth/login`;

@@ -3,7 +3,8 @@ const updateOrderServer = require('../../../../Controller/booking/checkout/payme
 const express = require("express");
 const router = express.Router();
 
-router.post("/create/",paymentServer.createPaymentAndGetUrlPayment)
+router.post("/create/",paymentServer.createPaymentAndGetUrlPaymentNew)
+router.get("/checkSession/:id",paymentServer.checkElavonSessionExpiry)
 router.get("/all",paymentServer.allPayment)
 router.get("/:id",paymentServer.getPayment)
 router.put("/update/:id",updateOrderServer.updateSaveStatusAndChangedBy)

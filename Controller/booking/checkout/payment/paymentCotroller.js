@@ -4,6 +4,7 @@ const PackageSchema = require("../../../../model/booking/package/packageSchema")
 const OfferSchema = require("../../../../model/offer/offerSchema");
 const InstructorsUserSchema = require("../../../../model/user/Instructor");
 const LessonEvent = require("../../../../model/booking/instructors/lessonEventSchema");
+const axios = require('axios');
 
 const moment = require('moment');
 const crypto = require('crypto');
@@ -52,8 +53,36 @@ exports.getPayment = async (req, res) => {
     }
 }
 
+ // TO BE DELETED AFTER TESTING**
+// exports.createPaymentAndGetUrlPayment = async (req, res) => {
+//     try {
+//         const receivedData = req.body;
+//         const { studentInfo, orderInfo } = receivedData;
 
-exports.createPaymentAndGetUrlPayment = async (req, res) => {
+//         const isAvailable = await checkInstructorAvailability(orderInfo);
+//         if (!isAvailable) {
+//             return res.status(404).json({ message: 'Instructor has become unavailable at the requested times.' });
+//         }
+
+//         const lineItems = await generateLineItems(orderInfo);
+
+//         const reservationCode = generateReservationCode(studentInfo.phoneNumber);
+//         orderInfo.reservationCode = reservationCode;
+
+//         // Save checkoutInfo to the database.
+//         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
+
+//         // Create Stripe payment intent.
+//         const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
+//         await sendEmail(studentInfo.email,reservationCode);
+
+//         res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
+//     } catch (error) {
+//         handleError(res, error);
+//     }
+// };
+
+exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     try {
         const receivedData = req.body;
         const { studentInfo, orderInfo } = receivedData;
@@ -71,15 +100,17 @@ exports.createPaymentAndGetUrlPayment = async (req, res) => {
         // Save checkoutInfo to the database.
         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
 
-        // Create Stripe payment intent.
-        const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
+        // Create Elavon payment intent.
+        const paymentIntent = await createElavonPaymentIntent(lineItems);
+        const paymentSession = await createElavonPaymentSession(paymentIntent.href);
+
         await sendEmail(studentInfo.email,reservationCode);
 
-        res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
+        res.json({ url: paymentIntent.url, data: savedCheckoutInfo , paymentSessionId: paymentSession.id});
     } catch (error) {
         handleError(res, error);
     }
-};
+}
 
 async function checkInstructorAvailability(orderInfo) {
     const { items, instructorsId } = orderInfo; // Assuming instructorsId is a single ID, not an array
@@ -176,14 +207,14 @@ async function generateLineItems(orderInfo) {
             name: "Test Booking",
             quantity: 1,
             packageId: null,
-            price: 14000 // Assuming price is in pence
+            price: 140.00 // £140.00
         });
     }
     items.push({
         name: "Transaction fees",
         quantity: 1,
         packageId: null,
-        price: 350 // Assuming price is in pence
+        price: 3.50 // £3.50
     });
 
     const lineItems = await Promise.all(items.map(async item => {
@@ -202,7 +233,7 @@ async function generateLineItems(orderInfo) {
             item.name = packageResult.title;
             // Validate packageResult and packageResult.price before using them
             if (packageResult && !isNaN(parseFloat(packageResult.price))) {
-                unitAmount = convertToNumber(packageResult.price) * 100;
+                unitAmount = convertToNumber(packageResult.price);
                 orderInfo.price = convertToNumber(packageResult.price);
             } else {
                 throw new Error('Invalid package price');
@@ -260,13 +291,121 @@ async function fetchRegularPackage(packageId) {
     return packageResult;
 }
 
-async function createStripePaymentIntent(orderInfo, lineItems) {
-    return stripe.checkout.sessions.create({
-        mode: 'payment',
-        success_url: orderInfo.success_url,
-        cancel_url: orderInfo.cancel_url,
-        line_items: lineItems,
+ // TO BE DELETED AFTER TESTING**
+// async function createStripePaymentIntent(orderInfo, lineItems) {
+//     return stripe.checkout.sessions.create({
+//         mode: 'payment',
+//         success_url: orderInfo.success_url,
+//         cancel_url: orderInfo.cancel_url,
+//         line_items: lineItems,
+//     });
+// }
+
+async function createElavonPaymentIntent(lineItems) {
+    try {
+        const totalAmount = lineItems.reduce((total, item) => total + item.price_data.unit_amount, 0);
+        const response = await axios({
+            method: 'POST',
+            url: 'https://uat.api.converge.eu.elavonaws.com/orders',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + Buffer.from(
+                    `${process.env.STG_ELAVON_MERCHANT_ALIAS}:${process.env.STG_ELAVON_SECRET_KEY}`
+                ).toString('base64')
+            },
+            data: {
+                total: {
+                    amount: totalAmount.toString(),
+                    currencyCode: "GBP"
+                },
+                items: lineItems.map(item => ({
+                    total: {
+                        amount: item.price_data.unit_amount.toString(),
+                        currencyCode: "GBP",
+                    },
+                    description: item.price_data.product_data.name,
+                }))
+            }
+        });
+        console.log('Elavon order created:', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to create Elavon order:', error.response?.data || error.message);
+        throw new Error(`Failed to create Elavon order: ${error.response?.data || error.message}`);
+    }
+}
+
+
+async function createElavonPaymentSession(orderId){
+    try {
+    const response = await axios({
+        method: 'POST',
+        url: 'https://uat.api.converge.eu.elavonaws.com/payment-sessions',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + Buffer.from(
+                `${process.env.STG_ELAVON_MERCHANT_ALIAS}:${process.env.STG_ELAVON_SECRET_KEY}`
+            ).toString('base64')
+        }, 
+        data: {
+            order: orderId,
+            hppType: 'lightbox',
+            originUrl: `${process.env.WEBSITE_URL}`,
+            doCreateTransaction: true
+        }
     });
+    console.log('Elavon payment session created:', response.data);
+    return response.data;
+    } catch (error) {
+        console.error('Failed to create Elavon payment session:', error.response?.data || error.message);
+        throw new Error(`Failed to create Elavon payment session: ${error.response?.data || error.message}`);
+    }
+}
+
+exports.checkElavonSessionExpiry = async (req, res) => {
+    const sessionId = req.query.sessionId || req.params.id;
+    
+    if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+    }
+
+    try {
+        const sessionStatus = await getElavonSessionStatus(sessionId);
+        const isExpired = checkExpiration(sessionStatus.expiresAt);
+        
+        return res.status(200).json({
+            data: {
+                status: isExpired ? 'expired' : 'active',
+                expiresAt: sessionStatus.expiresAt,
+                sessionData: sessionStatus
+            }
+        });
+    } catch (error) {
+        console.error('Session check failed:', error);
+        return res.status(500).json({
+            error: 'Failed to check session status',
+            details: error.message
+        });
+    }
+};
+
+async function getElavonSessionStatus(sessionId) {
+    const response = await axios({
+        method: 'GET',
+        url: `https://uat.api.converge.eu.elavonaws.com/payment-sessions/${sessionId}`,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + Buffer.from(
+                `${process.env.STG_ELAVON_MERCHANT_ALIAS}:${process.env.STG_ELAVON_SECRET_KEY}`
+            ).toString('base64')
+        }
+    });
+    return response.data;
+}
+
+function checkExpiration(expiryTime) {
+    const currentTime = new Date().toISOString();
+    return currentTime > expiryTime;
 }
 
 async function saveCheckoutInfo(receivedData, orderInfo) {
@@ -314,11 +453,13 @@ function handleError(res, error) {
 
 
 function convertToNumber(value) {
-    if (Number.isInteger(value)) {
+    // Handle numbers (both integers and decimals)
+    if (typeof value === 'number') {
         return value;
     }
+    // Handle strings
     if (typeof value !== 'string') {
-        throw new Error('The provided value is neither an integer nor a string. = ' + value );
+        throw new Error('The provided value is neither a number nor a string. = ' + value);
     }
 
     const withoutCommaAndExtraPeriods = value.replace(/,/g, '').replace(/\.+(?=\d*\.)/g, '');

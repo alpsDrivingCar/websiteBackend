@@ -9,14 +9,42 @@ const ejs = require('ejs');
 
 const moment = require('moment');
 
-
+const axios = require('axios');
 const mongoose = require("mongoose");
 
 const stripe = require('stripe')(
     process.env.STRIPE_PRIVATE_KEY
 )
 
-exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
+
+ // to be deleted after testing
+// exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
+//     try {
+//         const giftCheckoutReceivedData = req.body;
+
+//         await validateVerificationNumber(giftCheckoutReceivedData);
+
+//         // Generate a line item for the received data
+//         const lineItem = await generateLineItem(giftCheckoutReceivedData);
+//         console.log("ss");
+
+//         const lineItems = [lineItem]
+
+//         // Save checkoutInfo to the database.
+//         // Assuming saveGiftCheckoutSchema is expecting the original data and the created line item
+//         const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(giftCheckoutReceivedData, lineItem);
+
+//         // Assuming createStripePaymentIntent is expecting an array of line items
+//         const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema);
+
+
+//         res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
+//     } catch (error) {
+//         handleError(res, error);
+//     }
+// };
+
+exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
     try {
         const giftCheckoutReceivedData = req.body;
 
@@ -33,15 +61,32 @@ exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
         const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(giftCheckoutReceivedData, lineItem);
 
         // Assuming createStripePaymentIntent is expecting an array of line items
-        const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema);
+        // const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema);
+        const paymentIntent = await createElavonPaymentIntent(lineItems);
+        const paymentSession = await createElavonPaymentSession(paymentIntent.href);
 
 
-        res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema });
+        res.json({ url: paymentIntent.url, data: savedGiftCheckoutSchema, paymentSessionId: paymentSession.id });
     } catch (error) {
         handleError(res, error);
     }
 };
 
+exports.validateOTP = async (req, res) => {
+    try {
+        const giftCheckoutReceivedData = req.body;
+        
+        try {
+            await validateVerificationNumber(giftCheckoutReceivedData);
+            res.json({ message: "Verification number is valid", status: "valid" });
+        } catch (error) {
+            res.json({ message: error.message, status: "invalid" });
+        }
+
+    } catch (error) {
+        handleError(res, error);
+    }
+}
 
 async function validateVerificationNumber(giftCheckoutReceivedData) {
     const email = String(giftCheckoutReceivedData.senderEmail);
@@ -69,7 +114,7 @@ async function generateLineItem(giftCheckoutItem) {
             price_data: {
                 currency: 'gbp',
                 product_data: { name: giftResult.name },
-                unit_amount: convertToNumber(giftResult.price) * 100,
+                unit_amount: convertToNumber(giftResult.price),
             },
             quantity: 1,
         };
@@ -106,6 +151,66 @@ async function createStripePaymentIntent(giftCheckoutReceivedData, lineItems, sa
         cancel_url: giftCheckoutReceivedData.cancel_url,
         line_items: lineItems,
     });
+}
+
+async function createElavonPaymentIntent(lineItems){
+    try {
+        const totalAmount = lineItems.reduce((total, item) => total + item.price_data.unit_amount, 0);
+        const response = await axios({
+            method: 'POST',
+            url: 'https://uat.api.converge.eu.elavonaws.com/orders',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Basic ' + Buffer.from(
+                    `${process.env.STG_ELAVON_MERCHANT_ALIAS}:${process.env.STG_ELAVON_SECRET_KEY}`
+                ).toString('base64')
+            },
+            data: {
+                total: {
+                    amount: totalAmount.toString(),
+                    currencyCode: "GBP"
+                },
+                items: lineItems.map(item => ({
+                    total: {
+                        amount: item.price_data.unit_amount.toString(),
+                        currencyCode: "GBP",
+                    },
+                    description: item.price_data.product_data.name,
+                }))
+            }
+        });
+        console.log(response.data);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+        throw new Error("An error occurred while creating the payment intent");
+    }
+}
+
+async function createElavonPaymentSession(orderId){
+    try {
+    const response = await axios({
+        method: 'POST',
+        url: 'https://uat.api.converge.eu.elavonaws.com/payment-sessions',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + Buffer.from(
+                `${process.env.STG_ELAVON_MERCHANT_ALIAS}:${process.env.STG_ELAVON_SECRET_KEY}`
+            ).toString('base64')
+        }, 
+        data: {
+            order: orderId,
+            hppType: 'lightbox',
+            originUrl: `${process.env.WEBSITE_URL}`,
+            doCreateTransaction: true
+        }
+    });
+    console.log('Elavon payment session created:', response.data);
+    return response.data;
+    } catch (error) {
+        console.error('Failed to create Elavon payment session:', error.response?.data || error.message);
+        throw new Error(`Failed to create Elavon payment session: ${error.response?.data || error.message}`);
+    }
 }
 
 async function saveGiftCheckoutSchema(giftCheckoutReceivedData) {
