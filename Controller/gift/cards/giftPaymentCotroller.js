@@ -3,6 +3,7 @@ const GiftCheckoutSchema = require("../../../model/gift/giftCheckoutSchema");
 const Gift = require("../../../model/gift/giftSchema");
 const NotificationCreator = require("../../notification/notificationCreator");
 const nodemailer = require("nodemailer");
+const schedule = require("node-schedule");
 const fs = require("fs");
 const ejs = require("ejs");
 
@@ -52,16 +53,21 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
     const lineItems = [lineItem];
 
     // Save checkoutInfo to the database.
-    // Assuming saveGiftCheckoutSchema is expecting the original data and the created line item
     const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(
       giftCheckoutReceivedData,
       lineItem
     );
-
-    // Assuming createStripePaymentIntent is expecting an array of line items
-    // const paymentIntent = await createStripePaymentIntent(giftCheckoutReceivedData, lineItems, savedGiftCheckoutSchema);
+    
     const paymentIntent = await createElavonPaymentIntent(lineItems);
     const paymentSession = await createElavonPaymentSession(paymentIntent.href);
+
+    // Schedule the email if deliverDate is in the future 
+    // if (giftCheckoutReceivedData.deliverDate) {
+    //   const deliveryDate = new Date(giftCheckoutReceivedData.deliverDate);
+    //   if (deliveryDate > new Date()) {
+    //     scheduleGiftEmail(savedGiftCheckoutSchema, deliveryDate);
+    //   }
+    // }
 
     res.json({
       url: paymentIntent.url,
@@ -72,6 +78,29 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
     handleError(res, error);
   }
 };
+
+// New function to schedule email delivery
+function scheduleGiftEmail(checkoutInfo, deliveryDate) {
+  schedule.scheduleJob(deliveryDate, async () => {
+    try {
+      await sendGiftEmail(checkoutInfo);
+      
+      // Update the gift checkout status to indicate email was sent
+      await GiftCheckoutSchema.findByIdAndUpdate(
+        checkoutInfo._id,
+        { emailSent: true },
+        { new: true }
+      );
+
+      console.log(`Gift email successfully sent to ${checkoutInfo.deliverEmail} at ${deliveryDate}`);
+    } catch (error) {
+      console.error('Failed to send scheduled gift email:', error);
+      
+      // You might want to implement a retry mechanism here
+      // or notify administrators about the failure
+    }
+  });
+}
 
 exports.validateOTP = async (req, res) => {
   try {
@@ -298,6 +327,7 @@ exports.getCheckoutInfoById = async (req, res) => {
   }
 };
 
+// Modified updateCheckoutInfo to handle scheduled emails
 exports.updateCheckoutInfo = async (req, res) => {
   try {
     const id = req.params.id;
@@ -306,7 +336,6 @@ exports.updateCheckoutInfo = async (req, res) => {
       return res.status(400).json({ message: "Invalid ID" });
     }
 
-    // Ensure only the status field is being updated
     const updateData = {};
     if (req.body.status) {
       updateData.status = req.body.status;
@@ -326,7 +355,7 @@ exports.updateCheckoutInfo = async (req, res) => {
         .json({ message: "No checkout info found with this ID" });
     }
 
-    // Check if status is "success"
+    // Check if status is "success" and handle email scheduling
     if (updateData.status === "success") {
       try {
         const senderText = `Gift Order from ${checkoutInfo.senderName} to ${checkoutInfo.deliverName}`;
@@ -336,7 +365,20 @@ exports.updateCheckoutInfo = async (req, res) => {
           id,
           "giftCheckout"
         );
-        await sendGiftEmail(checkoutInfo);
+
+        // Schedule email if deliverDate is in the future
+        if (checkoutInfo.deliverDate) {
+          const deliveryDate = new Date(checkoutInfo.deliverDate);
+          if (deliveryDate > new Date()) {
+            scheduleGiftEmail(checkoutInfo, deliveryDate);
+          } else {
+            // If delivery date is in the past or current, send immediately
+            await sendGiftEmail(checkoutInfo);
+          }
+        } else {
+          // If no delivery date specified, send immediately
+          await sendGiftEmail(checkoutInfo);
+        }
       } catch (notificationErr) {
         console.error(notificationErr);
         return res

@@ -39,6 +39,10 @@ const giftCheckoutSchema = new mongoose.Schema({
         type: String,
         enum: ['pending', 'success', 'failure'],
         default: 'pending'
+    },
+    emailSent: {
+        type: Boolean,
+        default: false
     }
 },{
     timestamps:true
