@@ -1,4 +1,5 @@
 const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
+const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const PupilUserSchema = require("../../../../model/user/Pupil");
 const mongoose = require("mongoose");
 const axios = require('axios');
@@ -18,6 +19,7 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Update status
         var updateResult = await updateStatusById(id, status);
+        const packageId = updateResult.checkoutInfo.orderInfo.items[0].packageId;
 
         if (updateResult.alreadyUpdated) {
             // If the order was already updated to "success", return a message indicating so
@@ -33,6 +35,7 @@ exports.updateOrderStatus = async (req, res) => {
         const pupilId = apiResponse.pupil._id;
 
         // Add updatePupilIdById here
+        await addCreditToPupilAccount(pupilId, token, packageId);
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -80,6 +83,66 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     return results; // Return the array of results
 }
 
+async function addCreditToPupilAccount(pupilId, token, packageId) {
+    console.log('Starting addCreditToPupilAccount...');
+    console.log('Inputs:', { pupilId, packageId });
+    
+    try {
+        const apiUrl = `${process.env.DASHBOARD_URL}/api/lesson-payment/create`;
+        console.log('API URL:', apiUrl);
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        };
+        console.log('Headers prepared');
+
+        const package = await getBookingPackageById(packageId);
+        console.log('Retrieved package:', package);
+
+        const payload = { 
+            date: new Date().toISOString(),
+            pupilId: pupilId,
+            fee: 0,
+            method: "Card",
+            privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
+            status: "Income",
+            durationMinutes: package.numberHour * 60,
+        };
+        console.log('Preparing payload:', payload);
+
+        const response = await axios.post(apiUrl, payload, { headers });
+        console.log('API Response:', response.data);
+
+        if (response.status < 200 || response.status >= 300) {
+            throw new Error(`API responded with status code ${response.status}`);
+        }
+
+        return response.data;
+
+    } catch (error) {
+        console.error('Error in addCreditToPupilAccount:', error);
+        handleApiError(error);
+    }
+}
+
+async function getBookingPackageById(id) {
+    try {
+        if (!mongoose.isValidObjectId(id)) {
+            throw new Error('Invalid package ID format');
+        }
+
+        const result = await PackageSchema.findById(id);
+        if (!result) {
+            throw new Error('Package not found');
+        }
+
+        return result;
+    } catch (error) {
+        console.error('Error in getBookingPackageById:', error);
+        throw error;
+    }
+}
 
 async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,formattedEndTime,token) {
     const typeOfGearbox = updatedCheckoutInfo.orderInfo.typeOfGearbox.toLowerCase()
@@ -166,7 +229,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
             "phoneNumber": updatedCheckoutInfo.studentInfo.phoneNumber,
             "email": updatedCheckoutInfo.studentInfo.email,
             "instructors": updatedCheckoutInfo.orderInfo.instructorsId,
-            "snedLoginDetails": true
+            "snedLoginDetails": false
         };
         const headers = {
             'Content-Type': 'application/json',
