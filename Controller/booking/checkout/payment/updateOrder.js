@@ -229,7 +229,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
             "phoneNumber": updatedCheckoutInfo.studentInfo.phoneNumber,
             "email": updatedCheckoutInfo.studentInfo.email,
             "instructors": updatedCheckoutInfo.orderInfo.instructorsId,
-            "snedLoginDetails": false
+            "snedLoginDetails": true
         };
         const headers = {
             'Content-Type': 'application/json',
