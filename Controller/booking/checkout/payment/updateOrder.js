@@ -103,7 +103,7 @@ async function addCreditToPupilAccount(pupilId, token, packageId) {
         const payload = { 
             date: new Date().toISOString(),
             pupilId: pupilId,
-            fee: 0,
+            fee: package.priecBeforeSele - package.offerSaving || 0,
             method: "Card",
             privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
             status: "Income",
