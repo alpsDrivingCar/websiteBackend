@@ -213,7 +213,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         if (existingPupil) {
             console.log(`Existing pupil found: ${existingPupil}`);
             //here i need send email
-            await sendWelcomeEmail(existingPupil.email, {
+            await sendWelcomeEmail(updatedCheckoutInfo.studentInfo.email, {
                 name: existingPupil.firstName,
                 phoneNumber: existingPupil.phoneNumber
             });
