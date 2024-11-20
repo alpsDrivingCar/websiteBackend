@@ -46,19 +46,21 @@ exports.validateUKPostcode = async (req, res) => {
 async function trackPostcodeSearch(postcode, exists) {
     const documentId = "65a173b412374a1d2241edf0";
     const searchType = exists ? 'postcodeExisting' : 'postcodeNotExisting';
-    console.log("Got Here111")
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const regexPostcode = new RegExp(`^${postcode.slice(0, areaLength)}`, 'i');
+    const cleanPostcode = regexPostcode.source.replace(/^(\^|\$)/g, '').toUpperCase();
     // Try to increment the searchCount if the postcode exists
     const updateResult = await PostcodeSearch.updateOne(
-        { _id: documentId, [`${searchType}.name`]: postcode },
+        { _id: documentId, [`${searchType}.name`]: cleanPostcode },
         { $inc: { [`${searchType}.$[elem].searchCount`]: 1 } },
-        { arrayFilters: [{ "elem.name": postcode }] }
+        { arrayFilters: [{ "elem.name": cleanPostcode }] }
     );
 
     // If the postcode was not in the array and no document was updated, add it
     if (updateResult.matchedCount === 0 || updateResult.modifiedCount === 0) {
         await PostcodeSearch.updateOne(
             { _id: documentId },
-            { $push: { [searchType]: { name: postcode, searchCount: 1 } } }
+            { $push: { [searchType]: { name: cleanPostcode, searchCount: 1 } } }
         );
     }
 }
