@@ -5,6 +5,7 @@ const OfferSchema = require("../../../../model/offer/offerSchema");
 const InstructorsUserSchema = require("../../../../model/user/Instructor");
 const LessonEvent = require("../../../../model/booking/instructors/lessonEventSchema");
 const axios = require("axios");
+const NotificationCreator = require("../../../notification/notificationCreator");
 
 const moment = require("moment");
 const crypto = require("crypto");
@@ -104,6 +105,7 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     const paymentSession = await createElavonPaymentSession(paymentIntent.href);
 
     await sendEmail(studentInfo.email, reservationCode);
+    sendNotifications(receivedData, String(savedCheckoutInfo._id));
 
     res.json({
       url: paymentIntent.url,
@@ -152,6 +154,16 @@ async function checkInstructorAvailability(orderInfo) {
 
   // If the loop completes without finding any unavailability, the instructor is available
   return true; // The instructor is available at all provided times
+}
+
+async function sendNotifications(data, orderId) {
+  try {
+    const orderText = `New Order From ${data.studentInfo.name}`;
+    await NotificationCreator.createWebsiteAdminNotification(orderText, "Order", orderId, "lessonsOrder" )
+  } catch (error) {
+    console.error("Failed to send notifications:", error);
+    return res.status(500).json({error: "Failed to send notifications"});
+  }
 }
 
 async function sendEmail(to, reservationCode) {
