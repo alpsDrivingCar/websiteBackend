@@ -451,7 +451,7 @@ function checkExpiration(expiryTime) {
 
 async function saveCheckoutInfo(receivedData, orderInfo) {
   const formattedDate = moment().format("YYYY-MM-DD : ha"); // Format the date
-  receivedData.studentInfo.address = receivedData.orderInfo.postCode;
+  receivedData.studentInfo.postCode = receivedData.orderInfo.postCode;
   orderInfo.status = "pending";
   orderInfo.bookingDate = formattedDate;
 
