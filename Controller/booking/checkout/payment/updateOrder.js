@@ -39,17 +39,6 @@ exports.updateOrderStatus = async (req, res) => {
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
-         // Call createWebsiteAdminNotification if status is "success"
-         if (status === "success") {
-            try {
-                const orderText  = `New Order From  ${updateResult.checkoutInfo.studentInfo.name}`;
-                await NotificationCreator.createWebsiteAdminNotification(orderText, "Order", id, "lessonsOrder");
-            } catch (notificationErr) {
-                console.error(notificationErr);
-                return res.status(500).json({ error: "An error occurred while creating the notification" });
-            }
-        }
-
         return res.json({
             message: "Order status updated successfully!",
             data: updatedCheckoutInfo,
@@ -221,14 +210,19 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
             return { pupil: existingPupil, isNew: false }; // Indicate that this is not a new entry
         }
 
+        // Split name into parts
+        const nameParts = updatedCheckoutInfo.studentInfo.name.split(' ');
+        const firstName = nameParts[0]; // First part is first name
+        const lastName = nameParts.slice(1).join(' '); // Rest joined together is last name
         // Proceed with external API call if pupil not found
         const apiUrl = `${process.env.DASHBOARD_URL}/api/pupil/create`;
         const payload = {
-            "firstName": updatedCheckoutInfo.studentInfo.name,
-            "lastName": updatedCheckoutInfo.studentInfo.name,
+            "firstName": firstName,
+            "lastName": lastName,
             "phoneNumber": updatedCheckoutInfo.studentInfo.phoneNumber,
             "email": updatedCheckoutInfo.studentInfo.email,
             "instructors": updatedCheckoutInfo.orderInfo.instructorsId,
+            "postCode": updatedCheckoutInfo.studentInfo.address?.toUpperCase(),
             "snedLoginDetails": true
         };
         const headers = {
