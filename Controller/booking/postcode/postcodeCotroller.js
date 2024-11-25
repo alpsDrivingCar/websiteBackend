@@ -93,7 +93,7 @@ const fetchBookingPackages = async (postcode) => {
 };
 
 exports.getPostCodeAndGearboxOfOurInstructors = (req, res) => {
-    InstructorsUserSchema.find({ AcceptStudent: true, isPotential: false }, 'areas -_id')
+    InstructorsUserSchema.find({ isPotential: false }, 'areas -_id')
         .then((results) => {
             // Extract the areas from the results, flatten the array, convert all to uppercase, and trim spaces to ensure uniqueness
             const allPostCodes = results.map(result => result.areas.map(area => area.toUpperCase().trim())).flat();
