@@ -214,7 +214,6 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         const nameParts = updatedCheckoutInfo.studentInfo.name.split(' ');
         const firstName = nameParts[0]; // First part is first name
         const lastName = nameParts.slice(1).join(' '); // Rest joined together is last name
-
         // Proceed with external API call if pupil not found
         const apiUrl = `${process.env.DASHBOARD_URL}/api/pupil/create`;
         const payload = {
@@ -223,6 +222,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
             "phoneNumber": updatedCheckoutInfo.studentInfo.phoneNumber,
             "email": updatedCheckoutInfo.studentInfo.email,
             "instructors": updatedCheckoutInfo.orderInfo.instructorsId,
+            "postCode": updatedCheckoutInfo.studentInfo.address?.toUpperCase(),
             "snedLoginDetails": true
         };
         const headers = {
