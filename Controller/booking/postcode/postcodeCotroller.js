@@ -115,5 +115,46 @@ exports.getPostCodeAndGearboxOfOurInstructors = (req, res) => {
         });
 };
 
+exports.getTopSearchedPostcodes = async (req, res) => {
+    try {
+        const postcodeDoc = await PostcodeSearch.findOne();
+        if (!postcodeDoc) {
+            return res.status(404).json({
+                success: false,
+                message: 'No postcode data found'
+            });
+        }
 
+        // Map and sort existing postcodes
+        const existingPostcodes = postcodeDoc.postcodeExisting
+            .map(p => ({
+                postcode: p.name,
+                searchCount: p.searchCount,
+                exists: true
+            }))
+            .sort((a, b) => b.searchCount - a.searchCount);
 
+        // Map and sort non-existing postcodes
+        const nonExistingPostcodes = postcodeDoc.postcodeNotExisting
+            .map(p => ({
+                postcode: p.name,
+                searchCount: p.searchCount,
+                exists: false
+            }))
+            .sort((a, b) => b.searchCount - a.searchCount);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                existing: existingPostcodes,
+                nonExisting: nonExistingPostcodes
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching top searched postcodes:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
