@@ -22,6 +22,7 @@ exports.getTransactions = async (req, res) => {
     // Filter and format data
     const filteredTransactions = response.data.items.map(item => ({
       createdAt: item.createdAt,
+      cardHolderName: item.card.holderName,
       type: item.type,
       paymentMethod: item.paymentMethod,
       total: item.total,
