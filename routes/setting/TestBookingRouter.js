@@ -1,4 +1,6 @@
 const testBookingController = require('../../Controller/setting/testBookingCotroller');
+const authenticateAdmin = require('../../Middleware/dashboardAdminAuth.js');
+
 const express = require("express");
 const router = express.Router();
 
@@ -13,9 +15,9 @@ router.put("/info/:id", testBookingController.updateTestBooking);
 const testBookingRequestController = require('../../Controller/setting/testBookingCotroller');
 
 router.post('/request/', testBookingRequestController.createTestBookingRequest);
-router.get('/request/all', testBookingRequestController.getAllTestBookingRequests);
-router.get('/request/byId/:id', testBookingRequestController.getTestBookingRequestById);
-router.put('/request/:id', testBookingRequestController.updateTestBookingRequest);
-router.delete('/request/:id', testBookingRequestController.deleteTestBookingRequest);
+router.get('/request/all', authenticateAdmin, testBookingRequestController.getAllTestBookingRequests);
+router.get('/request/byId/:id', authenticateAdmin, testBookingRequestController.getTestBookingRequestById);
+router.put('/request/:id', authenticateAdmin, testBookingRequestController.updateTestBookingRequest);
+router.delete('/request/:id', authenticateAdmin, testBookingRequestController.deleteTestBookingRequest);
 
 module.exports = router;

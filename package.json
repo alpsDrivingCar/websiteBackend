@@ -17,6 +17,7 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.0.0",
     "http-errors": "~1.6.3",
+    "jsonwebtoken": "^9.0.2",
     "moment": "^2.29.4",
     "mongodb": "^5.4.0",
     "mongoose": "^7.1.0",
