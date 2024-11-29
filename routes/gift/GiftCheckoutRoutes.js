@@ -8,7 +8,7 @@ router.post("/validateOTP", giftServer.validateOTP);
 
 router.get('/all', authenticateAdmin, giftServer.getAllCheckoutInfos);
 router.get('/:id', authenticateAdmin, giftServer.getCheckoutInfoById);
-router.put('/:id', authenticateAdmin, giftServer.updateCheckoutInfo);
+router.put('/:id', giftServer.updateCheckoutInfo);
 
 module.exports = router
 
