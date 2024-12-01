@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const dotenv = require("dotenv");
 const helmet = require('helmet');
 const cors = require("cors");
+const authenticateAdmin = require('./Middleware/dashboardAdminAuth.js');
 
 app.use(bodyParser.json())
 app.use(bodyParser.text())
@@ -19,7 +20,7 @@ dotenv.config(dotenv);
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
 app.use('/api/booking/', require('./routes/booking/instructors/InstructorsBookingRoutes'))
 app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
-app.use('/api/booking/packageBooking', require('./routes/booking/package/PackageBookingRoutes'))
+app.use('/api/booking/packageBooking', authenticateAdmin, require('./routes/booking/package/PackageBookingRoutes'))
 app.use('/api/checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))
 app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckEmailRoutes'))
 app.use('/api/test-booking', require('./routes/booking/testBooking/TestBookingRoutes'))
@@ -51,6 +52,8 @@ app.use('/api/franchise', require('./routes/franchise/franchiseRoute'))
 app.use('/api/home', require('./routes/home/HomeRoutes'))
 app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 
+//Transactions
+app.use('/api/transactions', authenticateAdmin, require('./routes/transactions/TransactionsRoutes'))
 
 
 app.use(function (req, res, next) {
