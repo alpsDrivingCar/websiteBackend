@@ -212,6 +212,20 @@ const InstructorSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        AcceptFemaleStudent: {
+            type: Boolean,
+            default: false,
+        },
+        availableAreas: [{
+            postcode: {
+              type: String,
+              required: true
+            },
+            days: [{
+              type: String,
+              enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            }]
+        }],
         travelingTime: {
             type: String,
         },
@@ -225,6 +239,11 @@ const InstructorSchema = new mongoose.Schema(
         instructorLevel: {
             type: String,
             default: "part2",// "part3" , part2
+        },
+        instructorRole: {
+            type: String,
+            enum: ['instructor', 'instructor-trainer'],
+            default: 'instructor',
         },
         notificationStatus: {
             type: String,

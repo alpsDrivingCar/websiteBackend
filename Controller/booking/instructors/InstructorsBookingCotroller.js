@@ -57,7 +57,7 @@ exports.deleteBookingInstructors = (req, res) => {
 // Function to get instructors and trainees by postcode, available time, and gearbox
 exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     try {
-        const { postcode, availableTime, gearbox } = req.query;
+        const { postcode, availableTime, gearbox, studentGender } = req.query;
 
         if (!postcode || !availableTime) {
             return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
@@ -99,30 +99,62 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (!users.length) {
             return res.json({ data: [] });
         }
+        if (studentGender === "male") {
+            users = users.filter(user => !user.AcceptFemaleStudent);
+        }
         // Check if availableTime is an array, if not, make it an array
         const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
+        
+        // Filter users based on availableAreas and days
+        users = users.filter(user => {
+            // Check if user has the postcode area in their availableAreas
+            const matchingArea = user.availableAreas?.find(area => 
+                area.postcode.toLowerCase() === areaPrefix.toLowerCase()
+            );
+            
+            if (!matchingArea) return false;
+
+            // Convert availableTimes to days of the week
+            const requiredDays = availableTimes.map(time => 
+                time.toLocaleString('en-US', { weekday: 'long' })
+            );
+
+            // Check if all required days are covered in the matching area's days
+            return requiredDays.every(day => 
+                matchingArea.days.includes(day)
+            );
+        });
 
         // Filter users based on available time
         users = await Promise.all(users.map(async (user) => {
             try {
                 for (const time of availableTimes) {
+                    const travelTimeInMinutes = parseInt(user.travelingTime.split(' ')[0]);
+                    const travelTimeInMs = travelTimeInMinutes * 60 * 1000;
+                    const timeWith2HoursAndTravelTime = new Date(time.getTime() + (2 * 60 * 60 * 1000) + travelTimeInMs);
+        
+                    // Check for lessons based on the user's role
+                    const roleFilter = user.instructorRole === 'instructor-trainer' ? { trainerId: user._id } : { instructorId: user._id };
                     const hasLesson = await LessonEvent.findOne({
+                        ...roleFilter, // Add specific role filter
                         $or: [
-                            { instructorId: user._id },
-                            { trainerId: user._id }
-                        ],
-                        startTime: { $lte: time },
-                        endTime: { $gte: time }
+                            { startTime: { $lt: timeWith2HoursAndTravelTime, $gte: time } },
+                            { endTime: { $gt: time, $lte: timeWith2HoursAndTravelTime } },
+                            { $and: [
+                                { startTime: { $lte: time } },
+                                { endTime: { $gte: timeWith2HoursAndTravelTime } }
+                            ]}
+                        ]
                     });
-
+        
                     if (hasLesson) {
-                        return null;
+                        return null; // Cancel only this user
                     }
                 }
-                return user;
+                return user; // Return the user if no lessons conflict
             } catch (error) {
                 console.error("Error fetching lessons for user", user._id, error);
-                return null;
+                return null; // Handle errors by canceling this user
             }
         }));
 
