@@ -7,7 +7,7 @@ const router = express.Router();
 router.get("/", authenticateAdmin, contactusServer.contactuss)
 router.post("/",contactusServer.createContactus)
 router.delete("/:id", authenticateAdmin, contactusServer.deleteContactus)
-router.put("/", authenticateAdmin, contactusServer.contactusUpdate)
+router.put("/:id", authenticateAdmin, contactusServer.contactusUpdate)
 router.get("/all/", authenticateAdmin, contactusServer.getAllContactUs);
 router.get("/:id", authenticateAdmin, contactusServer.getContactUsById);
 
