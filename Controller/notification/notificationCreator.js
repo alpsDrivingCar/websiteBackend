@@ -12,7 +12,7 @@ const createWebsiteAdminNotification = async (name, websiteType, pageId, pageSlu
         const notification = {
             notificationTemplate: notificationTemplate,
             replacement: {
-                websiteType: websiteType === "Contactus" ? "Contact" : websiteType,
+                websiteType: websiteType,
                 name: name
             },
             user: {

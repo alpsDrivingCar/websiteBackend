@@ -15,7 +15,7 @@ exports.createContactus = async (req, res) => {
         .then(async result => {
             // Create notification after saving contactus
             try {
-                await NotificationCreator.createWebsiteAdminNotification(req.body.name, "Contactus", result._id, "contactus");
+                await NotificationCreator.createWebsiteAdminNotification(req.body.name, "Contact", result._id, "contactus");
                 res.json(result);
             } catch (notificationErr) {
                 console.error(notificationErr);

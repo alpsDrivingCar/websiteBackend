@@ -5,6 +5,11 @@ const Schema = mongoose.Schema;
 const lessonsSchema = new Schema({
     title: String,
     description: String,
+    features: [
+        {
+            type: String,
+        }
+    ],
     typeOfLesson: [
         {
             slug: String,
