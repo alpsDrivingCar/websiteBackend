@@ -42,7 +42,11 @@ const checkoutInfoSchema = new mongoose.Schema({
         email: String,
         address: String,
         dateOfBirth: Date,
-        verificationNumber: String
+        verificationNumber: String,
+        gender: {
+            type: String,
+            enum: ['male', 'female']
+        }
     },
     saveStatus: {
         type: String,
