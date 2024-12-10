@@ -12,6 +12,21 @@ const contactusSchema = new Schema({
         type: String,
         required: true,
     },
+    answer: {
+        subject: {
+            type: String,
+            required: false
+        },
+        messageBody: {
+            type: String,
+            required: false
+        }
+    },
+    answered: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
 },{
     timestamps:true
 });
