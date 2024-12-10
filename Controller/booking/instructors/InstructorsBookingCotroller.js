@@ -164,7 +164,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             return res.json({ data: [] });
         }
 
-        res.json({ data: users, testing: {gender: studentGender} });
+        res.json({ data: users });
 
     } catch (error) {
         console.error("Outer Error:", error);
