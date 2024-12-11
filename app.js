@@ -71,12 +71,14 @@ mongoose.connect(process.env.DATABASE, {
 }).then(() => {
     const port = process.env.PORT || 8000;
     const localUrl = `http://localhost:${port}`;
-    const remoteUrl = 'https://alps-driving-website.herokuapp.com';
+    const remoteUrlProd = 'https://alps-driving-website-prod-628456defbae.herokuapp.com';
+    const remoteUrlDev = 'https://alps-driving-website-stg-34110f537a63.herokuapp.com';
 
     app.listen(port, () => {
         console.log("Server Run ");
         console.log(`Local URL: ${localUrl}`);
-        console.log(`Remote URL: ${remoteUrl}`);
+        console.log(`Remote URL (Production): ${remoteUrlProd}`);
+        console.log(`Remote URL (Development): ${remoteUrlDev}`);
     });
 }).catch(err => {
     console.log("mongodb Error :" + err);
