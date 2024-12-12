@@ -109,19 +109,22 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         users = users.filter(user => {
             // Check if user has the postcode area in their availableAreas
             const matchingArea = user.availableAreas?.find(area => 
-                area.postcode.toLowerCase() === areaPrefix.toLowerCase()
+            area.postcode.toLowerCase() === areaPrefix.toLowerCase()
             );
             
             if (!matchingArea) return false;
 
+            // If days array is empty, instructor is available all days
+            if (!matchingArea.days || matchingArea.days.length === 0) return true;
+
             // Convert availableTimes to days of the week
             const requiredDays = availableTimes.map(time => 
-                time.toLocaleString('en-US', { weekday: 'long' })
+            time.toLocaleString('en-US', { weekday: 'long' })
             );
 
             // Check if all required days are covered in the matching area's days
             return requiredDays.every(day => 
-                matchingArea.days.includes(day)
+            matchingArea.days.includes(day)
             );
         });
 
