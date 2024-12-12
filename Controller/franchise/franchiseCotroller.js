@@ -41,6 +41,22 @@ exports.getFranchiseOpportunityById = (req, res) => {
         });
 }
 
+// Get Become A Driving Instructor
+exports.getBecomeADrivingInstructor = (req, res) => {
+    console.log("getBecomeADrivingInstructor123123");
+    FranchiseOpportunity.findById("675ae3b0b8feb69f5ba0dc62")
+        .then(franchiseOpportunity => {
+            if (!franchiseOpportunity) {
+                return res.status(404).json({ message: 'Franchise Opportunity not found' });
+            }
+            res.json({ data: franchiseOpportunity });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ message: 'Failed to fetch Franchise Opportunity', error: err.message });
+        });
+}
+
 // Update Franchise Opportunity by ID
 exports.updateFranchiseOpportunityById = (req, res) => {
     FranchiseOpportunity.findByIdAndUpdate(req.params.id, req.body, { new: true })

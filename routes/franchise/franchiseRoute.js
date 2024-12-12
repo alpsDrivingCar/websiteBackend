@@ -4,6 +4,7 @@ const router = express.Router();
 
 router.get('/', franchiseController.getFranchiseOpportunities);
 router.get('/byId', franchiseController.getFranchiseOpportunityById);
+router.get('/becomeADrivingInstructor', franchiseController.getBecomeADrivingInstructor);
 router.post('/', franchiseController.createFranchiseOpportunity);
 router.delete('/:id', franchiseController.deleteFranchiseOpportunityById);
 router.put('/:id', franchiseController.updateFranchiseOpportunityById);
