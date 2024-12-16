@@ -357,3 +357,115 @@ function convertToNumber(value, name) {
     }
 
 }
+
+exports.availableTimeSlots = async (req, res) => {
+    try {
+        const { instructorId, month, year } = req.query;
+
+        if (!instructorId || !month || !year) {
+            return res.status(400).json({ 
+                message: 'instructorId, month, and year are required query parameters.' 
+            });
+        }
+
+        // Get instructor details to check working hours
+        const instructor = await InstructorsUserSchema.findById(instructorId);
+        if (!instructor) {
+            return res.status(404).json({ message: 'Instructor not found' });
+        }
+
+        // Create start and end date for the specified month
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0); // Last day of the month
+
+        // Get all existing lessons for the instructor in the specified month
+        const existingLessons = await LessonEvent.find({
+            $or: [
+            { instructorId: instructorId },
+            { trainerId: instructorId }
+            ],
+            startTime: { $gte: startDate, $lte: endDate }
+        });
+        console.log(existingLessons);
+        // Generate all possible time slots for the month
+        const availableSlots = [];
+        const currentDate = new Date(startDate);
+
+        // Create a map to store slots grouped by date
+        const slotsGroupedByDay = {};
+
+        while (currentDate <= endDate) {
+            if (currentDate < new Date()) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                continue;
+            }
+
+            const dayKey = currentDate.toISOString().split('T')[0];
+            slotsGroupedByDay[dayKey] = {
+                date: dayKey,
+                dayOfWeek: currentDate.toLocaleString('en-GB', { weekday: 'long' }),
+                availableHours: []
+            };
+
+            // Generate slots for each day (9 AM to 6 PM, including half hours)
+            for (let hour = 9; hour <= 18; hour++) {
+                for (let minutes of [0, 30]) {
+                    const slotTime = new Date(currentDate);
+                    slotTime.setHours(hour, minutes, 0, 0);
+                    
+                    const slotEndTime = new Date(slotTime);
+                    slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000));
+
+                    if (slotEndTime.getHours() > 20) {
+                        continue;
+                    }
+
+                    const hasConflict = existingLessons.some(lesson => {
+                        const lessonStart = new Date(lesson.startTime);
+                        const lessonEnd = new Date(lesson.endTime);
+                        
+                        return (
+                            (slotTime >= lessonStart && slotTime < lessonEnd) ||
+                            (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
+                            (slotTime <= lessonStart && slotEndTime >= lessonEnd)
+                        );
+                    });
+
+                    if (!hasConflict) {
+                        slotsGroupedByDay[dayKey].availableHours.push({
+                            time: slotTime.toLocaleTimeString('en-GB', { 
+                                hour: '2-digit', 
+                                minute: '2-digit',
+                                timeZone: 'Europe/London'
+                            }),
+                            timestamp: slotTime.toISOString()
+                        });
+                    }
+                }
+            }
+
+            // Remove days with no available hours
+            if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
+                delete slotsGroupedByDay[dayKey];
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        // Convert the grouped slots object to an array and sort by date
+        const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
+            a.date.localeCompare(b.date)
+        );
+
+        res.json({ 
+            instructorId,
+            month,
+            year,
+            availableDays: formattedSlots
+        });
+
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ message: "An error occurred", error: error.message });
+    }
+};
