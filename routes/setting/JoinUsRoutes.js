@@ -9,7 +9,7 @@ router.get("/all", authenticateAdmin, joinusServer.joinus)
 router.get("/:id", authenticateAdmin, joinusServer.joinusById)
 router.post("/", joinusServer.createJoinus)
 router.delete("/:id", authenticateAdmin, joinusServer.deleteJoinus)
-router.put("/", authenticateAdmin, joinusServer.joinusUpdate)
+router.put("/:id", authenticateAdmin, joinusServer.joinusUpdate)
 
 module.exports = router
 

@@ -7,6 +7,21 @@ const joinusSchema = new Schema({
     phoneNumber: String,
     location: String,
     name: String,
+    answer: {
+        subject: {
+            type: String,
+            required: false
+        },
+        messageBody: {
+            type: String,
+            required: false
+        }
+    },
+    answered: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
 }, {
     timestamps: true,
 });

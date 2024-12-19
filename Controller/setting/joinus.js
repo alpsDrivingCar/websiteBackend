@@ -73,12 +73,16 @@ exports.joinusById = (req, res) => {
 };
 
 exports.joinusUpdate = (req, res) => {
-    JoinusSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
+    JoinusSchema.findByIdAndUpdate(req.params.id, req.body, { new: true })
         .then((result) => {
-            res.json(result)
+            if (!result) {
+                return res.status(404).json({ error: 'Join us data not found' });
+            }
+            res.json(result);
         })
         .catch((err) => {
             console.log(err);
+            res.status(500).json({ error: 'An error occurred while updating join us data' });
         });
 }
 
