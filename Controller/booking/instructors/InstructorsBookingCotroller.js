@@ -360,108 +360,48 @@ function convertToNumber(value, name) {
 
 exports.availableTimeSlots = async (req, res) => {
     try {
-        const { instructorId, month, year } = req.query;
+        const { instructorId, instructorIds, month, year } = req.query;
 
-        if (!instructorId || !month || !year) {
+        // Handle both single and multiple instructor cases
+        if ((!instructorId && !instructorIds) || !month || !year) {
             return res.status(400).json({ 
-                message: 'instructorId, month, and year are required query parameters.' 
+                message: 'Either instructorId or instructorIds, plus month and year are required.' 
             });
         }
 
-        // Get instructor details to check working hours
-        const instructor = await InstructorsUserSchema.findById(instructorId);
-        if (!instructor) {
-            return res.status(404).json({ message: 'Instructor not found' });
+        // If single instructor, use original logic
+        if (instructorId) {
+            const instructor = await InstructorsUserSchema.findById(instructorId);
+            if (!instructor) {
+                return res.status(404).json({ message: 'Instructor not found' });
+            }
+
+            const result = await getInstructorAvailability(instructor, month, year);
+            return res.json(result);
         }
 
-        // Create start and end date for the specified month
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0); // Last day of the month
+        // Handle multiple instructors
+        const instructorIdArray = Array.isArray(instructorIds) ? instructorIds : instructorIds.split(',');
+        const instructors = await InstructorsUserSchema.find({ _id: { $in: instructorIdArray } });
 
-        // Get all existing lessons for the instructor in the specified month
-        const existingLessons = await LessonEvent.find({
-            $or: [
-            { instructorId: instructorId },
-            { trainerId: instructorId }
-            ],
-            startTime: { $gte: startDate, $lte: endDate }
-        });
-        console.log(existingLessons);
-        // Generate all possible time slots for the month
-        const availableSlots = [];
-        const currentDate = new Date(startDate);
-
-        // Create a map to store slots grouped by date
-        const slotsGroupedByDay = {};
-
-        while (currentDate <= endDate) {
-            if (currentDate < new Date()) {
-                currentDate.setDate(currentDate.getDate() + 1);
-                continue;
-            }
-
-            const dayKey = currentDate.toISOString().split('T')[0];
-            slotsGroupedByDay[dayKey] = {
-                date: dayKey,
-                dayOfWeek: currentDate.toLocaleString('en-GB', { weekday: 'long' }),
-                availableHours: []
-            };
-
-            // Generate slots for each day (9 AM to 6 PM, including half hours)
-            for (let hour = 9; hour <= 18; hour++) {
-                for (let minutes of [0, 30]) {
-                    const slotTime = new Date(currentDate);
-                    slotTime.setHours(hour, minutes, 0, 0);
-                    
-                    const slotEndTime = new Date(slotTime);
-                    slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000));
-
-                    if (slotEndTime.getHours() > 20) {
-                        continue;
-                    }
-
-                    const hasConflict = existingLessons.some(lesson => {
-                        const lessonStart = new Date(lesson.startTime);
-                        const lessonEnd = new Date(lesson.endTime);
-                        
-                        return (
-                            (slotTime >= lessonStart && slotTime < lessonEnd) ||
-                            (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
-                            (slotTime <= lessonStart && slotEndTime >= lessonEnd)
-                        );
-                    });
-
-                    if (!hasConflict) {
-                        slotsGroupedByDay[dayKey].availableHours.push({
-                            time: slotTime.toLocaleTimeString('en-GB', { 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                timeZone: 'Europe/London'
-                            }),
-                            timestamp: slotTime.toISOString()
-                        });
-                    }
-                }
-            }
-
-            // Remove days with no available hours
-            if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
-                delete slotsGroupedByDay[dayKey];
-            }
-
-            currentDate.setDate(currentDate.getDate() + 1);
+        if (instructors.length === 0) {
+            return res.status(404).json({ message: 'No instructors found' });
         }
 
-        // Convert the grouped slots object to an array and sort by date
-        const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
-            a.date.localeCompare(b.date)
+        // Get availability for each instructor
+        const instructorResults = await Promise.all(
+            instructors.map(instructor => getInstructorAvailability(instructor, month, year))
         );
 
-        res.json({ 
-            instructorId,
+        // Return combined results
+        res.json({
             month,
             year,
-            availableDays: formattedSlots
+            instructors: instructorResults.map(result => ({
+                instructorId: result.instructorId,
+                instructorName: `${result.instructorName || ''}`,
+                availableDays: result.availableDays
+            }))
         });
 
     } catch (error) {
@@ -469,3 +409,84 @@ exports.availableTimeSlots = async (req, res) => {
         res.status(500).json({ message: "An error occurred", error: error.message });
     }
 };
+
+// Helper function to get availability for a single instructor
+async function getInstructorAvailability(instructor, month, year) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    const existingLessons = await LessonEvent.find({
+        $or: [
+            { instructorId: instructor._id },
+            { trainerId: instructor._id }
+        ],
+        startTime: { $gte: startDate, $lte: endDate }
+    });
+
+    const slotsGroupedByDay = {};
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+        if (currentDate < new Date()) {
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+        }
+
+        const dayKey = currentDate.toISOString().split('T')[0];
+        slotsGroupedByDay[dayKey] = {
+            date: dayKey,
+            dayOfWeek: currentDate.toLocaleString('en-GB', { weekday: 'long' }),
+            availableHours: []
+        };
+
+        for (let hour = 9; hour <= 18; hour++) {
+            for (let minutes of [0, 30]) {
+                const slotTime = new Date(currentDate);
+                slotTime.setHours(hour, minutes, 0, 0);
+                
+                const slotEndTime = new Date(slotTime);
+                slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000));
+
+                if (slotEndTime.getHours() > 20) continue;
+
+                const hasConflict = existingLessons.some(lesson => {
+                    const lessonStart = new Date(lesson.startTime);
+                    const lessonEnd = new Date(lesson.endTime);
+                    
+                    return (
+                        (slotTime >= lessonStart && slotTime < lessonEnd) ||
+                        (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
+                        (slotTime <= lessonStart && slotEndTime >= lessonEnd)
+                    );
+                });
+
+                if (!hasConflict) {
+                    slotsGroupedByDay[dayKey].availableHours.push({
+                        time: slotTime.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            timeZone: 'Europe/London'
+                        }),
+                        timestamp: slotTime.toISOString()
+                    });
+                }
+            }
+        }
+
+        if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
+            delete slotsGroupedByDay[dayKey];
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
+        a.date.localeCompare(b.date)
+    );
+
+    return {
+        instructorId: instructor._id,
+        instructorName: `${instructor.firstName} ${instructor.lastName}`,
+        availableDays: formattedSlots
+    };
+}
