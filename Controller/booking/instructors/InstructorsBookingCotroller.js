@@ -424,7 +424,7 @@ async function getInstructorAvailability(instructor, month, year) {
     });
 
     const slotsGroupedByDay = {};
-    const currentDate = new Date(startDate);
+    const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
 
     while (currentDate <= endDate) {
         if (currentDate < new Date()) {
