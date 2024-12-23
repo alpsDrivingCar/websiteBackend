@@ -102,6 +102,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (studentGender === "male") {
             users = users.filter(user => !user.AcceptFemaleStudent);
         }
+        // return res.json({ data: users });
         // Check if availableTime is an array, if not, make it an array
         const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
         
@@ -360,7 +361,12 @@ function convertToNumber(value, name) {
 
 exports.availableTimeSlots = async (req, res) => {
     try {
-        const { instructorId, instructorIds, month, year } = req.query;
+        const { instructorId, instructorIds, month, year, postcode } = req.query;
+        let areaPrefix = '';
+        if (postcode) {
+            const areaLength = determinePostcodeAreaLength(postcode);
+            areaPrefix = postcode.substring(0, areaLength).trim();
+        }
 
         // Handle both single and multiple instructor cases
         if ((!instructorId && !instructorIds) || !month || !year) {
@@ -376,7 +382,7 @@ exports.availableTimeSlots = async (req, res) => {
                 return res.status(404).json({ message: 'Instructor not found' });
             }
 
-            const result = await getInstructorAvailability(instructor, month, year);
+            const result = await getInstructorAvailability(instructor, month, year, areaPrefix);
             return res.json(result);
         }
 
@@ -390,13 +396,14 @@ exports.availableTimeSlots = async (req, res) => {
 
         // Get availability for each instructor
         const instructorResults = await Promise.all(
-            instructors.map(instructor => getInstructorAvailability(instructor, month, year))
+            instructors.map(instructor => getInstructorAvailability(instructor, month, year, areaPrefix))
         );
 
         // Return combined results
         res.json({
             month,
             year,
+            postcode: areaPrefix,
             instructors: instructorResults.map(result => ({
                 instructorId: result.instructorId,
                 instructorName: `${result.instructorName || ''}`,
@@ -410,83 +417,108 @@ exports.availableTimeSlots = async (req, res) => {
     }
 };
 
-// Helper function to get availability for a single instructor
-async function getInstructorAvailability(instructor, month, year) {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
+async function getInstructorAvailability(instructor, month, year, postcode) {
+    try {
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
 
-    const existingLessons = await LessonEvent.find({
-        $or: [
-            { instructorId: instructor._id },
-            { trainerId: instructor._id }
-        ],
-        startTime: { $gte: startDate, $lte: endDate }
-    });
+        const existingLessons = await LessonEvent.find({
+            $or: [
+                { instructorId: instructor._id },
+                { trainerId: instructor._id }
+            ],
+            startTime: { $gte: startDate, $lte: endDate }
+        });
 
-    const slotsGroupedByDay = {};
-    const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+        const slotsGroupedByDay = {};
+        const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
 
-    while (currentDate <= endDate) {
-        if (currentDate < new Date()) {
-            currentDate.setDate(currentDate.getDate() + 1);
-            continue;
-        }
+        while (currentDate <= endDate) {
+            if (currentDate < new Date()) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                continue;
+            }
 
-        const dayKey = currentDate.toISOString().split('T')[0];
-        slotsGroupedByDay[dayKey] = {
-            date: dayKey,
-            dayOfWeek: currentDate.toLocaleString('en-GB', { weekday: 'long' }),
-            availableHours: []
-        };
+            const dayKey = currentDate.toISOString().split('T')[0];
+            const currentDay = currentDate.toLocaleString('en-US', { weekday: 'long' });
 
-        for (let hour = 9; hour <= 18; hour++) {
-            for (let minutes of [0, 30]) {
-                const slotTime = new Date(currentDate);
-                slotTime.setHours(hour, minutes, 0, 0);
-                
-                const slotEndTime = new Date(slotTime);
-                slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000));
+            const isAvailableOnDay = instructor.availableAreas?.some(area => {
+                if (postcode) {
+                    const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
+                    const matchesDay = !area.days || area.days.length === 0 || area.days.includes(currentDay);
+                    return matchesPostcode && matchesDay;
+                } else {
+                    return !area.days || area.days.length === 0 || area.days.includes(currentDay);
+                }
+            });
 
-                if (slotEndTime.getHours() > 20) continue;
+            if (!isAvailableOnDay) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                continue;
+            }
 
-                const hasConflict = existingLessons.some(lesson => {
-                    const lessonStart = new Date(lesson.startTime);
-                    const lessonEnd = new Date(lesson.endTime);
+            slotsGroupedByDay[dayKey] = {
+                date: dayKey,
+                dayOfWeek: currentDay,
+                availableHours: []
+            };
+
+            for (let hour = 6; hour <= 16; hour++) {
+                for (let minutes of [0, 30]) {
+                    const slotTime = new Date(currentDate);
+                    slotTime.setHours(hour, minutes, 0, 0);
                     
-                    return (
-                        (slotTime >= lessonStart && slotTime < lessonEnd) ||
-                        (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
-                        (slotTime <= lessonStart && slotEndTime >= lessonEnd)
-                    );
-                });
+                    const slotEndTime = new Date(slotTime);
+                    const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
+                    const travelTimeInMs = travelTimeInMinutes * 60 * 1000;
+                    slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000) + travelTimeInMs);
 
-                if (!hasConflict) {
-                    slotsGroupedByDay[dayKey].availableHours.push({
-                        time: slotTime.toLocaleTimeString('en-GB', { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            timeZone: 'Europe/London'
-                        }),
-                        timestamp: slotTime.toISOString()
+                    if (slotEndTime.getHours() > 20) {
+                        continue;
+                    }
+
+                    const hasConflict = existingLessons.some(lesson => {
+                        const lessonStart = new Date(lesson.startTime);
+                        const lessonEnd = new Date(lesson.endTime);
+                        return (
+                            (slotTime >= lessonStart && slotTime < lessonEnd) ||
+                            (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
+                            (slotTime <= lessonStart && slotEndTime >= lessonEnd)
+                        );
                     });
+
+                    if (!hasConflict) {
+                        const timeSlot = {
+                            time: slotTime.toLocaleTimeString('en-GB', { 
+                                hour: '2-digit', 
+                                minute: '2-digit',
+                                timeZone: 'Europe/London'
+                            }),
+                            timestamp: slotTime.toISOString()
+                        };
+                        slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
+                    }
                 }
             }
+
+            if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
+                delete slotsGroupedByDay[dayKey];
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1);
         }
 
-        if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
-            delete slotsGroupedByDay[dayKey];
-        }
+        const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
+            a.date.localeCompare(b.date)
+        );
 
-        currentDate.setDate(currentDate.getDate() + 1);
+        return {
+            instructorId: instructor._id,
+            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+            availableDays: formattedSlots
+        };
+
+    } catch (error) {
+        throw error;
     }
-
-    const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
-        a.date.localeCompare(b.date)
-    );
-
-    return {
-        instructorId: instructor._id,
-        instructorName: `${instructor.firstName} ${instructor.lastName}`,
-        availableDays: formattedSlots
-    };
 }
