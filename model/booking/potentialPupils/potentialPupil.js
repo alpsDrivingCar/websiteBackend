@@ -25,7 +25,15 @@ const potentialPupilSchema = new Schema({
     address: {
         type: String,
         required: true
-    }
+    },
+    problem: {
+        type: String,
+    },
+    isDeleted: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
 }, {
     timestamps: true  // Adds createdAt and updatedAt timestamps
 });

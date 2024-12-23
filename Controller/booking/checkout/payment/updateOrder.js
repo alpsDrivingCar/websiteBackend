@@ -1,6 +1,7 @@
 const CheckoutInfo = require("../../../../model/booking/checkout/payment/paymentSchema");
 const PackageSchema = require("../../../../model/booking/package/packageSchema");
 const PupilUserSchema = require("../../../../model/user/Pupil");
+const PotentialPupil = require("../../../../model/booking/potentialPupils/potentialPupil");
 const mongoose = require("mongoose");
 const axios = require('axios');
 const nodemailer = require('nodemailer');
@@ -38,6 +39,9 @@ exports.updateOrderStatus = async (req, res) => {
         await addCreditToPupilAccount(pupilId, token, packageId);
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
+
+        // Remove potential pupil if exists
+        await removePotentialPupil(updatedCheckoutInfo.studentInfo.email);
 
         return res.json({
             message: "Order status updated successfully!",
@@ -400,6 +404,16 @@ function convertDateToReadableFormat(dateString) {
         second: '2-digit',
         hour12: true
     });
+}
+
+async function removePotentialPupil(pupilEmail) {
+    try {
+        const potentialPupil = await PotentialPupil.findOneAndDelete({ email: pupilEmail });
+        return potentialPupil;
+    } catch (error) {
+        console.error('Error removing potential pupil:', error);
+        throw error;
+    }
 }
 
 async function getAuthToken() {
