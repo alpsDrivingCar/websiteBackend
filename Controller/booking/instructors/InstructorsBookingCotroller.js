@@ -489,6 +489,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
 
                     if (!hasConflict) {
                         const timeSlot = {
+                            id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}${Math.random().toString(16).substr(2, 8)}`,
                             time: slotTime.toLocaleTimeString('en-GB', { 
                                 hour: '2-digit', 
                                 minute: '2-digit',
