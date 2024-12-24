@@ -463,7 +463,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 availableHours: []
             };
 
-            for (let hour = 6; hour <= 16; hour++) {
+            for (let hour = 6; hour <= 21; hour++) {
                 for (let minutes of [0, 30]) {
                     const slotTime = new Date(currentDate);
                     slotTime.setHours(hour, minutes, 0, 0);
