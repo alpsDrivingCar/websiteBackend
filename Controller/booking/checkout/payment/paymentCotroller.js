@@ -85,12 +85,12 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     const receivedData = req.body;
     const { studentInfo, orderInfo } = receivedData;
 
-    const isAvailable = await checkInstructorAvailability(orderInfo);
-    if (!isAvailable) {
-      return res.status(404).json({
-        message: "Instructor has become unavailable at the requested times.",
-      });
-    }
+    // const isAvailable = await checkInstructorAvailability(orderInfo);
+    // if (!isAvailable) {
+    //   return res.status(404).json({
+    //     message: "Instructor has become unavailable at the requested times.",
+    //   });
+    // }
 
     const lineItems = await generateLineItems(orderInfo);
 

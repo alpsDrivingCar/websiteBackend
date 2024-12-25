@@ -26,6 +26,7 @@ app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckE
 app.use('/api/test-booking', require('./routes/booking/testBooking/TestBookingRoutes'))
 app.use('/api/postcode', require('./routes/booking/postcode/PostcodeRoutes'))
 app.use('/api/summary', require('./routes/booking/checkout/summary/SummaryRoutes'))
+app.use('/api/booking/potentail-pupil', require('./routes/booking/potentialPupil/potentialPupil'))
 
 //Routes setting
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
