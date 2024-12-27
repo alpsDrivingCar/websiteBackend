@@ -53,18 +53,24 @@ exports.lessonByPostCode = async (req, res) => {
             return res.status(404).json({ message: 'Lesson not found.' });
         }
 
-        // Assuming lessonResult.typeOfLesson is an array from your previous message
         const promises = lessonResult.typeOfLesson.map(async (type) => {
-            const hasBookingPackages = await fetchBookingPackages(postcode, type.slug);
-            return hasBookingPackages ? type : null;
+            const availablePackages = await fetchBookingPackages(postcode, type.slug);
+            if (availablePackages.length > 0) {
+                const typeObj = type.toObject();
+                return {
+                    ...typeObj,
+                    availablePackages: availablePackages
+                };
+            }
+            return null;
         });
 
         const filteredTypes = (await Promise.all(promises)).filter(type => type !== null);
-
-        // Modify lessonResult to only include types with available booking packages
-        lessonResult.typeOfLesson = filteredTypes;
-
-        res.json(lessonResult);
+        
+        // Create a new object instead of modifying lessonResult directly
+        const response = lessonResult.toObject();
+        response.typeOfLesson = filteredTypes;
+        res.json(response);
 
     } catch (err) {
         console.error(err);
@@ -95,10 +101,11 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
 
     const packages = await PackageSchema.find({
         "postCode.postCode": regexPostcode,
-        slugOfType: slugOfTypeLesson
+        slugOfType: slugOfTypeLesson,
+        status: 'active'
     });
 
-    return packages.length > 0;
+    return packages;
 };
 
 
