@@ -432,6 +432,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
 
         const slotsGroupedByDay = {};
         const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+        const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
 
         while (currentDate <= endDate) {
             if (currentDate < new Date()) {
@@ -463,43 +464,50 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 availableHours: []
             };
 
-            for (let hour = 6; hour <= 21; hour++) {
-                for (let minutes of [0, 30]) {
-                    const slotTime = new Date(currentDate);
-                    slotTime.setHours(hour, minutes, 0, 0);
-                    
-                    const slotEndTime = new Date(slotTime);
-                    const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
-                    const travelTimeInMs = travelTimeInMinutes * 60 * 1000;
-                    slotEndTime.setTime(slotTime.getTime() + (2 * 60 * 60 * 1000) + travelTimeInMs);
+            // Start time is 6 AM
+            let currentTime = new Date(currentDate);
+            currentTime.setHours(6, 0, 0, 0); // Start at 6 AM
+            const dayEnd = new Date(currentDate);
+            dayEnd.setHours(23, 0, 0, 0); // End at 8 PM
 
-                    if (slotEndTime.getHours() > 20) {
-                        continue;
-                    }
+            while (currentTime < dayEnd) {
+                const slotEndTime = new Date(currentTime);
+                slotEndTime.setTime(currentTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
 
-                    const hasConflict = existingLessons.some(lesson => {
-                        const lessonStart = new Date(lesson.startTime);
-                        const lessonEnd = new Date(lesson.endTime);
-                        return (
-                            (slotTime >= lessonStart && slotTime < lessonEnd) ||
-                            (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
-                            (slotTime <= lessonStart && slotEndTime >= lessonEnd)
-                        );
-                    });
-
-                    if (!hasConflict) {
-                        const timeSlot = {
-                            id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}${Math.random().toString(16).substr(2, 8)}`,
-                            time: slotTime.toLocaleTimeString('en-GB', { 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                timeZone: 'Europe/London'
-                            }),
-                            timestamp: slotTime.toISOString()
-                        };
-                        slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
-                    }
+                // If the slot would end after our day end time, break the loop
+                if (slotEndTime > dayEnd) {
+                    break;
                 }
+
+                const nextSlotStart = new Date(slotEndTime);
+                nextSlotStart.setTime(slotEndTime.getTime() + (travelTimeInMinutes * 60 * 1000));
+
+                // Check if this slot conflicts with any existing lessons
+                const hasConflict = existingLessons.some(lesson => {
+                    const lessonStart = new Date(lesson.startTime);
+                    const lessonEnd = new Date(lesson.endTime);
+                    return (
+                        (currentTime >= lessonStart && currentTime < lessonEnd) ||
+                        (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
+                        (currentTime <= lessonStart && slotEndTime >= lessonEnd)
+                    );
+                });
+
+                if (!hasConflict) {
+                    const timeSlot = {
+                        id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}${Math.random().toString(16).substr(2, 8)}`,
+                        time: currentTime.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            timeZone: 'Europe/London'
+                        }),
+                        timestamp: currentTime.toISOString()
+                    };
+                    slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
+                }
+
+                // Move to next slot start time
+                currentTime = new Date(nextSlotStart);
             }
 
             if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
