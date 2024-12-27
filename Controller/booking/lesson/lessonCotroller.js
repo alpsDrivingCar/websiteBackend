@@ -105,7 +105,12 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
         status: 'active'
     });
 
-    return packages;
+    // Add numberOfLessons to each package
+    return packages.map(package => {
+        const packageObj = package.toObject();
+        packageObj.numberOfLessons = Math.floor(packageObj.numberHour / 2);
+        return packageObj;
+    });
 };
 
 
