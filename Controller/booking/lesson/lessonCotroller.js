@@ -56,11 +56,13 @@ exports.lessonByPostCode = async (req, res) => {
         const promises = lessonResult.typeOfLesson.map(async (type) => {
             const availablePackages = await fetchBookingPackages(postcode, type.slug);
             if (availablePackages.length > 0) {
-                const typeObj = type.toObject();
-                return {
-                    ...typeObj,
-                    availablePackages: availablePackages
-                };
+            // Sort packages by numberHour in ascending order
+            const sortedPackages = availablePackages.sort((a, b) => a.numberHour - b.numberHour);
+            const typeObj = type.toObject();
+            return {
+                ...typeObj,
+                availablePackages: sortedPackages
+            };
             }
             return null;
         });
