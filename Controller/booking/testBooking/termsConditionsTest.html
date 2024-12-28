@@ -4,79 +4,159 @@
     <meta charset="UTF-8">
     <title>Test Booking Terms and Conditions - Alps Driving School</title>
     <style>
-        /* Your CSS styles */
-        body {
+        .terms-container {
+            max-width: 800px;
+            margin: 0 auto 3rem auto;
+            padding: 0 1.5rem;
             font-family: Arial, sans-serif;
+            line-height: 1.6;
         }
-        .container {
-            width: 80%;
-            margin: 0 auto;
-            padding-top: 20px;
-        }
-        h1 {
+
+        .main-title {
+            color: #e43c3e;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
             text-align: center;
         }
-        .terms-section {
-            margin-top: 20px;
+
+        .subtitle {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
         }
-        .terms-section h2 {
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
+
+        .section-title {
+            color: #e43c3e;
+            font-size: 1.3rem;
+            margin: 2rem 0 1rem;
+            border-bottom: 2px solid #e43c3e;
+            padding-bottom: 0.5rem;
         }
-        .terms-section p {
-            text-align: justify;
-            padding: 10px 0;
+
+        .term-item {
+            display: flex;
+            margin-bottom: 1rem;
         }
-        .terms-section ul {
-            padding-left: 20px;
+
+        .term-number {
+            min-width: 2.5rem;
+            font-weight: bold;
+            margin: 0;
         }
-        .terms-section ul li {
-            padding: 5px 0;
+
+        .term-text {
+            margin: 0;
+        }
+
+        .bullets {
+            margin: 0.5rem 0 0.5rem 2.5rem;
+            padding-left: 1.5rem;
+        }
+
+        .bullets li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .terms-container {
+                padding: 0 1rem;
+            }
+            
+            .main-title {
+                font-size: 2rem;
+            }
+            
+            .subtitle {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Test Booking Terms and Conditions</h1>
+    <div class="terms-container">
+        <h1 class="main-title">Terms and Conditions</h1>
+        <h2 class="subtitle">Test Booking Agreement</h2>
 
-    <div class="terms-section">
-        <h2>Booking a Test</h2>
-        <p>When you book a driving test with Alps Driving School, you agree to the following conditions regarding the scheduling, cancellation, and conduct of the test:</p>
-        <ul>
-            <li>Bookings must be made at least one week in advance to ensure the availability of an instructor and vehicle.</li>
-            <li>Cancellations must be notified at least 48 hours before the scheduled test time to avoid a cancellation fee.</li>
-            <li>You must present a valid learner's permit on the day of the test.</li>
-            <li>Alps Driving School reserves the right to reschedule the test due to unforeseen circumstances such as weather conditions or vehicle issues.</li>
-        </ul>
+        <div class="terms-section">
+            <h3 class="section-title">1. Booking Process</h3>
+            <div class="term-item">
+                <p class="term-number">1.1</p>
+                <p class="term-text">Bookings for the instructor's vehicle must be made at least two weeks in advance to ensure availability.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">1.2</p>
+                <p class="term-text">Any cancellations must be notified 48 hours before the scheduled test time to avoid a cancellation fee.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">1.3</p>
+                <p class="term-text">If the test needs to be canceled with the DVSA due to your instructor's recommendations, this must be done 3 working days in advance to avoid the test fee being charged and lost. Your instructor will not be held responsible for any fees incurred if not canceled within the deadline.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">1.4</p>
+                <p class="term-text">You must present a valid learner's permit on the day of the test.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">1.5</p>
+                <p class="term-text">Alps Driving School and your instructor reserve the right to reschedule the test due to unforeseen circumstances, such as weather conditions or vehicle issues beyond our control.</p>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3 class="section-title">2. Payment Terms</h3>
+            <div class="term-item">
+                <p class="term-number">2.1</p>
+                <p class="term-text">All test booking fees must be paid in full at the time of booking.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">2.2</p>
+                <p class="term-text">Accepted payment methods include bank transfer or credit/debit card.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">2.3</p>
+                <p class="term-text">Card payments will incur a £3.50 processing fee.</p>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3 class="section-title">3. Liability and Insurance</h3>
+            <div class="term-item">
+                <p class="term-number">3.1</p>
+                <p class="term-text">Alps Driving School is not responsible for any personal property left in the vehicle during the test.</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">3.2</p>
+                <p class="term-text">Our vehicles are insured for the duration of the test; however, the examinee may be liable for damages resulting from negligence or failure to follow the instructor's or examiner's guidance.</p>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3 class="section-title">4. Success and Retesting</h3>
+            <div class="term-item">
+                <p class="term-number">4.1</p>
+                <p class="term-text">Passing the test is subject to meeting the standards set by the Driver and Vehicle Standards Agency (DVSA).</p>
+            </div>
+            <div class="term-item">
+                <p class="term-number">4.2</p>
+                <p class="term-text">If retesting is required, you can book another test. As per DVSA guidelines, you must wait 10 working days before re-sitting the test.</p>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3 class="section-title">5. Applicable Law</h3>
+            <div class="term-item">
+                <p class="term-number">5.1</p>
+                <p class="term-text">By booking a test with Alps Driving School, you agree to these terms and conditions, which are governed without regard to principles of conflict laws.</p>
+            </div>
+        </div>
+
+        <div class="terms-section">
+            <h3 class="section-title">6. Contact Information</h3>
+            <div class="term-item">
+                <p class="term-number">6.1</p>
+                <p class="term-text">If you have any questions about these Test Booking Terms and Conditions, please contact us at: <a href="#" onclick="window.location.href = 'mailto:' + 'alpsdrivingschool' + '@' + 'gmail.com'">alpsdrivingschool@gmail.com</a></p>
+            </div>
+        </div>
     </div>
-
-    <!-- More terms related to the test booking process -->
-
-    <div class="terms-section">
-        <h2>Payment Terms</h2>
-        <p>All test booking fees must be paid in full at the time of booking. Our accepted payment methods are [insert accepted payment methods here].</p>
-    </div>
-
-    <div class="terms-section">
-        <h2>Liability and Insurance</h2>
-        <p>Alps Driving School is not responsible for any personal property left in the vehicle during the test. Our vehicles are insured for the duration of the test; however, the examinee may be liable for damages resulting from negligence or failure to follow the instructor's guidance.</p>
-    </div>
-
-    <div class="terms-section">
-        <h2>Success and Retesting</h2>
-        <p>Passing the test is subject to meeting the required standards as set by [insert relevant driving standards authority]. If retesting is required, you can book another test at a reduced rate within [insert time period here].</p>
-    </div>
-
-    <div class="terms-section">
-        <h2>Applicable Law</h2>
-        <p>By booking a test with Alps Driving School, you agree that the laws of <%= location %>, without regard to principles of conflict laws, will govern these terms and conditions.</p>
-    </div>
-
-    <div class="terms-section">
-        <h2>Contact Information</h2>
-        <p>If you have any questions about these Test Booking Terms and Conditions, please contact us at <%= contactInfo %>.</p>
-    </div>
-
-</div>
 </body>
 </html>
