@@ -84,6 +84,7 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
   try {
     const receivedData = req.body;
     const { studentInfo, orderInfo, isMobileOrder } = receivedData;
+    if (!studentInfo.gender) studentInfo.gender = 'male';
     // const isAvailable = await checkInstructorAvailability(orderInfo);
     // if (!isAvailable) {
     //   return res.status(404).json({
