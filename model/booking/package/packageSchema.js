@@ -1,51 +1,78 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const bookingPackageSchema = new Schema({
-    title: String,
-    description: String,
-    slugOfGearbox: String,
-    gearbox: String,
-    status: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'active',
-      },
-    slugOfType: {
-        type: String,
-        enum: [
-            "our_offers_packages",
-            "standard_packages",
-            "intensive_courses",
-            "refresher_lessons",
-            "pass_plus_course",
-            "tesla_model_y_courses"
-        ],
-        required: true
+const gearTypes = [
+    {
+        name: "Automatic",
+        slug: "automatic",
     },
-    typeName: String,
-    areas: [
-        {
-            areaName: String
-        }
-    ],
-    postCode: [
-        {
-            postCode: String,
-        }
-    ],
-    offerSaving: String,
-    price: String,
-    priecBeforeSele: String,
-    numberHour: String,
-    features: [
-        {
-            feature: String,
-        }
-    ],
-    image:  String,
+    {
+        name: "Manual",
+        slug: "manual",
+    },
+    {
+        name: "Electric",
+        slug: "electric",
+    },
+    {
+        name: "All",
+        slug: "all",
+    },
+];
+
+const bookingPackageSchema = new Schema({
+        title: String,
+        description: String,
+        slugOfGearbox: {
+                type: String,
+                enum: gearTypes.map(gear => gear.slug),
+                required: true
+        },
+        gearbox: {
+                type: String,
+                enum: gearTypes.map(gear => gear.name),
+                required: true
+        },
+        status: {
+                type: String,
+                enum: ['active', 'inactive'],
+                default: 'active',
+        },
+        slugOfType: {
+                type: String,
+                enum: [
+                        "our_offers_packages",
+                        "standard_packages",
+                        "intensive_courses",
+                        "refresher_lessons",
+                        "pass_plus_course",
+                        "tesla_model_y_courses"
+                ],
+                required: true
+        },
+        typeName: String,
+        areas: [
+                {
+                        areaName: String
+                }
+        ],
+        postCode: [
+                {
+                        postCode: String,
+                }
+        ],
+        offerSaving: String,
+        price: String,
+        priecBeforeSele: String,
+        numberHour: String,
+        features: [
+                {
+                        feature: String,
+                }
+        ],
+        image:  String,
 },{
-  timestamps: true  // Adds createdAt and updatedAt timestamps
+    timestamps: true  // Adds createdAt and updatedAt timestamps
 });
 
 
