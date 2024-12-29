@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const helmet = require('helmet');
 const cors = require("cors");
 const authenticateAdmin = require('./Middleware/dashboardAdminAuth.js');
+const { initializeScheduledGifts } = require('./Controller/gift/cards/giftPaymentCotroller');
 
 app.use(bodyParser.json())
 app.use(bodyParser.text())
@@ -63,6 +64,8 @@ app.use(function (req, res, next) {
     next();
 });
 
+// Initialize scheduled gifts when server starts
+initializeScheduledGifts().catch(console.error);
 
 //mongoose
 const { mongoose } = require('mongoose');

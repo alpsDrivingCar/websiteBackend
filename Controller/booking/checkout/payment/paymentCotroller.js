@@ -83,8 +83,7 @@ exports.getPayment = async (req, res) => {
 exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
   try {
     const receivedData = req.body;
-    const { studentInfo, orderInfo } = receivedData;
-
+    const { studentInfo, orderInfo, isMobileOrder } = receivedData;
     // const isAvailable = await checkInstructorAvailability(orderInfo);
     // if (!isAvailable) {
     //   return res.status(404).json({
@@ -99,10 +98,14 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
 
     // Save checkoutInfo to the database.
     const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
-
     // Create Elavon payment intent.
     const paymentIntent = await createElavonPaymentIntent(lineItems);
-    const paymentSession = await createElavonPaymentSession(paymentIntent.href);
+    let paymentSession
+    if (isMobileOrder) {
+      paymentSession = await createElavonPaymentSessionMobile(paymentIntent.href, savedCheckoutInfo._id);
+    } else {
+      paymentSession = await createElavonPaymentSession(paymentIntent.href);
+    }
 
     await sendEmail(studentInfo.email, reservationCode);
     sendNotifications(receivedData, String(savedCheckoutInfo._id));
@@ -384,6 +387,43 @@ async function createElavonPaymentSession(orderId) {
         hppType: "lightbox",
         originUrl: `${process.env.WEBSITE_URL}`,
         doCreateTransaction: true,
+      },
+    });
+    console.log("Elavon payment session created:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to create Elavon payment session:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      `Failed to create Elavon payment session: ${
+        error.response?.data || error.message
+      }`
+    );
+  }
+}
+
+async function createElavonPaymentSessionMobile(orderId, packageOrderId) {
+  try {
+    const response = await axios({
+      method: "POST",
+      url: `${process.env.ELAVON_URL}/payment-sessions`,
+      headers: {
+      "Content-Type": "application/json",
+      Authorization:
+        "Basic " +
+        Buffer.from(
+        `${process.env.ELAVON_MERCHANT_ALIAS}:${process.env.ELAVON_SECRET_KEY}`
+        ).toString("base64"),
+      },
+      data: {
+      order: orderId,
+      hppType: "fullPageRedirect",
+      originUrl: `${process.env.WEBSITE_URL}`,
+      returnUrl: `${process.env.WEBSITE_URL}/reservation-succeed?id=${packageOrderId}`,
+      cancelUrl: `${process.env.WEBSITE_URL}`,
+      doCreateTransaction: true,
       },
     });
     console.log("Elavon payment session created:", response.data);

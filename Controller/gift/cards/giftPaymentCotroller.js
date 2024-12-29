@@ -14,6 +14,9 @@ const mongoose = require("mongoose");
 
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
+// Add this near the top of the file with other constants
+const scheduledJobs = new Map();
+
 // to be deleted after testing
 // exports.createPaymentAndGetUrlPaymentForGift = async (req, res) => {
 //     try {
@@ -46,13 +49,11 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
 
     await validateVerificationNumber(giftCheckoutReceivedData);
 
-    // Generate a line item for the received data
     const lineItem = await generateLineItem(giftCheckoutReceivedData);
     console.log("ss");
 
     const lineItems = [lineItem];
 
-    // Save checkoutInfo to the database.
     const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(
       giftCheckoutReceivedData,
       lineItem
@@ -60,14 +61,6 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
     
     const paymentIntent = await createElavonPaymentIntent(lineItems);
     const paymentSession = await createElavonPaymentSession(paymentIntent.href);
-
-    // Schedule the email if deliverDate is in the future 
-    // if (giftCheckoutReceivedData.deliverDate) {
-    //   const deliveryDate = new Date(giftCheckoutReceivedData.deliverDate);
-    //   if (deliveryDate > new Date()) {
-    //     scheduleGiftEmail(savedGiftCheckoutSchema, deliveryDate);
-    //   }
-    // }
 
     res.json({
       url: paymentIntent.url,
@@ -79,28 +72,7 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
   }
 };
 
-// New function to schedule email delivery
-function scheduleGiftEmail(checkoutInfo, deliveryDate) {
-  schedule.scheduleJob(deliveryDate, async () => {
-    try {
-      await sendGiftEmail(checkoutInfo);
-      
-      // Update the gift checkout status to indicate email was sent
-      await GiftCheckoutSchema.findByIdAndUpdate(
-        checkoutInfo._id,
-        { emailSent: true },
-        { new: true }
-      );
-
-      console.log(`Gift email successfully sent to ${checkoutInfo.deliverEmail} at ${deliveryDate}`);
-    } catch (error) {
-      console.error('Failed to send scheduled gift email:', error);
-      
-      // You might want to implement a retry mechanism here
-      // or notify administrators about the failure
-    }
-  });
-}
+// Remove the old scheduleGiftEmail function - it's no longer needed
 
 exports.validateOTP = async (req, res) => {
   try {
@@ -355,7 +327,6 @@ exports.updateCheckoutInfo = async (req, res) => {
         .json({ message: "No checkout info found with this ID" });
     }
 
-    // Check if status is "success" and handle email scheduling
     if (updateData.status === "success") {
       try {
         const senderText = `Gift Order from ${checkoutInfo.senderName} to ${checkoutInfo.deliverName}`;
@@ -366,19 +337,18 @@ exports.updateCheckoutInfo = async (req, res) => {
           "giftCheckout"
         );
 
-        // Schedule email if deliverDate is in the future
+        // Handle immediate or future email delivery
         if (checkoutInfo.deliverDate) {
           const deliveryDate = new Date(checkoutInfo.deliverDate);
-          if (deliveryDate > new Date()) {
-            scheduleGiftEmail(checkoutInfo, deliveryDate);
-          } else {
-            // If delivery date is in the past or current, send immediately
+          if (deliveryDate <= new Date()) {
             await sendGiftEmail(checkoutInfo);
           }
         } else {
-          // If no delivery date specified, send immediately
           await sendGiftEmail(checkoutInfo);
         }
+
+        // Reinitialize all scheduled gifts
+        await exports.initializeScheduledGifts();
       } catch (notificationErr) {
         console.error(notificationErr);
         return res
@@ -426,3 +396,68 @@ async function sendGiftEmail(checkoutInfo) {
   // Send email
   await transporter.sendMail(mailOptions);
 }
+
+// Initialize scheduled gifts
+exports.initializeScheduledGifts = async () => {
+  try {
+    // Cancel all existing scheduled jobs
+    scheduledJobs.forEach((job) => {
+      job.cancel();
+    });
+    scheduledJobs.clear();
+
+    const unsentGifts = await GiftCheckoutSchema.find({
+      emailSent: false,
+      status: "success",
+    }).populate("cardId");
+    for (const gift of unsentGifts) {
+      const deliveryDate = new Date(gift.deliverDate);
+      
+      // If delivery date is in the past or not set, send immediately
+      if (!gift.deliverDate || deliveryDate <= new Date()) {
+        try {
+          await sendGiftEmail(gift);
+          await GiftCheckoutSchema.findByIdAndUpdate(
+            gift._id,
+            { emailSent: true },
+            { new: true }
+          );
+          console.log(`Past due gift email sent to ${gift.deliverEmail}`);
+        } catch (error) {
+          console.error(
+            `Failed to send past due gift email for gift ID ${gift._id}:`,
+            error
+          );
+        }
+        continue;
+      }
+
+      // Schedule future emails
+      const job = schedule.scheduleJob(deliveryDate, async () => {
+        try {
+          await sendGiftEmail(gift);
+          await GiftCheckoutSchema.findByIdAndUpdate(
+            gift._id,
+            { emailSent: true },
+            { new: true }
+          );
+          scheduledJobs.delete(gift._id.toString());
+          console.log(
+            `Gift email successfully sent to ${gift.deliverEmail} at ${gift.deliverDate}`
+          );
+        } catch (error) {
+          console.error(
+            `Failed to send scheduled gift email for gift ID ${gift._id}:`,
+            error
+          );
+        }
+      });
+
+      scheduledJobs.set(gift._id.toString(), job);
+    }
+
+    console.log(`Processed ${unsentGifts.length} unsent gifts`);
+  } catch (error) {
+    console.error('Error initializing scheduled gifts:', error);
+  }
+};
