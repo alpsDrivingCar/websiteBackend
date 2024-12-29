@@ -17,6 +17,9 @@ const eventSchema = new Schema({
         ref: "Instructor",
         required: true,
     },
+    trainerId: {
+        type: Schema.Types.ObjectId,
+    },
     color: {
         type: String,
         // required if needed

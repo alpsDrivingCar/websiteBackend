@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const helmet = require('helmet');
 const cors = require("cors");
 const authenticateAdmin = require('./Middleware/dashboardAdminAuth.js');
+const { initializeScheduledGifts } = require('./Controller/gift/cards/giftPaymentCotroller');
 
 app.use(bodyParser.json())
 app.use(bodyParser.text())
@@ -26,6 +27,7 @@ app.use('/api/email-check', require('./routes/booking/checkout/checkEmail/CheckE
 app.use('/api/test-booking', require('./routes/booking/testBooking/TestBookingRoutes'))
 app.use('/api/postcode', require('./routes/booking/postcode/PostcodeRoutes'))
 app.use('/api/summary', require('./routes/booking/checkout/summary/SummaryRoutes'))
+app.use('/api/booking/potentail-pupil', require('./routes/booking/potentialPupil/potentialPupil'))
 
 //Routes setting
 app.use('/api/setting/aboutus', require('./routes/setting/AboutUsRoutes'))
@@ -62,6 +64,8 @@ app.use(function (req, res, next) {
     next();
 });
 
+// Initialize scheduled gifts when server starts
+initializeScheduledGifts().catch(console.error);
 
 //mongoose
 const { mongoose } = require('mongoose');

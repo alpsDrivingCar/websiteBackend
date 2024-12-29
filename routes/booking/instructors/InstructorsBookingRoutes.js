@@ -8,6 +8,7 @@ router.put("/",server.bookingInstructorsUpdate)
 router.delete("/:id",server.deleteBookingInstructors)
 router.get("/packages",server.getBookingPackagesByPostcodeAndtype)
 router.get("/instructors",server.instructorsByPostcodeAndAvailableTimeAndGearBox)
+router.get("/instructors/availableTimeSlots",server.availableTimeSlots)
 
 
 module.exports = router

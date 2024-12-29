@@ -102,6 +102,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (studentGender === "male") {
             users = users.filter(user => !user.AcceptFemaleStudent);
         }
+        // return res.json({ data: users });
         // Check if availableTime is an array, if not, make it an array
         const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
         
@@ -109,19 +110,22 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         users = users.filter(user => {
             // Check if user has the postcode area in their availableAreas
             const matchingArea = user.availableAreas?.find(area => 
-                area.postcode.toLowerCase() === areaPrefix.toLowerCase()
+            area.postcode.toLowerCase() === areaPrefix.toLowerCase()
             );
             
             if (!matchingArea) return false;
 
+            // If days array is empty, instructor is available all days
+            if (!matchingArea.days || matchingArea.days.length === 0) return true;
+
             // Convert availableTimes to days of the week
             const requiredDays = availableTimes.map(time => 
-                time.toLocaleString('en-US', { weekday: 'long' })
+            time.toLocaleString('en-US', { weekday: 'long' })
             );
 
             // Check if all required days are covered in the matching area's days
             return requiredDays.every(day => 
-                matchingArea.days.includes(day)
+            matchingArea.days.includes(day)
             );
         });
 
@@ -353,4 +357,177 @@ function convertToNumber(value, name) {
         throw new Error(`Cannot convert '${value}' to a number in function '${name}'`);
     }
 
+}
+
+exports.availableTimeSlots = async (req, res) => {
+    try {
+        const { instructorId, instructorIds, month, year, postcode } = req.query;
+        let areaPrefix = '';
+        if (postcode) {
+            const areaLength = determinePostcodeAreaLength(postcode);
+            areaPrefix = postcode.substring(0, areaLength).trim();
+        }
+
+        // Handle both single and multiple instructor cases
+        if ((!instructorId && !instructorIds) || !month || !year) {
+            return res.status(400).json({ 
+                message: 'Either instructorId or instructorIds, plus month and year are required.' 
+            });
+        }
+
+        // If single instructor, use original logic
+        if (instructorId) {
+            const instructor = await InstructorsUserSchema.findById(instructorId);
+            if (!instructor) {
+                return res.status(404).json({ message: 'Instructor not found' });
+            }
+
+            const result = await getInstructorAvailability(instructor, month, year, areaPrefix);
+            return res.json(result);
+        }
+
+        // Handle multiple instructors
+        const instructorIdArray = Array.isArray(instructorIds) ? instructorIds : instructorIds.split(',');
+        const instructors = await InstructorsUserSchema.find({ _id: { $in: instructorIdArray } });
+
+        if (instructors.length === 0) {
+            return res.status(404).json({ message: 'No instructors found' });
+        }
+
+        // Get availability for each instructor
+        const instructorResults = await Promise.all(
+            instructors.map(instructor => getInstructorAvailability(instructor, month, year, areaPrefix))
+        );
+
+        // Return combined results
+        res.json({
+            month,
+            year,
+            postcode: areaPrefix,
+            instructors: instructorResults.map(result => ({
+                instructorId: result.instructorId,
+                instructorName: `${result.instructorName || ''}`,
+                availableDays: result.availableDays
+            }))
+        });
+
+    } catch (error) {
+        console.error("Error:", error);
+        res.status(500).json({ message: "An error occurred", error: error.message });
+    }
+};
+
+async function getInstructorAvailability(instructor, month, year, postcode) {
+    try {
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0);
+
+        const existingLessons = await LessonEvent.find({
+            $or: [
+                { instructorId: instructor._id },
+                { trainerId: instructor._id }
+            ],
+            startTime: { $gte: startDate, $lte: endDate }
+        });
+
+        const slotsGroupedByDay = {};
+        const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
+        const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
+
+        while (currentDate <= endDate) {
+            if (currentDate < new Date()) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                continue;
+            }
+
+            const dayKey = currentDate.toISOString().split('T')[0];
+            const currentDay = currentDate.toLocaleString('en-US', { weekday: 'long' });
+
+            const isAvailableOnDay = instructor.availableAreas?.some(area => {
+                if (postcode) {
+                    const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
+                    const matchesDay = !area.days || area.days.length === 0 || area.days.includes(currentDay);
+                    return matchesPostcode && matchesDay;
+                } else {
+                    return !area.days || area.days.length === 0 || area.days.includes(currentDay);
+                }
+            });
+
+            if (!isAvailableOnDay) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                continue;
+            }
+
+            slotsGroupedByDay[dayKey] = {
+                date: dayKey,
+                dayOfWeek: currentDay,
+                availableHours: []
+            };
+
+            // Start time is 6 AM
+            let currentTime = new Date(currentDate);
+            currentTime.setHours(6, 0, 0, 0); // Start at 6 AM
+            const dayEnd = new Date(currentDate);
+            dayEnd.setHours(23, 0, 0, 0); // End at 8 PM
+
+            while (currentTime < dayEnd) {
+                const slotEndTime = new Date(currentTime);
+                slotEndTime.setTime(currentTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
+
+                // If the slot would end after our day end time, break the loop
+                if (slotEndTime > dayEnd) {
+                    break;
+                }
+
+                const nextSlotStart = new Date(slotEndTime);
+                nextSlotStart.setTime(slotEndTime.getTime() + (travelTimeInMinutes * 60 * 1000));
+
+                // Check if this slot conflicts with any existing lessons
+                const hasConflict = existingLessons.some(lesson => {
+                    const lessonStart = new Date(lesson.startTime);
+                    const lessonEnd = new Date(lesson.endTime);
+                    return (
+                        (currentTime >= lessonStart && currentTime < lessonEnd) ||
+                        (slotEndTime > lessonStart && slotEndTime <= lessonEnd) ||
+                        (currentTime <= lessonStart && slotEndTime >= lessonEnd)
+                    );
+                });
+
+                if (!hasConflict) {
+                    const timeSlot = {
+                        id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}${Math.random().toString(16).substr(2, 8)}`,
+                        time: currentTime.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit',
+                            timeZone: 'Europe/London'
+                        }),
+                        timestamp: currentTime.toISOString()
+                    };
+                    slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
+                }
+
+                // Move to next slot start time
+                currentTime = new Date(nextSlotStart);
+            }
+
+            if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
+                delete slotsGroupedByDay[dayKey];
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) => 
+            a.date.localeCompare(b.date)
+        );
+
+        return {
+            instructorId: instructor._id,
+            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+            availableDays: formattedSlots
+        };
+
+    } catch (error) {
+        throw error;
+    }
 }
