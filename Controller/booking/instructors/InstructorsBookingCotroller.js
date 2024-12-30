@@ -420,7 +420,7 @@ exports.availableTimeSlots = async (req, res) => {
 async function getInstructorAvailability(instructor, month, year, postcode) {
     try {
         const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0);
+        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
         const existingLessons = await LessonEvent.find({
             $or: [
