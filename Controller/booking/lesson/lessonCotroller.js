@@ -29,7 +29,7 @@ exports.lessons = (req, res) => {
 
 exports.lessonByPostCode = async (req, res) => {
     const postcode = req.query.postCode;
-
+    const gearbox = req.query.gearbox?.toLowerCase();
     if (!postcode) {
         return res.status(400).json({ message: 'PostCode is required.' });
     }
@@ -54,22 +54,27 @@ exports.lessonByPostCode = async (req, res) => {
         }
 
         const promises = lessonResult.typeOfLesson.map(async (type) => {
-            const availablePackages = await fetchBookingPackages(postcode, type.slug);
+            let availablePackages = await fetchBookingPackages(postcode, type.slug);
+            
+            // Filter packages by gearbox if the parameter is provided
+            if (gearbox && availablePackages.length > 0) {
+                availablePackages = availablePackages.filter(pkg => pkg.slugOfGearbox === gearbox);
+            }
+            
             if (availablePackages.length > 0) {
-            // Sort packages by numberHour in ascending order
-            const sortedPackages = availablePackages.sort((a, b) => a.numberHour - b.numberHour);
-            const typeObj = type.toObject();
-            return {
-                ...typeObj,
-                availablePackages: sortedPackages
-            };
+                // Sort packages by numberHour in ascending order
+                const sortedPackages = availablePackages.sort((a, b) => a.numberHour - b.numberHour);
+                const typeObj = type.toObject();
+                return {
+                    ...typeObj,
+                    availablePackages: sortedPackages
+                };
             }
             return null;
         });
 
         const filteredTypes = (await Promise.all(promises)).filter(type => type !== null);
         
-        // Create a new object instead of modifying lessonResult directly
         const response = lessonResult.toObject();
         response.typeOfLesson = filteredTypes;
         res.json(response);
