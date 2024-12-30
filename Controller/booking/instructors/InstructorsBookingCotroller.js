@@ -427,7 +427,8 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 { instructorId: instructor._id },
                 { trainerId: instructor._id }
             ],
-            startTime: { $gte: startDate, $lte: endDate }
+            startTime: { $gte: startDate, $lte: endDate },
+            status: { $ne: 'cancelled' }
         });
 
         const slotsGroupedByDay = {};
