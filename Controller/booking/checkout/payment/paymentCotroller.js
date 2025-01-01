@@ -111,10 +111,16 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     await sendEmail(studentInfo.email, reservationCode);
     sendNotifications(receivedData, String(savedCheckoutInfo._id));
 
+    const baseUrl = process.env.ELAVON_URL.includes('api.eu.convergepay.com') 
+      ? 'https://hpp.eu.convergepay.com/'
+      : 'https://uat.hpp.converge.eu.elavonaws.com/';
+    const paymentLink = `${baseUrl}?sessionId=${paymentSession.id}`;
+
     res.json({
       url: paymentIntent.url,
       data: savedCheckoutInfo,
       paymentSessionId: paymentSession.id,
+      paymentLink
     });
   } catch (error) {
     handleError(res, error);
