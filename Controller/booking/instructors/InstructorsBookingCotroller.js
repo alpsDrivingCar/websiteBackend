@@ -419,8 +419,8 @@ exports.availableTimeSlots = async (req, res) => {
 
 async function getInstructorAvailability(instructor, month, year, postcode) {
     try {
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+        const startDate = new Date(Date.UTC(year, month - 1, 1));
+        const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
         const existingLessons = await LessonEvent.find({
             $or: [
@@ -465,11 +465,26 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 availableHours: []
             };
 
-            // Start time is 6 AM
-            let currentTime = new Date(currentDate);
-            currentTime.setHours(6, 0, 0, 0); // Start at 6 AM
-            const dayEnd = new Date(currentDate);
-            dayEnd.setHours(23, 0, 0, 0); // End at 8 PM
+            // Start time at 6 AM UTC
+            let currentTime = new Date(Date.UTC(
+                currentDate.getUTCFullYear(),
+                currentDate.getUTCMonth(),
+                currentDate.getUTCDate(),
+                6, // 6 AM UTC
+                0,
+                0,
+                0
+            ));
+            
+            const dayEnd = new Date(Date.UTC(
+                currentDate.getUTCFullYear(),
+                currentDate.getUTCMonth(),
+                currentDate.getUTCDate(),
+                23, // 11 PM UTC
+                0,
+                0,
+                0
+            ));
 
             while (currentTime < dayEnd) {
                 const slotEndTime = new Date(currentTime);
@@ -500,7 +515,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                         time: currentTime.toLocaleTimeString('en-GB', { 
                             hour: '2-digit', 
                             minute: '2-digit',
-                            timeZone: 'Europe/London'
+                            timeZone: 'UTC' // Changed to UTC
                         }),
                         timestamp: currentTime.toISOString()
                     };
