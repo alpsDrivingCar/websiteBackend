@@ -120,7 +120,8 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
       url: paymentIntent.url,
       data: savedCheckoutInfo,
       paymentSessionId: paymentSession.id,
-      paymentLink
+      paymentLink,
+      backLink: process.env.WEBSITE_URL,
     });
   } catch (error) {
     handleError(res, error);
