@@ -73,6 +73,17 @@ const PupilSchema = new mongoose.Schema(
       type: String,
       enum: ['male', 'female']
     },
+    age: {
+      type: Number,
+    },
+    gearbox: {
+      type: String,
+      enum: ['automatic', 'manual', 'electric'],
+    },
+    experienceLevel: {
+      type: String,
+      enum: ['beginner', 'intermediate', 'advanced'],
+    },
   },
   {
     timestamps: true,
