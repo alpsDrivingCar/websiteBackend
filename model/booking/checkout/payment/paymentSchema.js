@@ -31,6 +31,10 @@ const checkoutInfoSchema = new mongoose.Schema({
                 availableHours: [Date] // Add availableHours field to items
             },
         ],
+        orderType: {
+            type: String,
+            enum: ['app', 'website']
+        }
     },
     studentInfo: {
         name: String,

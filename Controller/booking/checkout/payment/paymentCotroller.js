@@ -91,6 +91,7 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     //     message: "Instructor has become unavailable at the requested times.",
     //   });
     // }
+    isMobileOrder ? orderInfo.orderType = 'app' : orderInfo.orderType = 'website';
 
     const lineItems = await generateLineItems(orderInfo);
 
