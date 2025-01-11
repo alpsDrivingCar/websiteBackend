@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const cors = require("cors");
 const authenticateAdmin = require('./Middleware/dashboardAdminAuth.js');
 const { initializeScheduledGifts } = require('./Controller/gift/cards/giftPaymentCotroller');
+const addressRoutes = require("./routes/address/addressRoutes");
 
 app.use(bodyParser.json())
 app.use(bodyParser.text())
@@ -57,6 +58,8 @@ app.use('/api/offer', require('./routes/offer/OfferRoutes'))
 //Transactions
 app.use('/api/transactions', authenticateAdmin, require('./routes/transactions/TransactionsRoutes'))
 
+// Add this line where you register other routes
+app.use('/api/addresses', addressRoutes);
 
 app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", req.headers.origin);
