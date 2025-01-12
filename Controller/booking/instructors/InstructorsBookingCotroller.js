@@ -59,9 +59,9 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     try {
         const { postcode, availableTime, gearbox, studentGender } = req.query;
 
-        if (!postcode || !availableTime) {
-            return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
-        }
+        // if (!postcode || !availableTime) {
+        //     return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
+        // }
 
         const areaLength = determinePostcodeAreaLength(postcode);
         const areaPrefix = postcode.substring(0, areaLength).trim();
@@ -102,7 +102,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
         if (studentGender === "male") {
             users = users.filter(user => !user.AcceptFemaleStudent);
         }
-        // return res.json({ data: users });
+        return res.json({ data: users });
         // Check if availableTime is an array, if not, make it an array
         const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
         
