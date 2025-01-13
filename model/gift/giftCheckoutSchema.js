@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const giftCheckoutSchema = new mongoose.Schema({
     cardId: {
         type: Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'gifts',
     },
     deliverName: {
@@ -43,6 +43,15 @@ const giftCheckoutSchema = new mongoose.Schema({
     emailSent: {
         type: Boolean,
         default: false
+    },
+    type: {
+        type: String,
+        enum: ['card', 'custom'],
+        required: true
+    },
+    customGiftAmount: {
+        type: Number,
+        required: false
     }
 },{
     timestamps:true

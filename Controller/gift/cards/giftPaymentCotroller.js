@@ -118,6 +118,15 @@ async function generateLineItem(giftCheckoutItem) {
       },
       quantity: 1,
     };
+  } else if (giftCheckoutItem.customGiftAmount) {
+    return {
+      price_data: {
+        currency: "gbp",
+        product_data: { name: "Custom Gift Amount" },
+        unit_amount: convertToNumber(giftCheckoutItem.customGiftAmount),
+      },
+      quantity: 1,
+    };
   } else {
     // Throwing an error when packageId is not found
     throw new Error("packageId is required but was not found.");
@@ -264,9 +273,22 @@ function convertToNumber(value) {
 
 exports.getAllCheckoutInfos = async (req, res) => {
   try {
-    const checkoutInfos = await GiftCheckoutSchema.find({})
+    let checkoutInfos = await GiftCheckoutSchema.find({})
       .sort({ createdAt: -1 })
       .populate("cardId");
+    console.log("checkoutInfos", checkoutInfos);
+    checkoutInfos = checkoutInfos.map(info => {
+      if(info.type === "custom") {
+        return {
+          ...info._doc,
+          cardId: {
+            name: "Custom Gift",
+            price: info.customGiftAmount
+          }
+        };
+      }
+      return info;
+    });
     res.json(checkoutInfos);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -283,10 +305,16 @@ exports.getCheckoutInfoById = async (req, res) => {
     }
 
     // Find the checkout info by ID
-    const checkoutInfo = await GiftCheckoutSchema.findById(id).populate(
+    let checkoutInfo = await GiftCheckoutSchema.findById(id).populate(
       "cardId"
     );
-
+    if (checkoutInfo.type === "custom") {
+      checkoutInfo = checkoutInfo.toObject(); // Convert to plain object
+      checkoutInfo.cardId = {
+      name: "Custom Gift",
+      price: checkoutInfo.customGiftAmount,
+      }
+    }
     if (!checkoutInfo) {
       return res
         .status(404)
@@ -377,10 +405,10 @@ async function sendGiftEmail(checkoutInfo) {
 
   const data = {
     deliverName: checkoutInfo.deliverName,
-    cardName: checkoutInfo.cardId.name,
-    price: checkoutInfo.cardId.price,
+    cardName: checkoutInfo.cardId?.name || "Custom Gift",
+    price: checkoutInfo.cardId?.price || checkoutInfo.customGiftAmount,
     message: checkoutInfo.message,
-    cardImage: checkoutInfo.cardId.image,
+    cardImage: checkoutInfo.cardId?.image || "",
     senderName: checkoutInfo.senderName,
   };
 
