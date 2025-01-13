@@ -405,7 +405,7 @@ async function sendGiftEmail(checkoutInfo) {
 
   const data = {
     deliverName: checkoutInfo.deliverName,
-    cardName: checkoutInfo.cardId?.name || "Custom Gift",
+    cardName: checkoutInfo.cardId?.name || "Custom",
     price: checkoutInfo.cardId?.price || checkoutInfo.customGiftAmount,
     message: checkoutInfo.message,
     cardImage: checkoutInfo.cardId?.image || "",
