@@ -85,7 +85,7 @@ const PupilSchema = new mongoose.Schema(
     },
     experienceLevel: {
       type: String,
-      enum: ['Beginner', 'Partly Trained', 'Trained', 'Full Licence Holder', 'Experienced'],
+      enum: ['beginner', 'partly-trained', 'trained', 'full-licence-holder', 'full-licence-holder-experienced'],
     },
   },
   {
