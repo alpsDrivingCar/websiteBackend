@@ -58,7 +58,11 @@ exports.lessonByPostCode = async (req, res) => {
             
             // Filter packages by gearbox if the parameter is provided
             if (gearbox && availablePackages.length > 0) {
-                availablePackages = availablePackages.filter(pkg => pkg.slugOfGearbox === gearbox);
+                availablePackages = availablePackages.filter(pkg => 
+                    gearbox === 'automatic' ? 
+                    ['automatic', 'electric'].includes(pkg.slugOfGearbox) : 
+                    pkg.slugOfGearbox === gearbox
+                );
             }
             
             if (availablePackages.length > 0) {
