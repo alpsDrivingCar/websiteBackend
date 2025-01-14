@@ -6,6 +6,9 @@ const PupilSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    middleName: {
+      type: String,
+    },
     lastName: {
       type: String,
       required: true,
@@ -82,7 +85,7 @@ const PupilSchema = new mongoose.Schema(
     },
     experienceLevel: {
       type: String,
-      enum: ['beginner', 'intermediate', 'advanced'],
+      enum: ['beginner', 'partly-trained', 'trained', 'full-licence-holder', 'full-licence-holder-experienced'],
     },
   },
   {
