@@ -234,7 +234,7 @@ async function generateLineItems(orderInfo) {
       name: "Test Booking",
       quantity: 1,
       packageId: null,
-      price: 140.0, // £140.00
+      price: 120.0, // £120.00
     });
   }
   items.push({
