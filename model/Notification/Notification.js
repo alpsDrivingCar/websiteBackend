@@ -26,11 +26,23 @@ const notificationReplacementSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+    phoneNumber: {
+        type: String,
+        required: false,
+    },
     message: {
         type: String,
         required: false,
     },
     websiteType: {
+        type: String,
+        required: false,
+    },
+    area: {
+        type: String,
+        required: false,
+    },
+    time: {
         type: String,
         required: false,
     },

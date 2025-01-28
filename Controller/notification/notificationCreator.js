@@ -34,6 +34,36 @@ const createWebsiteAdminNotification = async (name, websiteType, pageId, pageSlu
     }
 }
 
+const createAssistanceRequestAdminNotification = async (area, name, email, phoneNumber, time) => {
+    try {
+        const commonAdminId = "6743505365e60677769330af";
+        const notificationTemplate = "67991a517d070aee2aae798e";
+
+        const notification = {
+            notificationTemplate: notificationTemplate,
+            replacement: {
+                area: area,
+                name: name,
+                email: email,
+                phoneNumber: phoneNumber,
+                time: time
+            },
+            user: {
+                id: commonAdminId,
+                userType: "AllAdmin"
+            }
+        };
+
+        // Insert single notification into the database
+        await Notification.create(notification);
+
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+}
+
 module.exports = {
-    createWebsiteAdminNotification
+    createWebsiteAdminNotification,
+    createAssistanceRequestAdminNotification
 };
