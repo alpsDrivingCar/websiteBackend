@@ -31,13 +31,19 @@ const cache = duration => {
     }
 };
 
+// Add this helper function before the validation middleware
+const normalizePostcode = (postcode) => {
+    return postcode.replace(/\s+/g, '').toUpperCase();
+};
+
 // Validation middleware
 const validatePostcode = [
     query('postcode')
         .trim()
         .notEmpty().withMessage('Postcode is required')
         .matches(/^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i)
-        .withMessage('Invalid UK postcode format'),
+        .withMessage('Invalid UK postcode format')
+        .customSanitizer(normalizePostcode),
 ];
 
 const OS_API_BASE_URL = 'https://api.os.uk/search/places/v1';
@@ -55,13 +61,13 @@ router.get("/search",
         }
 
         try {
-            const { postcode } = req.query;
+            const postcode = req.query.postcode; // This is now normalized
             const response = await axios.get(`${OS_API_BASE_URL}/postcode`, {
                 params: {
-                    postcode: postcode.replace(/\s/g, ''),
+                    postcode: postcode, // No need to replace spaces anymore
                     key: process.env.OS_API_KEY
                 },
-                timeout: 5000 // 5 second timeout
+                timeout: 8000 // Increased timeout to 8 seconds
             });
 
             const addresses = response.data.results || [];
