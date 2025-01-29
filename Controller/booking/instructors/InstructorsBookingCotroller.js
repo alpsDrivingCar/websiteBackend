@@ -100,7 +100,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
             return res.json({ data: [] });
         }
         if (studentGender === "male") {
-            users = users.filter(user => !user.AcceptFemaleStudent);
+            users = users.filter(user => !user.AcceptFemaleStudent || user.gender === 0);
         }
         return res.json({ data: users });
         // Check if availableTime is an array, if not, make it an array
