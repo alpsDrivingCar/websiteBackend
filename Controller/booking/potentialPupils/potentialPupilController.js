@@ -39,7 +39,7 @@ exports.storePotentialPupil = async (req, res) => {
                 data: existingPupil
             });
         }
-
+        req.body.name = `${req.body.firstName} ${req.body.middleName ? req.body.middleName + ' ' : ''}${req.body.lastName}`;
         const potentialPupil = new PotentialPupil(req.body);
         await potentialPupil.save();
 
