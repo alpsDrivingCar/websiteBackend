@@ -170,7 +170,7 @@ async function checkInstructorAvailability(orderInfo) {
 
 async function sendNotifications(data, orderId) {
   try {
-    const orderText = `New Order From ${data.studentInfo.name}`;
+    const orderText = `New Order From ${ data.studentInfo.name || `${data.studentInfo.firstName} ${data.studentInfo.middleName ? data.studentInfo.middleName + ' ' : ''}${data.studentInfo.lastName}` }`;
     await NotificationCreator.createWebsiteAdminNotification(orderText, "Order", orderId, "lessonsOrder" )
   } catch (error) {
     console.error("Failed to send notifications:", error);
