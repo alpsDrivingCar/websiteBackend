@@ -74,7 +74,7 @@ const eventSchema = new Schema({
     },
     awayType: {
         type: String,
-        enum: ['ALL_DAY', 'PART_OF_DAY'],
+        enum: ['ALL_DAY', 'PART_OF_DAY', 'WORKING_HOURS_MORNING', 'WORKING_HOURS_EVENING', 'LUNCH_BREAK'],
         required: function() { return this.eventType === 'Away'; }
     },
 

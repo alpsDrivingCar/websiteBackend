@@ -223,7 +223,7 @@ const InstructorSchema = new mongoose.Schema(
             },
             days: [{
               type: String,
-              enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+              enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'All Days']
             }]
         }],
         travelingTime: {
@@ -273,6 +273,41 @@ const InstructorSchema = new mongoose.Schema(
             type: String,
             default: ""
         },
+        workingHours: {
+            Monday: {
+              open: { type: String },  // stored in 24-hour format
+              close: { type: String }
+            },
+            Tuesday: {
+              open: { type: String },
+              close: { type: String }
+            },
+            Wednesday: {
+              open: { type: String },
+              close: { type: String }
+            },
+            Thursday: {
+              open: { type: String },
+              close: { type: String }
+            },
+            Friday: {
+              open: { type: String },
+              close: { type: String }
+            },
+            Saturday: {
+              open: { type: String },
+              close: { type: String }
+            },
+            Sunday: {
+              open: { type: String },
+              close: { type: String }
+            }
+          },
+          
+          lunchBreak: {
+            start: { type: String },
+            end: { type: String }
+          },
     },
 
     {

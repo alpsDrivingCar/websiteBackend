@@ -422,18 +422,47 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
         const startDate = new Date(Date.UTC(year, month - 1, 1));
         const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
-        const existingLessons = await LessonEvent.find({
-            $or: [
-                { instructorId: instructor._id },
-                { trainerId: instructor._id }
-            ],
-            startTime: { $gte: startDate, $lte: endDate },
-            status: { $ne: 'cancelled' }
-        });
+        // Fetch both regular lessons and away events
+        const [existingLessons, workingHoursEvents] = await Promise.all([
+            LessonEvent.find({
+                $or: [
+                    { instructorId: instructor._id },
+                    { trainerId: instructor._id }
+                ],
+                startTime: { $gte: startDate, $lte: endDate },
+                status: { $ne: 'cancelled' }
+            }),
+            LessonEvent.find({
+                trainerId: instructor._id,
+                startTime: { $gte: startDate, $lte: endDate },
+                awayType: { $in: ['WORKING_HOURS_MORNING', 'WORKING_HOURS_EVENING'] },
+                status: 'active'
+            })
+        ]);
+
+        console.log('Debug - Instructor:', instructor._id);
+        console.log('Debug - Date Range:', { startDate, endDate });
+
+
+        console.log('Debug - Existing Lessons:', existingLessons.length);
 
         const slotsGroupedByDay = {};
         const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
         const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
+
+        const workingHoursOverrides = workingHoursEvents.reduce((acc, event) => {
+            const dayKey = new Date(event.startTime).toISOString().split('T')[0];
+            if (!acc[dayKey]) {
+                acc[dayKey] = { start: null, end: null };
+            }
+            
+            if (event.awayType === 'WORKING_HOURS_MORNING') {
+                acc[dayKey].start = new Date(event.endTime).getUTCHours();
+            } else if (event.awayType === 'WORKING_HOURS_EVENING') {
+                acc[dayKey].end = new Date(event.startTime).getUTCHours();
+            }
+            return acc;
+        }, {});
 
         while (currentDate <= endDate) {
             if (currentDate < new Date()) {
@@ -442,17 +471,39 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
             }
 
             const dayKey = currentDate.toISOString().split('T')[0];
-            const currentDay = currentDate.toLocaleString('en-US', { weekday: 'long' });
+            const currentDay = currentDate.toLocaleString('en-US', { weekday: 'long' });        
+
+            console.log('Debug - Checking day:', currentDay);
+
+            // Check for working hours override first, then fall back to default working hours
+            const workingHoursOverride = workingHoursOverrides[dayKey];
+            const defaultWorkingHours = instructor.workingHours?.[currentDay];
+
+
+            // Determine actual working hours for the day
+            const workingStart = workingHoursOverride?.start ?? 
+                            (defaultWorkingHours?.open ? new Date(defaultWorkingHours.open).getUTCHours() : 6);
+            const workingEnd = workingHoursOverride?.end ?? 
+                            (defaultWorkingHours?.close ? new Date(defaultWorkingHours.close).getUTCHours() : 23);
+
+            console.log('Debug - Working hours:', { workingStart, workingEnd });
 
             const isAvailableOnDay = instructor.availableAreas?.some(area => {
                 if (postcode) {
                     const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
-                    const matchesDay = !area.days || area.days.length === 0 || area.days.includes(currentDay);
+                    const matchesDay = area.days.includes('All Days') || area.days.includes(currentDay);
+                    console.log('Debug - Area check:', { 
+                        area: area.postcode, 
+                        matchesPostcode, 
+                        matchesDay,
+                        availableDays: area.days 
+                    });
                     return matchesPostcode && matchesDay;
-                } else {
-                    return !area.days || area.days.length === 0 || area.days.includes(currentDay);
                 }
+                return area.days.includes('All Days') || area.days.includes(currentDay);
             });
+
+            console.log('Debug - Is available on day:', isAvailableOnDay);
 
             if (!isAvailableOnDay) {
                 currentDate.setDate(currentDate.getDate() + 1);
@@ -465,12 +516,15 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 availableHours: []
             };
 
-            // Start time at 6 AM UTC
+            // Get lunch break times
+            const lunchStart = instructor.lunchBreak?.start ? new Date(instructor.lunchBreak.start).getUTCHours() : null;
+            const lunchEnd = instructor.lunchBreak?.end ? new Date(instructor.lunchBreak.end).getUTCHours() : null;
+
             let currentTime = new Date(Date.UTC(
                 currentDate.getUTCFullYear(),
                 currentDate.getUTCMonth(),
                 currentDate.getUTCDate(),
-                6, // 6 AM UTC
+                workingStart,
                 0,
                 0,
                 0
@@ -480,25 +534,28 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 currentDate.getUTCFullYear(),
                 currentDate.getUTCMonth(),
                 currentDate.getUTCDate(),
-                23, // 11 PM UTC
+                workingEnd,
                 0,
                 0,
                 0
             ));
 
             while (currentTime < dayEnd) {
-                const slotEndTime = new Date(currentTime);
-                slotEndTime.setTime(currentTime.getTime() + (2 * 60 * 60 * 1000)); // Add 2 hours
+                const currentHour = currentTime.getUTCHours();
 
-                // If the slot would end after our day end time, break the loop
+                // Skip if we're in lunch break time
+                if (lunchStart && lunchEnd && currentHour >= lunchStart && currentHour < lunchEnd) {
+                    currentTime.setUTCHours(lunchEnd);
+                    continue;
+                }
+
+                const slotEndTime = new Date(currentTime);
+                slotEndTime.setTime(currentTime.getTime() + (2 * 60 * 60 * 1000)); // 2 hours lesson
+
                 if (slotEndTime > dayEnd) {
                     break;
                 }
 
-                const nextSlotStart = new Date(slotEndTime);
-                nextSlotStart.setTime(slotEndTime.getTime() + (travelTimeInMinutes * 60 * 1000));
-
-                // Check if this slot conflicts with any existing lessons
                 const hasConflict = existingLessons.some(lesson => {
                     const lessonStart = new Date(lesson.startTime);
                     const lessonEnd = new Date(lesson.endTime);
@@ -511,22 +568,24 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
 
                 if (!hasConflict) {
                     const timeSlot = {
-                        id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}${Math.random().toString(16).substr(2, 8)}`,
+                        id: `${Date.now()}${Math.random().toString(36).substr(2, 9)}`,
                         time: currentTime.toLocaleTimeString('en-GB', { 
                             hour: '2-digit', 
                             minute: '2-digit',
-                            timeZone: 'UTC' // Changed to UTC
+                            timeZone: 'UTC'
                         }),
                         timestamp: currentTime.toISOString()
                     };
                     slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
+                    console.log('Debug - Added slot:', timeSlot.time);
                 }
 
-                // Move to next slot start time
-                currentTime = new Date(nextSlotStart);
+                // Move to next slot: 2 hours + travel time
+                const travelTimeInMs = travelTimeInMinutes * 60 * 1000;
+                currentTime = new Date(currentTime.getTime() + (2 * 60 * 60 * 1000) + travelTimeInMs);
             }
 
-            if (slotsGroupedByDay[dayKey].availableHours.length === 0) {
+            if (slotsGroupedByDay[dayKey]?.availableHours.length === 0) {
                 delete slotsGroupedByDay[dayKey];
             }
 
@@ -537,6 +596,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
             a.date.localeCompare(b.date)
         );
 
+        console.log('Debug - Final slots count:', formattedSlots.length);
         return {
             instructorId: instructor._id,
             instructorName: `${instructor.firstName} ${instructor.lastName}`,
@@ -544,6 +604,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
         };
 
     } catch (error) {
+        console.error('Debug - Error:', error);
         throw error;
     }
 }
