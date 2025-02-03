@@ -541,16 +541,57 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
             ));
 
             while (currentTime < dayEnd) {
-                const currentHour = currentTime.getUTCHours();
-
-                // Skip if we're in lunch break time
-                if (lunchStart && lunchEnd && currentHour >= lunchStart && currentHour < lunchEnd) {
-                    currentTime.setUTCHours(lunchEnd);
-                    continue;
-                }
-
                 const slotEndTime = new Date(currentTime);
                 slotEndTime.setTime(currentTime.getTime() + (2 * 60 * 60 * 1000)); // 2 hours lesson
+
+                // Create lunch break times for current day using the full ISO time
+                let lunchStartTime = null;
+                let lunchEndTime = null;
+
+                if (instructor.lunchBreak?.start && instructor.lunchBreak?.end) {
+                    // Parse the full lunch break times from ISO strings
+                    const lunchStartTemp = new Date(instructor.lunchBreak.start);
+                    const lunchEndTemp = new Date(instructor.lunchBreak.end);
+
+                    // Create new dates for today with the same hours and minutes
+                    lunchStartTime = new Date(Date.UTC(
+                        currentDate.getUTCFullYear(),
+                        currentDate.getUTCMonth(),
+                        currentDate.getUTCDate(),
+                        lunchStartTemp.getUTCHours(),
+                        lunchStartTemp.getUTCMinutes(),
+                        0,
+                        0
+                    ));
+
+                    lunchEndTime = new Date(Date.UTC(
+                        currentDate.getUTCFullYear(),
+                        currentDate.getUTCMonth(),
+                        currentDate.getUTCDate(),
+                        lunchEndTemp.getUTCHours(),
+                        lunchEndTemp.getUTCMinutes(),
+                        0,
+                        0
+                    ));
+                }
+
+                console.log('Debug - Lunch times:', {
+                    start: lunchStartTime?.toLocaleTimeString(),
+                    end: lunchEndTime?.toLocaleTimeString()
+                });
+
+                // Check if slot overlaps with lunch break using exact times
+                const overlapsLunch = lunchStartTime && lunchEndTime && (
+                    (currentTime < lunchEndTime && slotEndTime > lunchStartTime)
+                );
+
+                if (overlapsLunch) {
+                    // Skip to after lunch
+                    currentTime = new Date(lunchEndTime);
+                    console.log('Debug - Skipping lunch period, next slot starts at:', 
+                        currentTime.toLocaleTimeString());
+                    continue;
+                }
 
                 if (slotEndTime > dayEnd) {
                     break;
