@@ -488,27 +488,27 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
 
             console.log('Debug - Working hours:', { workingStart, workingEnd });
 
-            const isAvailableOnDay = instructor.availableAreas?.some(area => {
-                if (postcode) {
-                    const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
-                    const matchesDay = area.days.includes('All Days') || area.days.includes(currentDay);
-                    console.log('Debug - Area check:', { 
-                        area: area.postcode, 
-                        matchesPostcode, 
-                        matchesDay,
-                        availableDays: area.days 
-                    });
-                    return matchesPostcode && matchesDay;
-                }
-                return area.days.includes('All Days') || area.days.includes(currentDay);
-            });
+            // const isAvailableOnDay = instructor.availableAreas?.some(area => {
+            //     if (postcode) {
+            //         const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
+            //         const matchesDay = area.days.includes('All Days') || area.days.includes(currentDay);
+            //         console.log('Debug - Area check:', { 
+            //             area: area.postcode, 
+            //             matchesPostcode, 
+            //             matchesDay,
+            //             availableDays: area.days 
+            //         });
+            //         return matchesPostcode && matchesDay;
+            //     }
+            //     return area.days.includes('All Days') || area.days.includes(currentDay);
+            // });
 
-            console.log('Debug - Is available on day:', isAvailableOnDay);
+            // console.log('Debug - Is available on day:', isAvailableOnDay);
 
-            if (!isAvailableOnDay) {
-                currentDate.setDate(currentDate.getDate() + 1);
-                continue;
-            }
+            // if (!isAvailableOnDay) {
+            //     currentDate.setDate(currentDate.getDate() + 1);
+            //     continue;
+            // }
 
             slotsGroupedByDay[dayKey] = {
                 date: dayKey,
