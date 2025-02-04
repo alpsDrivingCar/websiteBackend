@@ -444,20 +444,20 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
             const dayKey = currentDate.toISOString().split('T')[0];
             const currentDay = currentDate.toLocaleString('en-US', { weekday: 'long' });
 
-            const isAvailableOnDay = instructor.availableAreas?.some(area => {
-                if (postcode) {
-                    const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
-                    const matchesDay = !area.days || area.days.length === 0 || area.days.includes(currentDay);
-                    return matchesPostcode && matchesDay;
-                } else {
-                    return !area.days || area.days.length === 0 || area.days.includes(currentDay);
-                }
-            });
+            // const isAvailableOnDay = instructor.availableAreas?.some(area => {
+            //     if (postcode) {
+            //         const matchesPostcode = area.postcode.toLowerCase() === postcode.toLowerCase();
+            //         const matchesDay = !area.days || area.days.length === 0 || area.days.includes(currentDay);
+            //         return matchesPostcode && matchesDay;
+            //     } else {
+            //         return !area.days || area.days.length === 0 || area.days.includes(currentDay);
+            //     }
+            // });
 
-            if (!isAvailableOnDay) {
-                currentDate.setDate(currentDate.getDate() + 1);
-                continue;
-            }
+            // if (!isAvailableOnDay) {
+            //     currentDate.setDate(currentDate.getDate() + 1);
+            //     continue;
+            // }
 
             slotsGroupedByDay[dayKey] = {
                 date: dayKey,
