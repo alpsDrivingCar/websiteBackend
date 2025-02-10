@@ -480,13 +480,34 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
             const defaultWorkingHours = instructor.workingHours?.[currentDay];
 
 
-            // Determine actual working hours for the day
-            const workingStart = workingHoursOverride?.start ?? 
-                            (defaultWorkingHours?.open ? new Date(defaultWorkingHours.open).getUTCHours() : 6);
-            const workingEnd = workingHoursOverride?.end ?? 
-                            (defaultWorkingHours?.close ? new Date(defaultWorkingHours.close).getUTCHours() : 23);
+            // Determine actual working hours for the day with minutes
+            const getTimeComponents = (timeString) => {
+                if (!timeString) return { hours: 6, minutes: 0 }; // Default start time
+                const date = new Date(timeString);
+                return {
+                    hours: date.getUTCHours(),
+                    minutes: date.getUTCMinutes()
+                };
+            };
 
-            console.log('Debug - Working hours:', { workingStart, workingEnd });
+            const defaultStart = defaultWorkingHours?.open ? getTimeComponents(defaultWorkingHours.open) : { hours: 6, minutes: 0 };
+            const defaultEnd = defaultWorkingHours?.close ? getTimeComponents(defaultWorkingHours.close) : { hours: 23, minutes: 0 };
+
+            // Use override hours if available, otherwise use defaults
+            const workingStartTime = workingHoursOverride?.start !== undefined
+                ? { hours: workingHoursOverride.start, minutes: 0 }
+                : defaultStart;
+            const workingEndTime = workingHoursOverride?.end !== undefined
+                ? { hours: workingHoursOverride.end, minutes: 0 }
+                : defaultEnd;
+
+            // Ensure minimum start time is 6 AM
+            if (workingStartTime.hours < 6) {
+                workingStartTime.hours = 6;
+                workingStartTime.minutes = 0;
+            }
+
+            console.log('Debug - Working hours:', { workingStartTime, workingEndTime });
 
             // const isAvailableOnDay = instructor.availableAreas?.some(area => {
             //     if (postcode) {
@@ -524,8 +545,8 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 currentDate.getUTCFullYear(),
                 currentDate.getUTCMonth(),
                 currentDate.getUTCDate(),
-                workingStart,
-                0,
+                workingStartTime.hours,
+                workingStartTime.minutes,
                 0,
                 0
             ));
@@ -534,8 +555,8 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 currentDate.getUTCFullYear(),
                 currentDate.getUTCMonth(),
                 currentDate.getUTCDate(),
-                workingEnd,
-                0,
+                workingEndTime.hours,
+                workingEndTime.minutes,
                 0,
                 0
             ));
