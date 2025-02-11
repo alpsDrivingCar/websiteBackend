@@ -369,6 +369,50 @@ exports.availableTimeSlots = async (req, res) => {
         }
 
         // Handle both single and multiple instructor cases
+        if (!instructorId && !instructorIds) {
+            return res.status(400).json({ 
+                message: 'Either instructorId or instructorIds is required.' 
+            });
+        }
+
+        // If month or year is missing, find the nearest available month and its slots
+        if (!month || !year) {
+            const instructorToCheck = instructorId || instructorIds.split(',')[0];
+            const nearestSlot = await findNearestAvailableSlot(instructorToCheck);
+            if (!nearestSlot) {
+                return res.status(404).json({ message: 'No available slots found' });
+            }
+            
+            const nearestDate = new Date(nearestSlot);
+            const nearestMonth = nearestDate.getMonth() + 1;
+            const nearestYear = nearestDate.getFullYear();
+
+            // Get availability for the nearest month
+            const instructor = await InstructorsUserSchema.findById(instructorToCheck);
+            if (!instructor) {
+                return res.status(404).json({ message: 'Instructor not found' });
+            }
+
+            const availability = await getInstructorAvailability(
+                instructor, 
+                nearestMonth, 
+                nearestYear, 
+                areaPrefix
+            );
+
+            return res.json({
+                month: nearestMonth.toString(),
+                year: nearestYear.toString(),
+                postcode: areaPrefix,
+                instructors: [{
+                    instructorId: instructor._id,
+                    instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                    availableDays: availability.availableDays
+                }]
+            });
+        }
+
+        // Handle both single and multiple instructor cases
         if ((!instructorId && !instructorIds) || !month || !year) {
             return res.status(400).json({ 
                 message: 'Either instructorId or instructorIds, plus month and year are required.' 
@@ -416,6 +460,61 @@ exports.availableTimeSlots = async (req, res) => {
         res.status(500).json({ message: "An error occurred", error: error.message });
     }
 };
+
+async function findNearestAvailableSlot(instructorId) {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 6); // Look up to 6 months ahead
+
+    const instructor = await InstructorsUserSchema.findById(instructorId);
+    if (!instructor) return null;
+
+    const lessons = await LessonEvent.find({
+        $or: [
+            { instructorId: instructor._id },
+            { trainerId: instructor._id }
+        ],
+        startTime: { $gte: startDate, $lte: endDate },
+        status: { $ne: 'cancelled' }
+    });
+
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        const dayStart = new Date(Date.UTC(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            6, // Start at 6 AM
+            0,
+            0,
+            0
+        ));
+
+        const dayEnd = new Date(Date.UTC(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            23, // End at 11 PM
+            0,
+            0,
+            0
+        ));
+
+        const hasConflict = lessons.some(lesson => {
+            const lessonStart = new Date(lesson.startTime);
+            const lessonEnd = new Date(lesson.endTime);
+            return (dayStart < lessonEnd && dayEnd > lessonStart);
+        });
+
+        if (!hasConflict) {
+            return dayStart;
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return null;
+}
 
 async function getInstructorAvailability(instructor, month, year, postcode) {
     try {
