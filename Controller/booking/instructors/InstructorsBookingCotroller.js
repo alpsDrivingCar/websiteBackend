@@ -463,7 +463,7 @@ exports.availableTimeSlots = async (req, res) => {
 
 exports.availableGapTimeSlots = async (req, res) => {
     try {
-        const { instructorId, instructorIds } = req.query;
+        const { instructorId, instructorIds, month, year } = req.query;
         
         // Build query for instructors
         const instructorQuery = instructorId ? 
@@ -475,54 +475,116 @@ exports.availableGapTimeSlots = async (req, res) => {
             ]} : 
             {};
 
-        const gapEvents = await LessonEvent.find({
-            ...instructorQuery,
-            eventType: 'Gap',
-            status: 'active'
-        });
-
-        // Group events by date
-        const groupedSlots = gapEvents.reduce((acc, event) => {
-            const date = new Date(event.startTime).toISOString().split('T')[0];
-            
-            if (!acc[date]) {
-                acc[date] = {
-                    date,
-                    dayOfWeek: new Date(event.startTime).toLocaleString('en-US', { weekday: 'long' }),
-                    availableHours: []
-                };
+        // If month or year is missing, find the nearest available month
+        if (!month || !year) {
+            const instructorToCheck = instructorId || instructorIds?.split(',')[0];
+            if (!instructorToCheck) {
+                return res.status(400).json({ message: 'No instructor specified' });
             }
 
-            acc[date].availableHours.push({
-                id: event._id,
-                time: new Date(event.startTime).toLocaleTimeString('en-GB', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    timeZone: 'UTC'
-                }),
-                timestamp: event.startTime,
-                duration: event.durationMinutes,
-                endTime: event.endTime,
-                gearbox: event.gearbox
+            const nearestGap = await findNearestGapSlot(instructorToCheck);
+            if (!nearestGap) {
+                return res.status(404).json({ message: 'No available gap slots found' });
+            }
+
+            const nearestDate = new Date(nearestGap.startTime);
+            const nearestMonth = nearestDate.getMonth() + 1;
+            const nearestYear = nearestDate.getFullYear();
+
+            // Get gaps for the nearest month
+            const gapEvents = await fetchGapEventsForMonth(instructorQuery, nearestMonth, nearestYear);
+            const formattedSlots = formatGapEvents(gapEvents);
+
+            return res.json({
+                month: nearestMonth.toString(),
+                year: nearestYear.toString(),
+                data: formattedSlots
             });
+        }
 
-            return acc;
-        }, {});
+        // Get gaps for specified month and year
+        const gapEvents = await fetchGapEventsForMonth(instructorQuery, parseInt(month), parseInt(year));
+        const formattedSlots = formatGapEvents(gapEvents);
 
-        // Convert to array and sort by date
-        const formattedSlots = Object.values(groupedSlots)
-            .sort((a, b) => a.date.localeCompare(b.date));
-
-        // Sort availableHours within each day by time
-        formattedSlots.forEach(day => {
-            day.availableHours.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        res.json({ 
+            month: month.toString(),
+            year: year.toString(),
+            data: formattedSlots 
         });
 
-        res.json({ data: formattedSlots });
     } catch (error) {
         console.error('Error fetching gap events:', error);
         return res.status(500).json({ message: 'An error occurred', error });
     }
+}
+
+async function findNearestGapSlot(instructorId) {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 6); // Look up to 6 months ahead
+
+    return await LessonEvent.findOne({
+        $or: [
+            { instructorId: instructorId },
+            { trainerId: instructorId }
+        ],
+        eventType: 'Gap',
+        startTime: { $gte: startDate, $lte: endDate },
+        status: 'active'
+    }).sort({ startTime: 1 });
+}
+
+async function fetchGapEventsForMonth(instructorQuery, month, year) {
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    return await LessonEvent.find({
+        ...instructorQuery,
+        eventType: 'Gap',
+        startTime: { $gte: startDate, $lte: endDate },
+        status: 'active'
+    });
+}
+
+function formatGapEvents(gapEvents) {
+    // Group events by date
+    const groupedSlots = gapEvents.reduce((acc, event) => {
+        const date = new Date(event.startTime).toISOString().split('T')[0];
+        
+        if (!acc[date]) {
+            acc[date] = {
+                date,
+                dayOfWeek: new Date(event.startTime).toLocaleString('en-US', { weekday: 'long' }),
+                availableHours: []
+            };
+        }
+
+        acc[date].availableHours.push({
+            id: event._id,
+            time: new Date(event.startTime).toLocaleTimeString('en-GB', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'UTC'
+            }),
+            timestamp: event.startTime,
+            duration: event.durationMinutes,
+            endTime: event.endTime,
+            gearbox: event.gearbox
+        });
+
+        return acc;
+    }, {});
+
+    // Convert to array and sort by date
+    const formattedSlots = Object.values(groupedSlots)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Sort availableHours within each day by time
+    formattedSlots.forEach(day => {
+        day.availableHours.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    });
+
+    return formattedSlots;
 }
 
 async function findNearestAvailableSlot(instructorId) {
