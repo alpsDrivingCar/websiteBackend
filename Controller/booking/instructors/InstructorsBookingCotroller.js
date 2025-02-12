@@ -461,6 +461,70 @@ exports.availableTimeSlots = async (req, res) => {
     }
 };
 
+exports.availableGapTimeSlots = async (req, res) => {
+    try {
+        const { instructorId, instructorIds } = req.query;
+        
+        // Build query for instructors
+        const instructorQuery = instructorId ? 
+            { $or: [{ instructorId: instructorId }, { trainerId: instructorId }] } :
+            instructorIds ? 
+            { $or: [
+                { instructorId: { $in: instructorIds.split(',') } }, 
+                { trainerId: { $in: instructorIds.split(',') } }
+            ]} : 
+            {};
+
+        const gapEvents = await LessonEvent.find({
+            ...instructorQuery,
+            eventType: 'Gap',
+            status: 'active'
+        });
+
+        // Group events by date
+        const groupedSlots = gapEvents.reduce((acc, event) => {
+            const date = new Date(event.startTime).toISOString().split('T')[0];
+            
+            if (!acc[date]) {
+                acc[date] = {
+                    date,
+                    dayOfWeek: new Date(event.startTime).toLocaleString('en-US', { weekday: 'long' }),
+                    availableHours: []
+                };
+            }
+
+            acc[date].availableHours.push({
+                id: event._id,
+                time: new Date(event.startTime).toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: 'UTC'
+                }),
+                timestamp: event.startTime,
+                duration: event.durationMinutes,
+                endTime: event.endTime,
+                gearbox: event.gearbox
+            });
+
+            return acc;
+        }, {});
+
+        // Convert to array and sort by date
+        const formattedSlots = Object.values(groupedSlots)
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Sort availableHours within each day by time
+        formattedSlots.forEach(day => {
+            day.availableHours.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        });
+
+        res.json({ data: formattedSlots });
+    } catch (error) {
+        console.error('Error fetching gap events:', error);
+        return res.status(500).json({ message: 'An error occurred', error });
+    }
+}
+
 async function findNearestAvailableSlot(instructorId) {
     const startDate = new Date();
     const endDate = new Date();

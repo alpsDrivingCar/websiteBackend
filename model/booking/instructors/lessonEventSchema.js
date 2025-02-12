@@ -5,7 +5,7 @@ const eventSchema = new Schema({
     eventType: {
         type: String,
         required: true,
-        enum: ['Lesson', 'Away']
+        enum: ['Lesson', 'Away', 'Gap']
     },
     // Shared fields
     date: {
