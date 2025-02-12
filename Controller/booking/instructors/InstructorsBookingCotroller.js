@@ -464,58 +464,113 @@ exports.availableTimeSlots = async (req, res) => {
 exports.availableGapTimeSlots = async (req, res) => {
     try {
         const { instructorId, instructorIds, month, year } = req.query;
-        
-        // Build query for instructors
-        const instructorQuery = instructorId ? 
-            { $or: [{ instructorId: instructorId }, { trainerId: instructorId }] } :
-            instructorIds ? 
-            { $or: [
-                { instructorId: { $in: instructorIds.split(',') } }, 
-                { trainerId: { $in: instructorIds.split(',') } }
-            ]} : 
-            {};
+
+        // Handle both single and multiple instructor cases
+        if (!instructorId && !instructorIds) {
+            return res.status(400).json({ 
+                message: 'Either instructorId or instructorIds is required.' 
+            });
+        }
+
+        // Get array of instructor IDs
+        const instructorIdArray = instructorId ? 
+            [instructorId] : 
+            instructorIds.split(',');
+
+        // Get all instructors
+        const instructors = await InstructorsUserSchema.find({ 
+            _id: { $in: instructorIdArray } 
+        });
+
+        if (instructors.length === 0) {
+            return res.status(404).json({ message: 'No instructors found' });
+        }
 
         // If month or year is missing, find the nearest available month
         if (!month || !year) {
-            const instructorToCheck = instructorId || instructorIds?.split(',')[0];
-            if (!instructorToCheck) {
-                return res.status(400).json({ message: 'No instructor specified' });
-            }
+            // Find nearest gap for any instructor
+            const nearestGaps = await Promise.all(
+                instructors.map(instructor => findNearestGapSlot(instructor._id))
+            );
 
-            const nearestGap = await findNearestGapSlot(instructorToCheck);
-            if (!nearestGap) {
+            // Filter out null values and sort by date
+            const validGaps = nearestGaps
+                .filter(gap => gap !== null)
+                .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+            if (validGaps.length === 0) {
                 return res.status(404).json({ message: 'No available gap slots found' });
             }
 
-            const nearestDate = new Date(nearestGap.startTime);
+            // Use the earliest gap to determine month and year
+            const nearestDate = new Date(validGaps[0].startTime);
             const nearestMonth = nearestDate.getMonth() + 1;
             const nearestYear = nearestDate.getFullYear();
 
-            // Get gaps for the nearest month
-            const gapEvents = await fetchGapEventsForMonth(instructorQuery, nearestMonth, nearestYear);
-            const formattedSlots = formatGapEvents(gapEvents);
+            // Get gaps for all instructors for the nearest month
+            const instructorResults = await Promise.all(
+                instructors.map(async (instructor) => {
+                    const gapEvents = await fetchGapEventsForInstructor(
+                        instructor._id, 
+                        nearestMonth, 
+                        nearestYear
+                    );
+                    return {
+                        instructorId: instructor._id,
+                        instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                        availableDays: formatGapEvents(gapEvents)
+                    };
+                })
+            );
 
             return res.json({
                 month: nearestMonth.toString(),
                 year: nearestYear.toString(),
-                data: formattedSlots
+                instructors: instructorResults
             });
         }
 
         // Get gaps for specified month and year
-        const gapEvents = await fetchGapEventsForMonth(instructorQuery, parseInt(month), parseInt(year));
-        const formattedSlots = formatGapEvents(gapEvents);
+        const instructorResults = await Promise.all(
+            instructors.map(async (instructor) => {
+                const gapEvents = await fetchGapEventsForInstructor(
+                    instructor._id, 
+                    parseInt(month), 
+                    parseInt(year)
+                );
+                return {
+                    instructorId: instructor._id,
+                    instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                    availableDays: formatGapEvents(gapEvents)
+                };
+            })
+        );
 
-        res.json({ 
+        res.json({
             month: month.toString(),
             year: year.toString(),
-            data: formattedSlots 
+            instructors: instructorResults
         });
 
     } catch (error) {
         console.error('Error fetching gap events:', error);
         return res.status(500).json({ message: 'An error occurred', error });
     }
+}
+
+async function fetchGapEventsForInstructor(instructorId, month, year) {
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    return await LessonEvent.find({
+        $or: [
+            { instructorId: instructorId },
+            { trainerId: instructorId }
+        ],
+        eventType: 'Gap',
+        startTime: { $gte: startDate, $lte: endDate },
+        status: 'active'
+    });
 }
 
 async function findNearestGapSlot(instructorId) {
