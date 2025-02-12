@@ -417,6 +417,125 @@ exports.availableTimeSlots = async (req, res) => {
     }
 };
 
+exports.availableGapTimeSlots = async (req, res) => {
+    try {
+        const { instructorId, instructorIds } = req.query;
+        
+        // Build query for instructors
+        const instructorQuery = instructorId ? 
+            { $or: [{ instructorId: instructorId }, { trainerId: instructorId }] } :
+            instructorIds ? 
+            { $or: [
+                { instructorId: { $in: instructorIds.split(',') } }, 
+                { trainerId: { $in: instructorIds.split(',') } }
+            ]} : 
+            {};
+
+        const gapEvents = await LessonEvent.find({
+            ...instructorQuery,
+            eventType: 'Gap',
+            status: 'active'
+        });
+
+        // Group events by date
+        const groupedSlots = gapEvents.reduce((acc, event) => {
+            const date = new Date(event.startTime).toISOString().split('T')[0];
+            
+            if (!acc[date]) {
+                acc[date] = {
+                    date,
+                    dayOfWeek: new Date(event.startTime).toLocaleString('en-US', { weekday: 'long' }),
+                    availableHours: []
+                };
+            }
+
+            acc[date].availableHours.push({
+                id: event._id,
+                time: new Date(event.startTime).toLocaleTimeString('en-GB', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: 'UTC'
+                }),
+                timestamp: event.startTime,
+                duration: event.durationMinutes,
+                endTime: event.endTime,
+                gearbox: event.gearbox
+            });
+
+            return acc;
+        }, {});
+
+        // Convert to array and sort by date
+        const formattedSlots = Object.values(groupedSlots)
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Sort availableHours within each day by time
+        formattedSlots.forEach(day => {
+            day.availableHours.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        });
+
+        res.json({ data: formattedSlots });
+    } catch (error) {
+        console.error('Error fetching gap events:', error);
+        return res.status(500).json({ message: 'An error occurred', error });
+    }
+}
+
+async function findNearestAvailableSlot(instructorId) {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 6); // Look up to 6 months ahead
+
+    const instructor = await InstructorsUserSchema.findById(instructorId);
+    if (!instructor) return null;
+
+    const lessons = await LessonEvent.find({
+        $or: [
+            { instructorId: instructor._id },
+            { trainerId: instructor._id }
+        ],
+        startTime: { $gte: startDate, $lte: endDate },
+        status: { $ne: 'cancelled' }
+    });
+
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        const dayStart = new Date(Date.UTC(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            6, // Start at 6 AM
+            0,
+            0,
+            0
+        ));
+
+        const dayEnd = new Date(Date.UTC(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            23, // End at 11 PM
+            0,
+            0,
+            0
+        ));
+
+        const hasConflict = lessons.some(lesson => {
+            const lessonStart = new Date(lesson.startTime);
+            const lessonEnd = new Date(lesson.endTime);
+            return (dayStart < lessonEnd && dayEnd > lessonStart);
+        });
+
+        if (!hasConflict) {
+            return dayStart;
+        }
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return null;
+}
+
 async function getInstructorAvailability(instructor, month, year, postcode) {
     try {
         const startDate = new Date(Date.UTC(year, month - 1, 1));
