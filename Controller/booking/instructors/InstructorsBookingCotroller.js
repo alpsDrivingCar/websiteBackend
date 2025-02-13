@@ -375,84 +375,88 @@ exports.availableTimeSlots = async (req, res) => {
             });
         }
 
-        // If month or year is missing, find the nearest available month and its slots
+        // Get array of instructor IDs
+        const instructorIdArray = instructorId ? 
+            [instructorId] : 
+            instructorIds.split(',');
+
+        // Get all instructors
+        const instructors = await InstructorsUserSchema.find({ 
+            _id: { $in: instructorIdArray } 
+        });
+
+        if (instructors.length === 0) {
+            return res.status(404).json({ message: 'No instructors found' });
+        }
+
+        // If month or year is missing, find the nearest available month
         if (!month || !year) {
-            const instructorToCheck = instructorId || instructorIds.split(',')[0];
-            const nearestSlot = await findNearestAvailableSlot(instructorToCheck);
-            if (!nearestSlot) {
+            // Find nearest slot for all instructors
+            const nearestSlots = await Promise.all(
+                instructors.map(instructor => findNearestAvailableSlot(instructor._id))
+            );
+
+            // Filter out null values and sort by date
+            const validSlots = nearestSlots
+                .filter(slot => slot !== null)
+                .sort((a, b) => a - b);
+
+            if (validSlots.length === 0) {
                 return res.status(404).json({ message: 'No available slots found' });
             }
-            
-            const nearestDate = new Date(nearestSlot);
+
+            // Use the earliest slot to determine month and year
+            const nearestDate = new Date(validSlots[0]);
             const nearestMonth = nearestDate.getMonth() + 1;
             const nearestYear = nearestDate.getFullYear();
 
-            // Get availability for the nearest month
-            const instructor = await InstructorsUserSchema.findById(instructorToCheck);
-            if (!instructor) {
-                return res.status(404).json({ message: 'Instructor not found' });
-            }
-
-            const availability = await getInstructorAvailability(
-                instructor, 
-                nearestMonth, 
-                nearestYear, 
-                areaPrefix
+            // Get availability for all instructors for the nearest month
+            const instructorResults = await Promise.all(
+                instructors.map(async (instructor) => {
+                    const availability = await getInstructorAvailability(
+                        instructor,
+                        nearestMonth,
+                        nearestYear,
+                        areaPrefix
+                    );
+                    return {
+                        instructorId: instructor._id,
+                        instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                        availableDays: availability.availableDays
+                    };
+                })
             );
 
             return res.json({
                 month: nearestMonth.toString(),
                 year: nearestYear.toString(),
                 postcode: areaPrefix,
-                instructors: [{
+                instructors: instructorResults
+            });
+        }
+
+        // For specified month and year, get availability for all instructors
+        const instructorResults = await Promise.all(
+            instructors.map(async (instructor) => {
+                const availability = await getInstructorAvailability(
+                    instructor,
+                    parseInt(month),
+                    parseInt(year),
+                    areaPrefix
+                );
+                return {
                     instructorId: instructor._id,
                     instructorName: `${instructor.firstName} ${instructor.lastName}`,
                     availableDays: availability.availableDays
-                }]
-            });
-        }
-
-        // Handle both single and multiple instructor cases
-        if ((!instructorId && !instructorIds) || !month || !year) {
-            return res.status(400).json({ 
-                message: 'Either instructorId or instructorIds, plus month and year are required.' 
-            });
-        }
-
-        // If single instructor, use original logic
-        if (instructorId) {
-            const instructor = await InstructorsUserSchema.findById(instructorId);
-            if (!instructor) {
-                return res.status(404).json({ message: 'Instructor not found' });
-            }
-
-            const result = await getInstructorAvailability(instructor, month, year, areaPrefix);
-            return res.json(result);
-        }
-
-        // Handle multiple instructors
-        const instructorIdArray = Array.isArray(instructorIds) ? instructorIds : instructorIds.split(',');
-        const instructors = await InstructorsUserSchema.find({ _id: { $in: instructorIdArray } });
-
-        if (instructors.length === 0) {
-            return res.status(404).json({ message: 'No instructors found' });
-        }
-
-        // Get availability for each instructor
-        const instructorResults = await Promise.all(
-            instructors.map(instructor => getInstructorAvailability(instructor, month, year, areaPrefix))
+                };
+            })
         );
 
-        // Return combined results
         res.json({
-            month,
-            year,
+            month: month.toString(),
+            year: year.toString(),
             postcode: areaPrefix,
-            instructors: instructorResults.map(result => ({
-                instructorId: result.instructorId,
-                instructorName: `${result.instructorName || ''}`,
-                availableDays: result.availableDays
-            }))
+            instructors: instructorResults
         });
 
     } catch (error) {
