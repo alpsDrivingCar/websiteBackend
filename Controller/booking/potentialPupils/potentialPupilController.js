@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 exports.getPotentialPupils = async (req, res) => {
     try {
-        const potentialPupils = await PotentialPupil.find();
+        const potentialPupils = await PotentialPupil.find().sort({ createdAt: -1 });
         res.status(200).json({
             data: potentialPupils
         });
