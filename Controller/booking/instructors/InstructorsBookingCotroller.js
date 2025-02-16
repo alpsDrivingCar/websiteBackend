@@ -714,7 +714,8 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                     { trainerId: instructor._id }
                 ],
                 startTime: { $gte: startDate, $lte: endDate },
-                status: { $ne: 'cancelled' }
+                status: { $ne: 'cancelled' },
+                eventType: { $ne: 'Gap' }
             }),
             LessonEvent.find({
                 trainerId: instructor._id,
