@@ -9,6 +9,7 @@ const ejs = require('ejs');
 const fs = require("fs");
 const NotificationCreator = require("../../../notification/notificationCreator");
 const dotenv = require("dotenv");
+const Event = require("../../../../model/booking/instructors/lessonEventSchema");
 
 dotenv.config(dotenv);
 
@@ -163,6 +164,33 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
            "lessonType": "Web site lessons/661f96868ef5f48b31d1a241"
 
         };
+
+        // Check for existing Gap events that conflict with the new lesson time
+        const existingGapEvent = await Event.findOneAndDelete({
+            eventType: "Gap",
+            $or: [
+            { instructorId: updatedCheckoutInfo.orderInfo.instructorsId },
+            { trainerId: updatedCheckoutInfo.orderInfo.instructorsId }
+            ],
+            $or: [
+            {
+                startTime: {
+                $gte: new Date(startTime),
+                $lt: new Date(formattedEndTime)
+                }
+            },
+            {
+                endTime: {
+                $gt: new Date(startTime),
+                $lte: new Date(formattedEndTime)
+                }
+            }
+            ]
+        });
+
+        if (existingGapEvent) {
+            console.log('Removed conflicting Gap event:', existingGapEvent._id);
+        }
 
 
         console.log(`lessonEventData.startTime ${lessonEventData.startTime}`)
