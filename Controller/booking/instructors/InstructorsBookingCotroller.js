@@ -565,6 +565,7 @@ exports.availableGapTimeSlots = async (req, res) => {
 async function fetchGapEventsForInstructor(instructorId, month, year) {
     const startDate = new Date(Date.UTC(year, month - 1, 1));
     const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+    const now = new Date(); // Get current time
 
     return await LessonEvent.find({
         $or: [
@@ -572,7 +573,10 @@ async function fetchGapEventsForInstructor(instructorId, month, year) {
             { trainerId: instructorId }
         ],
         eventType: 'Gap',
-        startTime: { $gte: startDate, $lte: endDate },
+        startTime: { 
+            $gte: now > startDate ? now : startDate, // Use the later of now or startDate
+            $lte: endDate 
+        },
         status: 'active'
     });
 }
