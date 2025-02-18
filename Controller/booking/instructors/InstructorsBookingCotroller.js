@@ -710,7 +710,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
         const startDate = new Date(Date.UTC(year, month - 1, 1));
         const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
-        // Fetch both regular lessons and away events
+        // Update the workingHoursEvents query to include LUNCH_BREAK
         const [existingLessons, workingHoursEvents] = await Promise.all([
             LessonEvent.find({
                 $or: [
@@ -722,13 +722,16 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 eventType: { $ne: 'Gap' }
             }),
             LessonEvent.find({
-                trainerId: instructor._id,
+                $or: [
+                    { instructorId: instructor._id },
+                    { trainerId: instructor._id }
+                ],
                 startTime: { $gte: startDate, $lte: endDate },
-                awayType: { $in: ['WORKING_HOURS_MORNING', 'WORKING_HOURS_EVENING'] },
-                status: 'active'
+                awayType: { $in: ['WORKING_HOURS_MORNING', 'WORKING_HOURS_EVENING', 'LUNCH_BREAK'] },
             })
         ]);
 
+        console.log("WOKRING HOURS EVENTS", workingHoursEvents);
         console.log('Debug - Instructor:', instructor._id);
         console.log('Debug - Date Range:', { startDate, endDate });
 
@@ -742,13 +745,26 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
         const workingHoursOverrides = workingHoursEvents.reduce((acc, event) => {
             const dayKey = new Date(event.startTime).toISOString().split('T')[0];
             if (!acc[dayKey]) {
-                acc[dayKey] = { start: null, end: null };
+                acc[dayKey] = {
+                    start: undefined,
+                    end: undefined,
+                    lunchBreak: null
+                };
             }
             
             if (event.awayType === 'WORKING_HOURS_MORNING') {
                 acc[dayKey].start = new Date(event.endTime).getUTCHours();
             } else if (event.awayType === 'WORKING_HOURS_EVENING') {
                 acc[dayKey].end = new Date(event.startTime).getUTCHours();
+            } else if (event.awayType === 'LUNCH_BREAK' && event.startTime && event.endTime) {
+                // Only set lunch break if both start and end times are valid and different
+                const startTime = new Date(event.startTime);
+                const endTime = new Date(event.endTime);
+                    acc[dayKey].lunchBreak = {
+                        start: startTime,
+                        end: endTime
+                    };
+                
             }
             return acc;
         }, {});
@@ -858,12 +874,33 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 let lunchStartTime = null;
                 let lunchEndTime = null;
 
-                if (instructor.lunchBreak?.start && instructor.lunchBreak?.end) {
-                    // Parse the full lunch break times from ISO strings
+                // First check for override lunch break
+                if (workingHoursOverride?.lunchBreak) {
+                    lunchStartTime = new Date(Date.UTC(
+                        currentDate.getUTCFullYear(),
+                        currentDate.getUTCMonth(),
+                        currentDate.getUTCDate(),
+                        workingHoursOverride.lunchBreak.start.getUTCHours(),
+                        workingHoursOverride.lunchBreak.start.getUTCMinutes(),
+                        0,
+                        0
+                    ));
+
+                    lunchEndTime = new Date(Date.UTC(
+                        currentDate.getUTCFullYear(),
+                        currentDate.getUTCMonth(),
+                        currentDate.getUTCDate(),
+                        workingHoursOverride.lunchBreak.end.getUTCHours(),
+                        workingHoursOverride.lunchBreak.end.getUTCMinutes(),
+                        0,
+                        0
+                    ));
+                } 
+                // Fall back to instructor's default lunch break if no override exists
+                else if (instructor.lunchBreak?.start && instructor.lunchBreak?.end) {
                     const lunchStartTemp = new Date(instructor.lunchBreak.start);
                     const lunchEndTemp = new Date(instructor.lunchBreak.end);
 
-                    // Create new dates for today with the same hours and minutes
                     lunchStartTime = new Date(Date.UTC(
                         currentDate.getUTCFullYear(),
                         currentDate.getUTCMonth(),
@@ -886,8 +923,10 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 }
 
                 console.log('Debug - Lunch times:', {
+                    source: workingHoursOverride?.lunchBreak ? 'override' : 'default',
                     start: lunchStartTime?.toLocaleTimeString(),
-                    end: lunchEndTime?.toLocaleTimeString()
+                    end: lunchEndTime?.toLocaleTimeString(),
+                    dayKey
                 });
 
                 // Check if slot overlaps with lunch break using exact times
