@@ -70,6 +70,12 @@ router.get("/search",
                 timeout: 8000 // Increased timeout to 8 seconds
             });
 
+            if (response.data.header.totalresults === 0) {
+                return res.status(404).json({
+                    message: 'Invalid postcode - no addresses found'
+                });
+            }
+
             const addresses = response.data.results || [];
             const formattedAddresses = addresses.map(address => address.DPA.ADDRESS);
 
