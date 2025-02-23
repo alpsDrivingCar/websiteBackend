@@ -361,7 +361,8 @@ function convertToNumber(value, name) {
 
 exports.availableTimeSlots = async (req, res) => {
     try {
-        const { instructorId, instructorIds, month, year, postcode } = req.query;
+        const { instructorId, instructorIds, month, year, postcode, isGapCreating = false} = req.query;
+        const isGapCreatingBool = isGapCreating === "true";
         let areaPrefix = '';
         if (postcode) {
             const areaLength = determinePostcodeAreaLength(postcode);
@@ -417,7 +418,8 @@ exports.availableTimeSlots = async (req, res) => {
                         instructor,
                         nearestMonth,
                         nearestYear,
-                        areaPrefix
+                        areaPrefix,
+                        isGapCreatingBool
                     );
                     return {
                         instructorId: instructor._id,
@@ -442,7 +444,8 @@ exports.availableTimeSlots = async (req, res) => {
                     instructor,
                     parseInt(month),
                     parseInt(year),
-                    areaPrefix
+                    areaPrefix,
+                    isGapCreatingBool
                 );
                 return {
                     instructorId: instructor._id,
@@ -705,7 +708,7 @@ async function findNearestAvailableSlot(instructorId) {
     return null;
 }
 
-async function getInstructorAvailability(instructor, month, year, postcode) {
+async function getInstructorAvailability(instructor, month, year, postcode, isGapCreating) {
     try {
         const startDate = new Date(Date.UTC(year, month - 1, 1));
         const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
@@ -719,7 +722,7 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
                 ],
                 startTime: { $gte: startDate, $lte: endDate },
                 status: { $ne: 'cancelled' },
-                eventType: { $ne: 'Gap' }
+                ...(isGapCreating ? {} : { eventType: { $ne: 'Gap' } })
             }),
             LessonEvent.find({
                 $or: [
