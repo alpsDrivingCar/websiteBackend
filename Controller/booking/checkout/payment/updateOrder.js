@@ -226,7 +226,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         // Check if the pupil exists by email or phone number
         const existingPupil = await PupilUserSchema.findOne({
             $or: [
-                { email: updatedCheckoutInfo.studentInfo.email },
+                { email: { $ne: "", $eq: updatedCheckoutInfo.studentInfo.email } },
                 { phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber }
             ]
         });
