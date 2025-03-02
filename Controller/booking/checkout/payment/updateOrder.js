@@ -161,7 +161,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
             "dropOffLocation": "home", // Drop-off location
             "date": time, // Date and time of the lesson,
             "endTime": formattedEndTime,
-           "lessonType": "Web site lessons/661f96868ef5f48b31d1a241"
+            "lessonType": "Web site lessons/661f96868ef5f48b31d1a241"
 
         };
 
@@ -234,10 +234,12 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
         if (existingPupil) {
             console.log(`Existing pupil found: ${existingPupil}`);
             //here i need send email
-            await sendWelcomeEmail(updatedCheckoutInfo.studentInfo.email, {
-                name: existingPupil.firstName,
-                phoneNumber: existingPupil.phoneNumber
-            });
+            if (updatedCheckoutInfo.studentInfo.email) {
+                await sendWelcomeEmail(updatedCheckoutInfo.studentInfo.email, {
+                    name: existingPupil.firstName,
+                    phoneNumber: existingPupil.phoneNumber
+                });
+            }
 
             return { pupil: existingPupil, isNew: false }; // Indicate that this is not a new entry
         }
