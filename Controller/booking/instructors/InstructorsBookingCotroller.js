@@ -502,39 +502,54 @@ exports.availableGapTimeSlots = async (req, res) => {
                 .filter(gap => gap !== null)
                 .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
-            if (validGaps.length === 0) {
-                return res.status(404).json({ message: 'No available gap slots found' });
-            }
-
-            // Use the earliest gap to determine month and year
-            const nearestDate = new Date(validGaps[0].startTime);
-            const nearestMonth = nearestDate.getMonth() + 1;
-            const nearestYear = nearestDate.getFullYear();
-
-            // Get gaps for all instructors for the nearest month
+            // Create instructor results with empty arrays for those without gaps
             const instructorResults = await Promise.all(
                 instructors.map(async (instructor) => {
-                    const gapEvents = await fetchGapEventsForInstructor(
-                        instructor._id, 
-                        nearestMonth, 
-                        nearestYear
-                    );
-                    return {
-                        instructorId: instructor._id,
-                        instructorName: `${instructor.firstName} ${instructor.lastName}`,
-                        availableDays: formatGapEvents(gapEvents)
-                    };
+                    // If we have a valid month/year from gaps, use it
+                    if (validGaps.length > 0) {
+                        const nearestDate = new Date(validGaps[0].startTime);
+                        const nearestMonth = nearestDate.getMonth() + 1;
+                        const nearestYear = nearestDate.getFullYear();
+                        
+                        const gapEvents = await fetchGapEventsForInstructor(
+                            instructor._id, 
+                            nearestMonth, 
+                            nearestYear
+                        );
+                        
+                        return {
+                            instructorId: instructor._id,
+                            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                            availableDays: formatGapEvents(gapEvents)
+                        };
+                    } else {
+                        // No valid gaps for any instructor, return empty arrays
+                        return {
+                            instructorId: instructor._id,
+                            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+                            availableDays: []
+                        };
+                    }
                 })
             );
 
+            // Use current month/year if no valid gaps found
+            const currentDate = new Date();
+            const responseMonth = validGaps.length > 0 
+                ? new Date(validGaps[0].startTime).getMonth() + 1 
+                : currentDate.getMonth() + 1;
+            const responseYear = validGaps.length > 0 
+                ? new Date(validGaps[0].startTime).getFullYear() 
+                : currentDate.getFullYear();
+
             return res.json({
-                month: nearestMonth.toString(),
-                year: nearestYear.toString(),
+                month: responseMonth.toString(),
+                year: responseYear.toString(),
                 instructors: instructorResults
             });
         }
 
-        // Get gaps for specified month and year
+        // For specified month and year, get gaps for all instructors
         const instructorResults = await Promise.all(
             instructors.map(async (instructor) => {
                 const gapEvents = await fetchGapEventsForInstructor(
@@ -610,6 +625,10 @@ async function fetchGapEventsForMonth(instructorQuery, month, year) {
 }
 
 function formatGapEvents(gapEvents) {
+    if (!gapEvents || gapEvents.length === 0) {
+        return [];
+    }
+    
     // Group events by date
     const groupedSlots = gapEvents.reduce((acc, event) => {
         const date = new Date(event.startTime).toISOString().split('T')[0];
