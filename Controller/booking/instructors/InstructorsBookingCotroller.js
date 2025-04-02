@@ -620,7 +620,7 @@ async function fetchGapEventsForInstructor(instructorId, month, year) {
   const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
   const now = new Date(); // Get current time
   const minStartTime = new Date(now);
-  minStartTime.setHours(minStartTime.getHours() + 24); // Add 24 hours to now
+  minStartTime.setHours(minStartTime.getHours() + 13); // Add 13 hours to now
 
   // Use the later of minStartTime (now + 24h) or startDate
   const effectiveStartDate =
@@ -653,8 +653,8 @@ async function findNearestGapSlot(instructorId) {
     )
   );
 
-  // Add 24 hours to the start date
-  startDate.setTime(startDate.getTime() + 24 * 60 * 60 * 1000);
+  // Add 13 hours to the start date
+  startDate.setTime(startDate.getTime() + 13 * 60 * 60 * 1000);
   console.log("UTC gap search startDate:", startDate.toISOString());
 
   // Create end date 6 months from now in UTC
@@ -753,8 +753,8 @@ async function findNearestAvailableSlot(instructorId) {
     )
   );
 
-  // Add 24 hours to the start date
-  startDate.setTime(startDate.getTime() + 24 * 60 * 60 * 1000);
+  // Add 13 hours to the start date
+  startDate.setTime(startDate.getTime() + 13 * 60 * 60 * 1000);
   console.log("UTC startDate after adding 24h:", startDate.toISOString());
 
   // Create end date 6 months from now in UTC
