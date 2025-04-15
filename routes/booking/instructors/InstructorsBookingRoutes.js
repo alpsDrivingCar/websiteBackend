@@ -9,7 +9,7 @@ router.delete("/:id",server.deleteBookingInstructors)
 router.get("/packages",server.getBookingPackagesByPostcodeAndtype)
 router.get("/instructors",server.instructorsByPostcodeAndAvailableTimeAndGearBox)
 router.get("/instructors/availableTimeSlots",server.availableTimeSlots)
-router.get("/instructors/availableGapTimeSlots",server.availableGapTimeSlots)
+router.get("/instructors/availableGapTimeSlots",server.availableTimeSlots)
 
 
 module.exports = router
