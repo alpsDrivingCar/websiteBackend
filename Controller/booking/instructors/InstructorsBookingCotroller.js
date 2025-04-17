@@ -128,7 +128,7 @@ const determinePostcodeAreaLength = (postcode) => {
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
   try {
-    const { postcode, type: typeId, packageId } = req.query;
+    const { postcode, type: typeId, packageId, gearbox } = req.query;
 
     if (!postcode) {
       return res.status(404).json({ message: "Postcode is not defined." });
@@ -146,6 +146,12 @@ exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
 
     // Sort the data by price
     const sortedData = sortDataByNumberHour(bookingInstructor);
+
+    if (gearbox) {
+      // Ensure slug is lowercase and name has first letter capitalized
+      sortedData.gearbox[0].slug = gearbox.toLowerCase();
+      sortedData.gearbox[0].name = gearbox.charAt(0).toUpperCase() + gearbox.slice(1).toLowerCase();
+    }
 
     return res.json({ data: sortedData });
   } catch (error) {
