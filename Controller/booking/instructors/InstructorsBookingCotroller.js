@@ -96,79 +96,31 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 
         let users = [...instructors, ...trainers];
 
-        if (!users.length) {
-            return res.json({ data: [] });
-        }
-        if (studentGender === "male") {
-            users = users.filter(user => !user.AcceptFemaleStudent || user.gender === 0);
-        }
-        return res.json({ data: users });
-        // Check if availableTime is an array, if not, make it an array
-        const availableTimes = Array.isArray(availableTime) ? availableTime.map(time => new Date(time)) : [new Date(availableTime)];
-        
-        // Filter users based on availableAreas and days
-        users = users.filter(user => {
-            // Check if user has the postcode area in their availableAreas
-            const matchingArea = user.availableAreas?.find(area => 
-            area.postcode.toLowerCase() === areaPrefix.toLowerCase()
-            );
-            
-            if (!matchingArea) return false;
-
-            // If days array is empty, instructor is available all days
-            if (!matchingArea.days || matchingArea.days.length === 0) return true;
-
-            // Convert availableTimes to days of the week
-            const requiredDays = availableTimes.map(time => 
-            time.toLocaleString('en-US', { weekday: 'long' })
-            );
-
-            // Check if all required days are covered in the matching area's days
-            return requiredDays.every(day => 
-            matchingArea.days.includes(day)
-            );
-        });
-
-        // Filter users based on available time
-        users = await Promise.all(users.map(async (user) => {
-            try {
-                for (const time of availableTimes) {
-                    const travelTimeInMinutes = parseInt(user.travelingTime.split(' ')[0]);
-                    const travelTimeInMs = travelTimeInMinutes * 60 * 1000;
-                    const timeWith2HoursAndTravelTime = new Date(time.getTime() + (2 * 60 * 60 * 1000) + travelTimeInMs);
-        
-                    // Check for lessons based on the user's role
-                    const roleFilter = user.instructorRole === 'instructor-trainer' ? { trainerId: user._id } : { instructorId: user._id };
-                    const hasLesson = await LessonEvent.findOne({
-                        ...roleFilter, // Add specific role filter
-                        $or: [
-                            { startTime: { $lt: timeWith2HoursAndTravelTime, $gte: time } },
-                            { endTime: { $gt: time, $lte: timeWith2HoursAndTravelTime } },
-                            { $and: [
-                                { startTime: { $lte: time } },
-                                { endTime: { $gte: timeWith2HoursAndTravelTime } }
-                            ]}
-                        ]
-                    });
-        
-                    if (hasLesson) {
-                        return null; // Cancel only this user
-                    }
-                }
-                return user; // Return the user if no lessons conflict
-            } catch (error) {
-                console.error("Error fetching lessons for user", user._id, error);
-                return null; // Handle errors by canceling this user
-            }
-        }));
-
-        users = users.filter(user => user !== null);
-
-        if (!users.length) {
-            return res.json({ data: [] });
-        }
-
-        res.json({ data: users });
+    if (!users.length) {
+      return res.json({ data: [] });
+    }
+    if (studentGender === "male") {
+      users = users.filter(
+        (user) => 
+          // Include instructors who don't exclusively accept female students
+          !user.AcceptFemaleStudent || 
+          // OR include male instructors
+          user.gender === 0 ||
+          // OR include instructors who exclusively accept male students
+          user.AcceptMaleStudent
+      );
+    } else if (studentGender === "female") {
+      users = users.filter(
+        (user) => 
+          // Include instructors who don't exclusively accept male students
+          !user.AcceptMaleStudent || 
+          // OR include female instructors
+          user.gender === 1 ||
+          // OR include instructors who exclusively accept female students
+          user.AcceptFemaleStudent
+      );
+    }
+    return res.json({ data: users });
 
     } catch (error) {
         console.error("Outer Error:", error);
