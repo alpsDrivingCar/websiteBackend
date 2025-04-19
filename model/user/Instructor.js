@@ -216,6 +216,10 @@ const InstructorSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        AcceptMaleStudent: {
+            type: Boolean,
+            default: false,
+        },
         availableAreas: [{
             postcode: {
               type: String,

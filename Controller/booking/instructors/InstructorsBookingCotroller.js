@@ -101,7 +101,23 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     }
     if (studentGender === "male") {
       users = users.filter(
-        (user) => !user.AcceptFemaleStudent || user.gender === 0
+        (user) => 
+          // Include instructors who don't exclusively accept female students
+          !user.AcceptFemaleStudent || 
+          // OR include male instructors
+          user.gender === 0 ||
+          // OR include instructors who exclusively accept male students
+          user.AcceptMaleStudent
+      );
+    } else if (studentGender === "female") {
+      users = users.filter(
+        (user) => 
+          // Include instructors who don't exclusively accept male students
+          !user.AcceptMaleStudent || 
+          // OR include female instructors
+          user.gender === 1 ||
+          // OR include instructors who exclusively accept female students
+          user.AcceptFemaleStudent
       );
     }
     return res.json({ data: users });
