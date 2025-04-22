@@ -28,14 +28,12 @@ exports.lessons = (req, res) => {
 }
 
 exports.lessonByPostCode = async (req, res) => {
-    let postcode = req.query.postCode;
+    const postcode = req.query.postCode;
     const gearbox = req.query.gearbox?.toLowerCase();
     if (!postcode) {
         return res.status(400).json({ message: 'PostCode is required.' });
     }
 
-    // Remove any spaces from postcode
-    postcode = postcode.replace(/\s+/g, '');
     const areaLength = determinePostcodeAreaLength(postcode);
     const areaPrefix = postcode.substring(0, areaLength).trim();
     const areaRegex = new RegExp("^" + areaPrefix, "i");
@@ -94,12 +92,6 @@ exports.lessonByPostCode = async (req, res) => {
 
 const determinePostcodeAreaLength = (postcode) => {
     switch (postcode.length) {
-        case 2:
-            return 2;
-        case 3:
-            return 3;
-        case 4:
-            return 4;
         case 5:
             return 2;
         case 6:
@@ -112,16 +104,15 @@ const determinePostcodeAreaLength = (postcode) => {
 };
 
 const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
-    const postcodeToFetch = postcode.replace(/\s+/g, '');
-    const areaLength = determinePostcodeAreaLength(postcodeToFetch);
+    const areaLength = determinePostcodeAreaLength(postcode);
     const areaPrefix = postcode.substring(0, areaLength).trim();
+    const regexPostcode = new RegExp("^" + areaPrefix, "i");
 
-    // Use exact match with case-insensitive regex
+    console.log("regexPostcode = " + regexPostcode);
     console.log("slugOfTypeLesson = " + slugOfTypeLesson);
 
-    const regexPostcode = new RegExp("^" + areaPrefix + "$", "i");
     const packages = await PackageSchema.find({
-        "postCode.postCode": regexPostcode,  // Exact match, case insensitive
+        "postCode.postCode": regexPostcode,
         slugOfType: slugOfTypeLesson,
         status: 'active'
     });
