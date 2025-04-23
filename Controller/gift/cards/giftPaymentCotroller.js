@@ -165,6 +165,14 @@ async function createStripePaymentIntent(
 
 async function createElavonPaymentIntent(lineItems) {
   try {
+    lineItems.push({
+      price_data: {
+        currency: "gbp",
+        product_data: { name: "Transaction fees" },
+        unit_amount: 3.5, // 3.5 GBP transaction fee
+      },
+      quantity: 1,
+    });    
     const totalAmount = lineItems.reduce(
       (total, item) => total + item.price_data.unit_amount,
       0
