@@ -84,6 +84,10 @@ exports.lessonByPostCode = async (req, res) => {
         
         const response = lessonResult.toObject();
         response.typeOfLesson = filteredTypes;
+        // Remove the "our_offers_packages" type for mobile
+        if(req.headers['user-agent'] && /dart/i.test(req.headers['user-agent'])) {
+            response.typeOfLesson = response.typeOfLesson.filter(type => type.slug !== "our_offers_packages");
+        }
         res.json(response);
 
     } catch (err) {
