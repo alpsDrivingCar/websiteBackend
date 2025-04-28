@@ -57,27 +57,27 @@ exports.deleteBookingInstructors = (req, res) => {
 // Function to get instructors and trainees by postcode, available time, and gearbox
 exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
   try {
-    const { postcode, availableTime, gearbox, studentGender } = req.query;
+    let { postcode, availableTime, gearbox, studentGender } = req.query;
 
     // if (!postcode || !availableTime) {
     //     return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
     // }
-
+    postcode = postcode.replace(/\s+/g, '');
     const areaLength = determinePostcodeAreaLength(postcode);
     const areaPrefix = postcode.substring(0, areaLength).trim();
-    const postcodePattern = new RegExp("^" + areaPrefix, "i");
+    const regexPostcode = new RegExp("^" + areaPrefix + "$", "i");
     const regexPattern = new RegExp(gearbox, "i");
 
     // Define filter criteria for instructors
     const instructorFilter = {
-      areas: { $regex: postcodePattern },
+      areas: regexPostcode,
       AcceptStudent: true,
       status: "active",
     };
 
     // Define filter criteria for trainers (without gearbox)
     const trainerFilter = {
-      areas: { $regex: postcodePattern },
+      areas: regexPostcode,
       gearbox: { $regex: regexPattern },
       AcceptStudent: true,
     };
@@ -129,16 +129,22 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 };
 
 const determinePostcodeAreaLength = (postcode) => {
-  switch (postcode.length) {
-    case 5:
-      return 2;
-    case 6:
-      return 3;
-    case 7:
-      return 4;
-    default:
-      return 3; // Default value, can be adjusted as needed
-  }
+    switch (postcode.length) {
+        case 2:
+            return 2;
+        case 3:
+            return 3;
+        case 4:
+            return 4;
+        case 5:
+            return 2;
+        case 6:
+            return 3;
+        case 7:
+            return 4;
+        default:
+            return 3; // Default value, can be adjusted as needed
+    }
 };
 
 ////////////////////// get Booking   //////////////////
