@@ -47,7 +47,7 @@ exports.lessonByPostCode = async (req, res) => {
     try {
         const instructors = await InstructorsUserSchema.find(filter);
         if (instructors.length === 0) {
-            return res.status(404).json({ message: 'There are no trainers available in this PostCode. Please try another PostCode, such as NN2 8FW' });
+            return res.status(404).json({ message: 'Sorry, we don’t currently deliver packages to this postcode.' });
         }
 
         const lessonResult = await LessonSchema.findById("64876d775160ba7ae603516e");
@@ -88,6 +88,10 @@ exports.lessonByPostCode = async (req, res) => {
         if(req.headers['user-agent'] && /dart/i.test(req.headers['user-agent'])) {
             response.typeOfLesson = response.typeOfLesson.filter(type => type.slug !== "our_offers_packages");
         }
+
+        if (response.typeOfLesson.length === 0) {
+            return res.status(404).json({ message: 'Sorry, we don’t currently deliver packages to this postcode.' });
+        }
         res.json(response);
 
     } catch (err) {
@@ -121,7 +125,6 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
     const areaPrefix = postcode.substring(0, areaLength).trim();
 
     // Use exact match with case-insensitive regex
-    console.log("slugOfTypeLesson = " + slugOfTypeLesson);
 
     const regexPostcode = new RegExp("^" + areaPrefix + "$", "i");
     const packages = await PackageSchema.find({
