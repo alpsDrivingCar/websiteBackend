@@ -47,7 +47,7 @@ exports.lessonByPostCode = async (req, res) => {
     try {
         const instructors = await InstructorsUserSchema.find(filter);
         if (instructors.length === 0) {
-            return res.status(404).json({ message: 'Sorry, we don’t currently deliver packages to this postcode.' });
+            return res.status(404).json({ message: 'Unfortunately, we don’t have any instructors in your area at the moment.' });
         }
 
         const lessonResult = await LessonSchema.findById("64876d775160ba7ae603516e");
@@ -90,7 +90,7 @@ exports.lessonByPostCode = async (req, res) => {
         }
 
         if (response.typeOfLesson.length === 0) {
-            return res.status(404).json({ message: 'Sorry, we don’t currently deliver packages to this postcode.' });
+            return res.status(404).json({ message: 'Unfortunately, we don’t have any instructors in your area at the moment.' });
         }
         res.json(response);
 
