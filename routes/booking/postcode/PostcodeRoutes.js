@@ -7,5 +7,7 @@ const router = express.Router();
 router.get("/validate-postcode", postcodeController.validateUKPostcode);
 router.get("/postcode-gearbox-our-instructors", postcodeController.getPostCodeAndGearboxOfOurInstructors);
 router.get('/top-searches', authenticateAdmin,postcodeController.getTopSearchedPostcodes);
+router.get('/covered-cities', postcodeController.getCoveredCities);
+
 
 module.exports = router;
