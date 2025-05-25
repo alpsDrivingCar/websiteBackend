@@ -16,7 +16,7 @@ const PupilSchema = new mongoose.Schema(
     instructors: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Instructor',
+        ref: 'Instructors',
       },
     ],
     phoneNumber: {

@@ -22,6 +22,7 @@ dotenv.config(dotenv);
 app.use('/api/booking/lesson', require('./routes/booking/lesson/LessonRoutes'))
 app.use('//api/booking/lesson', require('./routes/booking/lesson/LessonRoutes')) // Remove after fixed in frontend
 app.use('/api/booking/', require('./routes/booking/instructors/InstructorsBookingRoutes'))
+app.use('/api/v2/booking/', require('./routes/booking/instructors/InstructorsBookingRoutesV2.js'))
 app.use('/api/booking/timeLesson', require('./routes/booking/timeLesson/TimeLessonRoutes'))
 app.use('/api/booking/packageBooking', authenticateAdmin, require('./routes/booking/package/PackageBookingRoutes'))
 app.use('/api/checkout', require('./routes/booking/checkout/payment/PaymentRoutes'))

@@ -4,6 +4,7 @@ const InstructorsUserSchema = require("../../../model/user/Instructor");
 const TraineesUserSchema = require("../../../model/user/Trainees");
 const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
+const Pupil = require("../../../model/user/Pupil");
 
 exports.createBookingInstructors = (req, res) => {
     const lessonSchema = new InstructorsSchema(req.body);
@@ -421,6 +422,171 @@ exports.availableTimeSlots = async (req, res) => {
         console.error("Error:", error);
         res.status(500).json({ message: "An error occurred", error: error.message });
     }
+};
+
+exports.availableTimeSlotsV2 = async (req, res) => {
+  try {
+    const {
+      instructorId,
+      instructorIds,
+      month,
+      year,
+      postcode,
+      isGapCreating = false,
+      pupilId,
+    } = req.query;
+    const isGapCreatingBool = isGapCreating === "true";
+    let areaPrefix = "";
+    if (postcode) {
+      const areaLength = determinePostcodeAreaLength(postcode);
+      areaPrefix = postcode.substring(0, areaLength).trim();
+    }
+
+    // Handle both single and multiple instructor cases
+    if (!instructorId && !instructorIds && !pupilId) {
+      return res.status(400).json({
+        message: "Either instructorId or instructorIds is required.",
+      });
+    }
+    let instructors = [];
+
+    if (pupilId) {
+      const pupil = await Pupil.findById(pupilId).populate("instructors");
+      instructors = (pupil.instructors || []).filter(instructor => instructor.status === "active");
+    } else {
+      // Get array of instructor IDs
+      const instructorIdArray = instructorId
+        ? [instructorId]
+        : instructorIds.split(",");
+
+      // Get all instructors
+      instructors = await InstructorsUserSchema.find({
+        _id: { $in: instructorIdArray },
+      });
+    }
+
+    if (instructors.length === 0) {
+      return res.status(404).json({ message: "No instructors found" });
+    }
+
+    // If month or year is missing, find the nearest available month
+    if (!month || !year) {
+      // Find nearest slot for all instructors
+      const nearestSlots = await Promise.all(
+        instructors.map((instructor) =>
+          findNearestAvailableSlot(instructor._id)
+        )
+      );
+      // Filter out null values and sort by date
+      const validSlots = nearestSlots
+        .filter((slot) => slot !== null)
+        .sort((a, b) => a - b);
+
+      if (validSlots.length === 0) {
+        return res.status(404).json({ message: "No available slots found" });
+      }
+
+      // Use the earliest slot to determine month and year
+      const nearestDate = new Date(validSlots[0]);
+      let nearestMonth = nearestDate.getMonth() + 1;
+      let nearestYear = nearestDate.getFullYear();
+
+      // Function to check next month
+      const checkNextMonth = (currentMonth, currentYear) => {
+        if (currentMonth === 12) {
+          return { month: 1, year: currentYear + 1 };
+        } else {
+          return { month: currentMonth + 1, year: currentYear };
+        }
+      };
+
+      // Try to get availability for all instructors for the nearest month
+      let instructorResults = await Promise.all(
+        instructors.map(async (instructor) => {
+          const availability = await getInstructorAvailability(
+            instructor,
+            nearestMonth,
+            nearestYear,
+            areaPrefix,
+            isGapCreatingBool,
+            true
+          );
+          return {
+            instructorId: instructor._id,
+            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+            availableDays: availability.availableDays,
+          };
+        })
+      );
+
+      // Check if any instructor has available days
+      let hasAvailableSlots = instructorResults.some(
+        (instructor) =>
+          instructor.availableDays && instructor.availableDays.length > 0
+      );
+
+      // If no available slots in the nearest month, check the next month
+      if (!hasAvailableSlots) {
+        const nextMonthInfo = checkNextMonth(nearestMonth, nearestYear);
+        nearestMonth = nextMonthInfo.month;
+        nearestYear = nextMonthInfo.year;
+
+        instructorResults = await Promise.all(
+          instructors.map(async (instructor) => {
+            const availability = await getInstructorAvailability(
+              instructor,
+              nearestMonth,
+              nearestYear,
+              areaPrefix,
+              isGapCreatingBool
+            );
+            return {
+              instructorId: instructor._id,
+              instructorName: `${instructor.firstName} ${instructor.lastName}`,
+              availableDays: availability.availableDays,
+            };
+          })
+        );
+      }
+
+      return res.json({
+        month: nearestMonth.toString(),
+        year: nearestYear.toString(),
+        postcode: areaPrefix,
+        instructors: instructorResults,
+      });
+    }
+
+    // For specified month and year, get availability for all instructors
+    const instructorResults = await Promise.all(
+      instructors.map(async (instructor) => {
+        const availability = await getInstructorAvailability(
+          instructor,
+          parseInt(month),
+          parseInt(year),
+          areaPrefix,
+          isGapCreatingBool
+        );
+        return {
+          instructorId: instructor._id,
+          instructorName: `${instructor.firstName} ${instructor.lastName}`,
+          availableDays: availability.availableDays,
+        };
+      })
+    );
+
+    res.json({
+      month: month.toString(),
+      year: year.toString(),
+      postcode: areaPrefix,
+      instructors: instructorResults,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res
+      .status(500)
+      .json({ message: "An error occurred", error: error.message });
+  }
 };
 
 exports.availableGapTimeSlots = async (req, res) => {
