@@ -442,16 +442,39 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       areaPrefix = postcode.substring(0, areaLength).trim();
     }
 
+    // Extract pupilId from bearer token if available
+    let tokenPupilId = null;
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      if (token) {
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
+        console.log('Decoded token:', decoded);
+        // Check if the token contains pupil information
+        if (decoded.pupilId) {
+          tokenPupilId = decoded.pupilId;
+        } else if (decoded._id && decoded.roles && decoded.roles.includes('pupil')) {
+          tokenPupilId = decoded._id;
+        }
+      }
+    } catch (error) {
+      // Token verification failed or token doesn't exist, continue without token-based pupilId
+      console.log('Token verification failed or no valid pupil token:', error.message);
+    }
+
+    // Use pupilId from query parameter first, then fall back to token
+    const effectivePupilId = pupilId || tokenPupilId;
+
     // Handle both single and multiple instructor cases
-    if (!instructorId && !instructorIds && !pupilId) {
+    if (!instructorId && !instructorIds && !effectivePupilId) {
       return res.status(400).json({
         message: "Either instructorId or instructorIds is required.",
       });
     }
     let instructors = [];
 
-    if (pupilId) {
-      const pupil = await Pupil.findById(pupilId).populate("instructors");
+    if (effectivePupilId) {
+      const pupil = await Pupil.findById(effectivePupilId).populate("instructors");
       instructors = (pupil.instructors || []).filter(instructor => instructor.status === "active");
     } else {
       // Get array of instructor IDs
