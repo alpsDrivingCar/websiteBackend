@@ -489,7 +489,17 @@ exports.availableTimeSlotsV2 = async (req, res) => {
     }
 
     if (instructors.length === 0) {
-      return res.status(404).json({ message: "No instructors found" });
+      const isFlutterApp = req.headers['user-agent']?.includes('Flutter') || 
+                           req.headers['user-agent']?.includes('Dart') ||
+                           req.headers['user-agent']?.includes('dart') ||
+                           req.headers['user-agent']?.includes('flutter')
+
+      
+      const message = isFlutterApp 
+        ? "No instructors available, please contact Alps office"
+        : "No instructors found";
+        
+      return res.status(404).json({ message });
     }
 
     // If month or year is missing, find the nearest available month
