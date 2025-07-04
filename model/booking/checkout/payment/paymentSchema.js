@@ -34,7 +34,8 @@ const checkoutInfoSchema = new mongoose.Schema({
         orderType: {
             type: String,
             enum: ['app', 'website']
-        }
+        },
+        elavonSessionId: String,
     },
     studentInfo: {
         name: String,
@@ -64,7 +65,11 @@ const checkoutInfoSchema = new mongoose.Schema({
         type: String, // or Schema.Types.ObjectId if you reference a user model
         required: false
     }
-});
+},
+{
+    timestamps: true
+}
+);
 
 
 // Create a Mongoose model from the schema
