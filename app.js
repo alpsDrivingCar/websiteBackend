@@ -76,7 +76,7 @@ initializeScheduledGifts().catch(console.error);
 const cron = require('node-cron');
 
 // Add this to your app.js or create a separate jobs file
-cron.schedule('*/1 * * * *', async () => { // Run every 5 minutes
+cron.schedule('*/5 * * * *', async () => { // Run every 5 minutes
     try {
         console.log('Checking pending payments...');
         await checkPendingPayments();
