@@ -6,7 +6,7 @@ const InstructorsUserSchema = require("../../../../model/user/Instructor");
 const LessonEvent = require("../../../../model/booking/instructors/lessonEventSchema");
 const axios = require("axios");
 const NotificationCreator = require("../../../notification/notificationCreator");
-
+const { updateOrderStatus } = require('../../../../Controller/booking/checkout/payment/updateOrder')
 const moment = require("moment");
 const crypto = require("crypto");
 const ejs = require("ejs");
@@ -51,35 +51,6 @@ exports.getPayment = async (req, res) => {
   }
 };
 
-// TO BE DELETED AFTER TESTING**
-// exports.createPaymentAndGetUrlPayment = async (req, res) => {
-//     try {
-//         const receivedData = req.body;
-//         const { studentInfo, orderInfo } = receivedData;
-
-//         const isAvailable = await checkInstructorAvailability(orderInfo);
-//         if (!isAvailable) {
-//             return res.status(404).json({ message: 'Instructor has become unavailable at the requested times.' });
-//         }
-
-//         const lineItems = await generateLineItems(orderInfo);
-
-//         const reservationCode = generateReservationCode(studentInfo.phoneNumber);
-//         orderInfo.reservationCode = reservationCode;
-
-//         // Save checkoutInfo to the database.
-//         const savedCheckoutInfo = await saveCheckoutInfo(receivedData, orderInfo);
-
-//         // Create Stripe payment intent.
-//         const paymentIntent = await createStripePaymentIntent(orderInfo, lineItems);
-//         await sendEmail(studentInfo.email,reservationCode);
-
-//         res.json({ url: paymentIntent.url, data: savedCheckoutInfo });
-//     } catch (error) {
-//         handleError(res, error);
-//     }
-// };
-
 exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
   try {
     const receivedData = req.body;
@@ -108,6 +79,20 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     } else {
       paymentSession = await createElavonPaymentSession(paymentIntent.href);
     }
+    savedCheckoutInfo.orderInfo.elavonSessionId = paymentSession.id;
+    await savedCheckoutInfo.save();
+
+    CheckoutInfo.findById(savedCheckoutInfo._id)
+      .then((checkoutInfo) => {
+        checkoutInfo.orderInfo.elavonSessionId = paymentSession.id;
+        return checkoutInfo.save();
+      })
+      .catch((err) => {
+        console.error("Error saving Elavon session ID:", err);
+        return res.status(500).json({
+          error: "Failed to save Elavon session ID",
+        });
+      });
 
     await sendEmail(studentInfo.email, reservationCode);
     sendNotifications(receivedData, String(savedCheckoutInfo._id));
@@ -323,16 +308,6 @@ async function fetchRegularPackage(packageId) {
   }
   return packageResult;
 }
-
-// TO BE DELETED AFTER TESTING**
-// async function createStripePaymentIntent(orderInfo, lineItems) {
-//     return stripe.checkout.sessions.create({
-//         mode: 'payment',
-//         success_url: orderInfo.success_url,
-//         cancel_url: orderInfo.cancel_url,
-//         line_items: lineItems,
-//     });
-// }
 
 async function createElavonPaymentIntent(lineItems) {
   try {
@@ -572,4 +547,45 @@ function generateReservationCode(orderId) {
   const salt = crypto.randomBytes(16).toString("hex");
   hash.update(`${orderId}${salt}`);
   return hash.digest("hex").substring(0, 8);
+}
+
+
+const cron = require('node-cron');
+
+// Add this to your app.js or create a separate jobs file
+cron.schedule('*/5 * * * *', async () => { // Run every 5 minutes
+    try {
+        await checkPendingPayments();
+    } catch (error) {
+        console.error('Payment status check failed:', error);
+    }
+});
+
+async function checkPendingPayments() {
+    const pendingOrders = await CheckoutInfo.find({
+        'orderInfo.status': 'pending',
+        'createdAt': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+    });
+
+    for (const order of pendingOrders) {
+        try {
+            // Use your existing getElavonSessionStatus function
+            const sessionStatus = await getElavonSessionStatus(order.orderInfo.elavonSessionId);
+
+            const isPaymentCompleted = sessionStatus.transaction && 
+                              sessionStatus.threeDSecure && 
+                              sessionStatus.threeDSecure.transactionStatus === 'Y';
+
+            if (isPaymentCompleted) {
+                await updateOrderStatus({ 
+                    params: { id: order._id }, 
+                    body: { status: 'success' } 
+                }, { json: () => {} }); // Mock response object
+            } else {
+              console.log('Payment not completed for order', order._id);
+            }
+        } catch (error) {
+            console.error(`Failed to check status for order ${order._id}:`, error);
+        }
+    }
 }

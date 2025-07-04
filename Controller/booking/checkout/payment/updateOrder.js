@@ -18,6 +18,11 @@ exports.updateOrderStatus = async (req, res) => {
     try {
         const {id} = req.params;
         const {status} = req.body;
+        const order = await CheckoutInfo.findById(id);
+        const isOrderPaid = await isElavonPaymentPaid(order.orderInfo.elavonSessionId);
+        if (!isOrderPaid) {
+            return res.status(400).json({error: "Order is not paid yet. Please complete the payment first."});
+        }
 
         // Update status
         var updateResult = await updateStatusById(id, status);
@@ -60,6 +65,29 @@ exports.updateOrderStatus = async (req, res) => {
         }
     }
 };
+
+// Helper function to get Elavon session status
+const isElavonPaymentPaid = async (sessionId) => {
+    const response = await axios({
+      method: "GET",
+      url: `${process.env.ELAVON_URL}/payment-sessions/${sessionId}`,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            `${process.env.ELAVON_MERCHANT_ALIAS}:${process.env.ELAVON_SECRET_KEY}`
+          ).toString("base64"),
+      },
+    });
+
+    const isCompleted =
+        response.data.transaction &&
+        response.data.threeDSecure &&
+        response.data.threeDSecure.transactionStatus === "Y";
+
+    return isCompleted;
+  };
 
 async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     const availableHours = updatedCheckoutInfo.orderInfo.items[0].availableHours;
