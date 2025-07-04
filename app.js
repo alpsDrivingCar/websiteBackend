@@ -7,6 +7,7 @@ const cors = require("cors");
 const authenticateAdmin = require('./Middleware/dashboardAdminAuth.js');
 const { initializeScheduledGifts } = require('./Controller/gift/cards/giftPaymentCotroller');
 const addressRoutes = require("./routes/address/addressRoutes");
+const { checkPendingPayments } = require('./Controller/booking/checkout/payment/paymentCotroller');
 
 app.use(bodyParser.json())
 app.use(bodyParser.text())
@@ -70,6 +71,19 @@ app.use(function (req, res, next) {
 
 // Initialize scheduled gifts when server starts
 initializeScheduledGifts().catch(console.error);
+
+const cron = require('node-cron');
+
+// Add this to your app.js or create a separate jobs file
+cron.schedule('*/1 * * * *', async () => { // Run every 5 minutes
+    try {
+        console.log('Checking pending payments...');
+        await checkPendingPayments();
+        console.log('Pending payments checked');
+    } catch (error) {
+        console.error('Payment status check failed:', error);
+    }
+});
 
 //mongoose
 const { mongoose } = require('mongoose');

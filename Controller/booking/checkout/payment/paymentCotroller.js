@@ -549,19 +549,7 @@ function generateReservationCode(orderId) {
   return hash.digest("hex").substring(0, 8);
 }
 
-
-const cron = require('node-cron');
-
-// Add this to your app.js or create a separate jobs file
-cron.schedule('*/5 * * * *', async () => { // Run every 5 minutes
-    try {
-        await checkPendingPayments();
-    } catch (error) {
-        console.error('Payment status check failed:', error);
-    }
-});
-
-async function checkPendingPayments() {
+exports.checkPendingPayments = async () => {
     const pendingOrders = await CheckoutInfo.find({
         'orderInfo.status': 'pending',
         'createdAt': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
