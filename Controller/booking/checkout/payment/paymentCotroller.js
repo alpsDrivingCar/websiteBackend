@@ -552,7 +552,7 @@ function generateReservationCode(orderId) {
 exports.checkPendingPayments = async () => {
     const pendingOrders = await CheckoutInfo.find({
         'orderInfo.status': 'pending',
-        'createdAt': { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
+        'createdAt': { $gte: new Date(Date.now() - 1 * 60 * 60 * 1000) } // Last 1 hours
     });
 
     for (const order of pendingOrders) {
