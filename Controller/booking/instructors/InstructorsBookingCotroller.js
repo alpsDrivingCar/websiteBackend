@@ -916,7 +916,9 @@ async function getInstructorAvailability(instructor, month, year, postcode) {
 
         const slotsGroupedByDay = {};
         const currentDate = new Date(Date.UTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()));
-        const travelTimeInMinutes = parseInt(instructor.travelingTime.split(' ')[0]);
+        const travelTimeInMinutes = instructor.travelingTime === "disable" ? "0" : parseInt(
+          instructor.travelingTime.split(" ")[0]
+        );
 
         const workingHoursOverrides = workingHoursEvents.reduce((acc, event) => {
             const dayKey = new Date(event.startTime).toISOString().split('T')[0];
