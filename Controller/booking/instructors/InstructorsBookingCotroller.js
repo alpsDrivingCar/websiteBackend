@@ -1136,7 +1136,7 @@ async function getInstructorAvailability(
         startDate.getDate()
       )
     );
-    const travelTimeInMinutes = parseInt(
+    const travelTimeInMinutes = instructor.travelingTime === "disable" ? "0" : parseInt(
       instructor.travelingTime.split(" ")[0]
     );
 
