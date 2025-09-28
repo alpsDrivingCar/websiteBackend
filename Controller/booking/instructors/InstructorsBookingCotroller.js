@@ -531,7 +531,6 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       if (token) {
         const jwt = require('jsonwebtoken');
         const decoded = jwt.verify(token, process.env.TOKEN_SECRET);
-        console.log('Decoded token:', decoded);
         // Check if the token contains pupil information
         if (decoded.pupilId) {
           tokenPupilId = decoded.pupilId;
@@ -541,7 +540,6 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       }
     } catch (error) {
       // Token verification failed or token doesn't exist, continue without token-based pupilId
-      console.log('Token verification failed or no valid pupil token:', error.message);
     }
 
     // Use pupilId from query parameter first, then fall back to token
@@ -853,7 +851,7 @@ async function fetchGapEventsForInstructor(instructorId, month, year) {
   const effectiveStartDate =
     minStartTime > startDate ? minStartTime : startDate;
 
-  console.log("Gap search - Effective start date:", effectiveStartDate);
+  
 
   return await LessonEvent.find({
     $or: [{ instructorId: instructorId }, { trainerId: instructorId }],
@@ -982,7 +980,6 @@ async function findNearestAvailableSlot(instructorId) {
 
   // Add 13 hours to the start date
   startDate.setTime(startDate.getTime() + 13 * 60 * 60 * 1000);
-  console.log("UTC startDate after adding 24h:", startDate.toISOString());
 
   // Create end date 6 months from now in UTC
   const endDate = new Date(
@@ -995,7 +992,6 @@ async function findNearestAvailableSlot(instructorId) {
       now.getUTCSeconds()
     )
   );
-  console.log("UTC endDate:", endDate.toISOString());
 
   const instructor = await InstructorsUserSchema.findById(instructorId);
   if (!instructor) return null;
@@ -1006,19 +1002,16 @@ async function findNearestAvailableSlot(instructorId) {
     startTime: { $gte: startDate, $lte: endDate },
     status: { $ne: "cancelled" },
   });
-  console.log(`Found ${lessons.length} lessons that might conflict`);
 
   // Start checking from the startDate day
   let currentDate = new Date(startDate); 
 
-  console.log("Starting search from:", currentDate.toISOString());
 
   // Duration of a typical lesson slot in milliseconds (2 hours)
   const slotDuration = 2 * 60 * 60 * 1000;
 
   // Loop through each day until we find an available slot or reach the end date
   while (currentDate <= endDate) {
-    console.log(`Checking day: ${currentDate.toISOString().split("T")[0]}`);
 
     // Get working hours for the day (6 AM to 11 PM)
     const dayStart = new Date(
@@ -1065,9 +1058,7 @@ async function findNearestAvailableSlot(instructorId) {
       });
 
       if (!hasConflict) {
-        console.log(
-          `Found available slot: ${currentSlotStart.toISOString()} to ${currentSlotEnd.toISOString()}`
-        );
+        
         return currentSlotStart; // Return the first available slot
       }
 
@@ -1079,7 +1070,7 @@ async function findNearestAvailableSlot(instructorId) {
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
 
-  console.log("No available slots found in the date range");
+  
   return null;
 }
 
@@ -1098,7 +1089,6 @@ async function getInstructorAvailability(
     } else {
         startDate = new Date(Date.UTC(year, month - 1, 1));
     }
-    console.log("startDate123333: ", startDate);
     const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
 
     // Update the workingHoursEvents query to include LUNCH_BREAK and fetch travel time events
@@ -1129,12 +1119,7 @@ async function getInstructorAvailability(
       }),
     ]);
 
-    console.log("WOKRING HOURS EVENTS", workingHoursEvents);
-    console.log("Debug - Travel Time Events:", travelTimeEvents.length);
-    console.log("Debug - Instructor:", instructor._id);
-    console.log("Debug - Date Range:", { startDate, endDate });
-
-    console.log("Debug - Existing Lessons:", existingLessons.length);
+    
 
     const slotsGroupedByDay = {};
     const currentDate = new Date(
@@ -1145,12 +1130,11 @@ async function getInstructorAvailability(
       )
     );
     // Get default travel time for slot spacing (fallback when no specific travel time events exist)
-    const defaultTravelTimeInMinutes = instructor.travelingTime === "disable" ? 0 : (() => {
+      const defaultTravelTimeInMinutes = instructor.travelingTime === "disable" ? 0 : (() => {
       const travelTime = instructor.travelingTime.toString();
       // Handle different formats: "15 mins", "15", "20 minutes", etc.
       const numericValue = travelTime.match(/\d+/);
       const parsedValue = numericValue ? parseInt(numericValue[0]) : 0;
-      console.log(`Debug - Default travel time parsing: "${instructor.travelingTime}" -> ${parsedValue} minutes`);
       return parsedValue;
     })();
 
@@ -1185,24 +1169,20 @@ async function getInstructorAvailability(
     }, {});
 
     while (currentDate <= endDate) {
-      console.log("currentDate123 before: ", currentDate);
       if (currentDate < new Date()) {
         currentDate.setDate(currentDate.getDate() + 1);
         continue;
       }
-      console.log("currentDate123: ", currentDate);
 
       const dayKey = currentDate.toISOString().split("T")[0];
       const currentDay = currentDate.toLocaleString("en-US", {
         weekday: "long",
       });
 
-      console.log("Debug - Checking day:", currentDay);
 
       // Check for working hours override first, then fall back to default working hours
       const workingHoursOverride = workingHoursOverrides[dayKey];
       const defaultWorkingHours = instructor.workingHours?.[currentDay];
-      console.log("Debug - Working hours override:", workingHoursOverride);
       if (workingHoursOverride && workingHoursOverride.end === 0) {
         workingHoursOverride.end = 23;
       }
@@ -1239,10 +1219,7 @@ async function getInstructorAvailability(
         workingStartTime.minutes = 0;
       }
 
-      console.log("Debug - Working hours:", {
-        workingStartTime,
-        workingEndTime,
-      });
+      
 
       slotsGroupedByDay[dayKey] = {
         date: dayKey,
@@ -1338,12 +1315,7 @@ async function getInstructorAvailability(
           );
         }
 
-        console.log("Debug - Lunch times:", {
-          source: workingHoursOverride?.lunchBreak ? "override" : "default",
-          start: lunchStartTime?.toLocaleTimeString(),
-          end: lunchEndTime?.toLocaleTimeString(),
-          dayKey,
-        });
+        
 
         // Check if slot overlaps with lunch break using exact times
         const overlapsLunch =
@@ -1355,10 +1327,7 @@ async function getInstructorAvailability(
         if (overlapsLunch) {
           // Skip to after lunch
           currentTime = new Date(lunchEndTime);
-          console.log(
-            "Debug - Skipping lunch period, next slot starts at:",
-            currentTime.toLocaleTimeString()
-          );
+          
           continue;
         }
 
@@ -1368,7 +1337,9 @@ async function getInstructorAvailability(
 
         // Check conflicts with both lessons and travel time events
         const allEvents = [...existingLessons, ...travelTimeEvents];
-        const hasConflict = allEvents.some((event) => {
+        
+        // First check direct conflicts with existing events
+        const hasDirectConflict = allEvents.some((event) => {
           const eventStart = new Date(event.startTime);
           const eventEnd = new Date(event.endTime);
           const conflicts = (
@@ -1377,12 +1348,20 @@ async function getInstructorAvailability(
             (currentTime <= eventStart && slotEndTime >= eventEnd)
           );
           
-          if (conflicts) {
-            console.log(`Debug - Slot conflict: ${currentTime.toLocaleTimeString()} - ${slotEndTime.toLocaleTimeString()} conflicts with ${event.eventType}${event.isTraveling ? ' (Travel)' : ''} ${eventStart.toLocaleTimeString()} - ${eventEnd.toLocaleTimeString()}`);
-          }
-          
           return conflicts;
         });
+        
+        // Check if there's enough travel time buffer after the slot ends
+        const slotEndPlusTravelTime = new Date(slotEndTime.getTime() + (defaultTravelTimeInMinutes * 60 * 1000));
+        const hasInsufficientTravelBuffer = allEvents.some((event) => {
+          const eventStart = new Date(event.startTime);
+          // If there's an event that starts before we finish our travel time, it's a conflict
+          const insufficientBuffer = eventStart < slotEndPlusTravelTime && eventStart >= slotEndTime;
+          
+          return insufficientBuffer;
+        });
+        
+        const hasConflict = hasDirectConflict || hasInsufficientTravelBuffer;
 
         if (!hasConflict) {
           const timeSlot = {
@@ -1395,15 +1374,11 @@ async function getInstructorAvailability(
             timestamp: currentTime.toISOString(),
           };
           slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
-          console.log("Debug - Added slot:", timeSlot.time);
-          
           // After adding a slot, jump to the next possible slot time
           // This accounts for: 2-hour lesson + travel time
           const slotDurationMs = 2 * 60 * 60 * 1000; // 2 hours
           const travelTimeMs = defaultTravelTimeInMinutes * 60 * 1000;
           const nextPossibleSlotTime = new Date(currentTime.getTime() + slotDurationMs + travelTimeMs);
-          
-          console.log(`Debug - After slot ${timeSlot.time}, next possible slot at: ${nextPossibleSlotTime.toLocaleTimeString()} (after 2h lesson + ${defaultTravelTimeInMinutes}min travel)`);
           currentTime = nextPossibleSlotTime;
         } else {
           // Move by 1 minute when there's a conflict to find the earliest available slot
@@ -1422,14 +1397,13 @@ async function getInstructorAvailability(
       a.date.localeCompare(b.date)
     );
 
-    console.log("Debug - Final slots count:", formattedSlots.length);
     return {
       instructorId: instructor._id,
       instructorName: `${instructor.firstName} ${instructor.lastName}`,
       availableDays: formattedSlots,
     };
   } catch (error) {
-    console.error("Debug - Error:", error);
     throw error;
   }
 }
+
