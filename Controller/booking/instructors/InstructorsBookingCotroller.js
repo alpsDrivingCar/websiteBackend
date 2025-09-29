@@ -1138,6 +1138,12 @@ async function getInstructorAvailability(
       return parsedValue;
     })();
 
+      // Precompute travel time in ms and relevant away events to enforce buffer after away periods
+      const travelTimeMs = defaultTravelTimeInMinutes * 60 * 1000;
+      const partOfDayAwayEvents = existingLessons.filter(
+        (e) => e.eventType === "Away" && e.awayType === "PART_OF_DAY" && !e.isTraveling
+      );
+
     const workingHoursOverrides = workingHoursEvents.reduce((acc, event) => {
       const dayKey = new Date(event.startTime).toISOString().split("T")[0];
       if (!acc[dayKey]) {
@@ -1252,6 +1258,29 @@ async function getInstructorAvailability(
       );
 
       while (currentTime < dayEnd) {
+        // If currently inside an Away PART_OF_DAY, jump to end + travel buffer
+        const overlappingAway = partOfDayAwayEvents.find((ev) => {
+          const evStart = new Date(ev.startTime);
+          const evEnd = new Date(ev.endTime);
+          return evStart <= currentTime && evEnd > currentTime;
+        });
+        if (overlappingAway) {
+          currentTime = new Date(new Date(overlappingAway.endTime).getTime() + travelTimeMs);
+          continue;
+        }
+
+        // If an Away PART_OF_DAY ended within the travel buffer before current time, delay to end + travel
+        const recentAway = partOfDayAwayEvents
+          .filter((ev) => {
+            const evEnd = new Date(ev.endTime);
+            return evEnd <= currentTime && evEnd > new Date(currentTime.getTime() - travelTimeMs);
+          })
+          .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0];
+        if (recentAway) {
+          currentTime = new Date(new Date(recentAway.endTime).getTime() + travelTimeMs);
+          continue;
+        }
+
         const slotEndTime = new Date(currentTime);
         slotEndTime.setTime(currentTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours lesson
 
@@ -1377,7 +1406,6 @@ async function getInstructorAvailability(
           // After adding a slot, jump to the next possible slot time
           // This accounts for: 2-hour lesson + travel time
           const slotDurationMs = 2 * 60 * 60 * 1000; // 2 hours
-          const travelTimeMs = defaultTravelTimeInMinutes * 60 * 1000;
           const nextPossibleSlotTime = new Date(currentTime.getTime() + slotDurationMs + travelTimeMs);
           currentTime = nextPossibleSlotTime;
         } else {
