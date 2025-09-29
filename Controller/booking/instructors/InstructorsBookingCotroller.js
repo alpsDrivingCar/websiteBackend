@@ -981,10 +981,6 @@ async function getInstructorAvailability(
       return parsedValue;
     })();
     const travelTimeMs = defaultTravelTimeInMinutes * 60 * 1000;
-    // Collect non-travel Away events (PART_OF_DAY) to enforce buffer after they end
-    const partOfDayAwayEvents = existingLessons.filter(
-      (e) => e.eventType === "Away" && e.awayType === "PART_OF_DAY" && !e.isTraveling
-    );
 
     const workingHoursOverrides = workingHoursEvents.reduce((acc, event) => {
       const dayKey = new Date(event.startTime).toISOString().split("T")[0];
@@ -1097,29 +1093,6 @@ async function getInstructorAvailability(
       );
 
       while (currentTime < dayEnd) {
-        // If currently inside an Away PART_OF_DAY, jump to its end + travel buffer
-        const overlappingAway = partOfDayAwayEvents.find((ev) => {
-          const evStart = new Date(ev.startTime);
-          const evEnd = new Date(ev.endTime);
-          return evStart <= currentTime && evEnd > currentTime;
-        });
-        if (overlappingAway) {
-          currentTime = new Date(new Date(overlappingAway.endTime).getTime() + travelTimeMs);
-          continue;
-        }
-
-        // If an Away PART_OF_DAY ended within required travel buffer before now, delay start
-        const recentAway = partOfDayAwayEvents
-          .filter((ev) => {
-            const evEnd = new Date(ev.endTime);
-            return evEnd <= currentTime && evEnd > new Date(currentTime.getTime() - travelTimeMs);
-          })
-          .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0];
-        if (recentAway) {
-          currentTime = new Date(new Date(recentAway.endTime).getTime() + travelTimeMs);
-          continue;
-        }
-
         const slotEndTime = new Date(currentTime);
         slotEndTime.setTime(currentTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours lesson
 
