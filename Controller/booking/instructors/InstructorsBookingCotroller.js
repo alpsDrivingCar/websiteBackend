@@ -1191,14 +1191,15 @@ async function getInstructorAvailability(
         });
         
         // Check if there's enough travel time buffer after the slot ends
+        // Allow travel buffer to overlap Away events; only block if it overlaps a Lesson start
         const slotEndPlusTravelTime = new Date(slotEndTime.getTime() + (defaultTravelTimeInMinutes * 60 * 1000));
-        const hasInsufficientTravelBuffer = allEvents.some((event) => {
-          const eventStart = new Date(event.startTime);
-          // If there's an event that starts before we finish our travel time, it's a conflict
-          const insufficientBuffer = eventStart < slotEndPlusTravelTime && eventStart >= slotEndTime;
-          
-          return insufficientBuffer;
-        });
+        const hasInsufficientTravelBuffer = existingLessons
+          .filter((e) => e.eventType === "Lesson")
+          .some((event) => {
+            const eventStart = new Date(event.startTime);
+            // Conflict only if another lesson starts before travel buffer finishes
+            return eventStart < slotEndPlusTravelTime && eventStart >= slotEndTime;
+          });
         
         const hasConflict = hasDirectConflict || hasInsufficientTravelBuffer;
 
