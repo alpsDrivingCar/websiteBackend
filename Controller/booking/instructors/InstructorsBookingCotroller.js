@@ -1074,6 +1074,118 @@ async function findNearestAvailableSlot(instructorId) {
   return null;
 }
 
+// Admin endpoint to get instructor names who have available slots for a specific postcode and date
+exports.getAvailableInstructorsForAdmin = async (req, res) => {
+  try {
+    const { postcode, date, gearbox } = req.query;
+
+    if (!postcode || !date) {
+      return res.status(400).json({
+        message: "Postcode and date are required query parameters."
+      });
+    }
+
+    // Parse the date and extract month/year
+    const targetDate = new Date(date);
+    if (isNaN(targetDate.getTime())) {
+      return res.status(400).json({
+        message: "Invalid date format. Please use YYYY-MM-DD format."
+      });
+    }
+
+    const month = targetDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const year = targetDate.getFullYear();
+
+    // Process postcode - remove spaces and convert to lowercase for consistent matching
+    const processedPostcode = postcode.replace(/\s+/g, '').toLowerCase();
+
+    // Build the query filter
+    const instructorFilter = {
+      AcceptStudent: true,
+      status: "active",
+    };
+
+    // Add gearbox filter if provided
+    if (gearbox && gearbox.toLowerCase() !== "all") {
+      const regexPattern = new RegExp(gearbox, "i");
+      instructorFilter.gearbox = { $regex: regexPattern };
+    }
+
+    // Find all active instructors first, then filter by areas in JavaScript
+    // This allows us to normalize both the query postcode and instructor areas
+    const allInstructors = await InstructorsUserSchema.find(instructorFilter);
+    
+    // Filter instructors by normalized postcode comparison
+    const instructors = allInstructors.filter(instructor => {
+      if (!instructor.areas || !Array.isArray(instructor.areas)) {
+        return false;
+      }
+      
+      // Check if any of the instructor's areas match the processed postcode
+      return instructor.areas.some(area => {
+        // Normalize the instructor's area: remove spaces and convert to lowercase
+        const normalizedArea = area.replace(/\s+/g, '').toLowerCase();
+        return normalizedArea === processedPostcode;
+      });
+    });
+
+    if (instructors.length === 0) {
+      return res.json({ 
+        data: [],
+        message: "No instructors found for this postcode area."
+      });
+    }
+
+    // Check which instructors have available slots on the specified date
+    const instructorsWithSlots = [];
+    const targetDateString = targetDate.toISOString().split('T')[0];
+
+    for (const instructor of instructors) {
+      try {
+        const availability = await getInstructorAvailability(
+          instructor,
+          month,
+          year,
+          processedPostcode,
+          false // isGapCreating = false
+        );
+
+        // Check if the instructor has any available slots on the target date
+        const hasSlotsOnDate = availability.availableDays.some(day => 
+          day.date === targetDateString && day.availableHours.length > 0
+        );
+
+        if (hasSlotsOnDate) {
+          instructorsWithSlots.push({
+            instructorId: instructor._id,
+            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+            email: instructor.email,
+            phone: instructor.phone
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking availability for instructor ${instructor._id}:`, error);
+        // Continue with other instructors even if one fails
+      }
+    }
+
+    return res.json({
+      data: instructorsWithSlots,
+      postcode: processedPostcode,
+      date: targetDateString,
+      gearbox: gearbox || "all",
+      totalInstructors: instructorsWithSlots.length
+    });
+
+  } catch (error) {
+    console.error("Error in getAvailableInstructorsForAdmin:", error);
+    res.status(500).json({ 
+      message: "An error occurred while fetching available instructors", 
+      error: error.message 
+    });
+  }
+};
+
 async function getInstructorAvailability(
   instructor,
   month,
