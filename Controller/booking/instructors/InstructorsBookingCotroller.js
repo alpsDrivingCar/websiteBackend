@@ -1151,16 +1151,29 @@ exports.getAvailableInstructorsForAdmin = async (req, res) => {
         );
 
         // Check if the instructor has any available slots on the target date
-        const hasSlotsOnDate = availability.availableDays.some(day => 
+        const dayWithSlots = availability.availableDays.find(day => 
           day.date === targetDateString && day.availableHours.length > 0
         );
 
-        if (hasSlotsOnDate) {
+        if (dayWithSlots) {
+          // Format slots as "HH:MM - HH:MM" (start time - end time, 2 hours later)
+          const formattedSlots = dayWithSlots.availableHours.map(slot => {
+            const startTime = slot.time; // Already formatted as "HH:MM"
+            
+            // Calculate end time (2 hours after start)
+            const [startHours, startMinutes] = startTime.split(':').map(Number);
+            const endHours = (startHours + 2) % 24;
+            const endTime = `${String(endHours).padStart(2, '0')}:${String(startMinutes).padStart(2, '0')}`;
+            
+            return `${startTime} - ${endTime}`;
+          });
+
           instructorsWithSlots.push({
             instructorId: instructor._id,
             instructorName: `${instructor.firstName} ${instructor.lastName}`,
             email: instructor.email,
-            phone: instructor.phone
+            phone: instructor.phone,
+            slots: formattedSlots
           });
         }
       } catch (error) {
