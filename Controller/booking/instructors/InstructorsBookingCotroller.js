@@ -1074,27 +1074,62 @@ async function findNearestAvailableSlot(instructorId) {
   return null;
 }
 
-// Admin endpoint to get instructor names who have available slots for a specific postcode and date
+// Admin endpoint to get instructor names who have available slots for a specific postcode and date/date range
 exports.getAvailableInstructorsForAdmin = async (req, res) => {
   try {
-    const { postcode, date, gearbox } = req.query;
+    const { postcode, date, startDate, endDate, gearbox } = req.query;
 
-    if (!postcode || !date) {
+    // Validate input: either 'date' OR both 'startDate' and 'endDate' must be provided
+    if (!postcode) {
       return res.status(400).json({
-        message: "Postcode and date are required query parameters."
+        message: "Postcode is required."
       });
     }
 
-    // Parse the date and extract month/year
-    const targetDate = new Date(date);
-    if (isNaN(targetDate.getTime())) {
+    if (!date && (!startDate || !endDate)) {
       return res.status(400).json({
-        message: "Invalid date format. Please use YYYY-MM-DD format."
+        message: "Either 'date' (for single date) OR both 'startDate' and 'endDate' (for date range) are required."
       });
     }
 
-    const month = targetDate.getMonth() + 1; // JavaScript months are 0-indexed
-    const year = targetDate.getFullYear();
+    // Parse dates based on query type
+    let targetDates = [];
+    let isDateRange = false;
+
+    if (date) {
+      // Single date query
+      const targetDate = new Date(date);
+      if (isNaN(targetDate.getTime())) {
+        return res.status(400).json({
+          message: "Invalid date format. Please use YYYY-MM-DD format."
+        });
+      }
+      targetDates = [targetDate];
+    } else {
+      // Date range query
+      isDateRange = true;
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({
+          message: "Invalid date format. Please use YYYY-MM-DD format for startDate and endDate."
+        });
+      }
+
+      if (start > end) {
+        return res.status(400).json({
+          message: "startDate must be before or equal to endDate."
+        });
+      }
+
+      // Generate array of all dates in the range
+      const currentDate = new Date(start);
+      while (currentDate <= end) {
+        targetDates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
 
     // Process postcode - remove spaces and convert to lowercase for consistent matching
     const processedPostcode = postcode.replace(/\s+/g, '').toLowerCase();
@@ -1136,45 +1171,79 @@ exports.getAvailableInstructorsForAdmin = async (req, res) => {
       });
     }
 
-    // Check which instructors have available slots on the specified date
-    const instructorsWithSlots = [];
-    const targetDateString = targetDate.toISOString().split('T')[0];
+    // Check availability for each instructor across all target dates
+    const instructorsAvailabilityMap = new Map();
 
+    // Group dates by month/year to minimize API calls
+    const datesByMonth = targetDates.reduce((acc, targetDate) => {
+      const month = targetDate.getMonth() + 1;
+      const year = targetDate.getFullYear();
+      const key = `${year}-${month}`;
+      
+      if (!acc[key]) {
+        acc[key] = { month, year, dates: [] };
+      }
+      acc[key].dates.push(targetDate.toISOString().split('T')[0]);
+      return acc;
+    }, {});
+
+    // For each instructor, fetch availability for all relevant months
     for (const instructor of instructors) {
       try {
-        const availability = await getInstructorAvailability(
-          instructor,
-          month,
-          year,
-          processedPostcode,
-          false // isGapCreating = false
-        );
+        const instructorData = {
+          instructorId: instructor._id,
+          instructorName: `${instructor.firstName} ${instructor.lastName}`,
+          email: instructor.email,
+          phone: instructor.phone,
+          availability: []
+        };
 
-        // Check if the instructor has any available slots on the target date
-        const dayWithSlots = availability.availableDays.find(day => 
-          day.date === targetDateString && day.availableHours.length > 0
-        );
+        // Fetch availability for each month that contains target dates
+        for (const monthKey in datesByMonth) {
+          const { month, year, dates } = datesByMonth[monthKey];
+          
+          try {
+            const availability = await getInstructorAvailability(
+              instructor,
+              month,
+              year,
+              processedPostcode,
+              false // isGapCreating = false
+            );
 
-        if (dayWithSlots) {
-          // Format slots as "HH:MM - HH:MM" (start time - end time, 2 hours later)
-          const formattedSlots = dayWithSlots.availableHours.map(slot => {
-            const startTime = slot.time; // Already formatted as "HH:MM"
-            
-            // Calculate end time (2 hours after start)
-            const [startHours, startMinutes] = startTime.split(':').map(Number);
-            const endHours = (startHours + 2) % 24;
-            const endTime = `${String(endHours).padStart(2, '0')}:${String(startMinutes).padStart(2, '0')}`;
-            
-            return `${startTime} - ${endTime}`;
-          });
+            // Filter to only include target dates
+            const relevantDays = availability.availableDays.filter(day => 
+              dates.includes(day.date) && day.availableHours.length > 0
+            );
 
-          instructorsWithSlots.push({
-            instructorId: instructor._id,
-            instructorName: `${instructor.firstName} ${instructor.lastName}`,
-            email: instructor.email,
-            phone: instructor.phone,
-            slots: formattedSlots
-          });
+            // Format slots for each relevant day
+            relevantDays.forEach(day => {
+              const formattedSlots = day.availableHours.map(slot => {
+                const startTime = slot.time; // Already formatted as "HH:MM"
+                
+                // Calculate end time (2 hours after start)
+                const [startHours, startMinutes] = startTime.split(':').map(Number);
+                const endHours = (startHours + 2) % 24;
+                const endTime = `${String(endHours).padStart(2, '0')}:${String(startMinutes).padStart(2, '0')}`;
+                
+                return `${startTime} - ${endTime}`;
+              });
+
+              instructorData.availability.push({
+                date: day.date,
+                dayOfWeek: day.dayOfWeek,
+                slots: formattedSlots
+              });
+            });
+          } catch (error) {
+            console.error(`Error fetching availability for instructor ${instructor._id} for month ${month}/${year}:`, error);
+            // Continue with other months
+          }
+        }
+
+        // Only include instructors that have at least one available slot
+        if (instructorData.availability.length > 0) {
+          instructorsAvailabilityMap.set(instructor._id.toString(), instructorData);
         }
       } catch (error) {
         console.error(`Error checking availability for instructor ${instructor._id}:`, error);
@@ -1182,13 +1251,25 @@ exports.getAvailableInstructorsForAdmin = async (req, res) => {
       }
     }
 
-    return res.json({
+    const instructorsWithSlots = Array.from(instructorsAvailabilityMap.values());
+
+    // Prepare response based on query type
+    const responseData = {
       data: instructorsWithSlots,
       postcode: processedPostcode,
-      date: targetDateString,
       gearbox: gearbox || "all",
       totalInstructors: instructorsWithSlots.length
-    });
+    };
+
+    if (isDateRange) {
+      responseData.startDate = startDate;
+      responseData.endDate = endDate;
+      responseData.totalDays = targetDates.length;
+    } else {
+      responseData.date = date;
+    }
+
+    return res.json(responseData);
 
   } catch (error) {
     console.error("Error in getAvailableInstructorsForAdmin:", error);
