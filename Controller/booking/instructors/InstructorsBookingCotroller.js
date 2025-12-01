@@ -1464,6 +1464,14 @@ async function getInstructorAvailability(
         const slotEndTime = new Date(currentTime);
         slotEndTime.setTime(currentTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours lesson
 
+        // Ensure slot is at least 48 hours from now
+        const now = new Date();
+        const minimumAdvanceTime = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+        if (currentTime.getTime() < now.getTime() + minimumAdvanceTime) {
+          currentTime = new Date(currentTime.getTime() + 60 * 1000); // Move forward by 1 minute
+          continue;
+        }
+
         // Create lunch break times for current day using the full ISO time
         let lunchStartTime = null;
         let lunchEndTime = null;
