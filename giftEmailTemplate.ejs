@@ -68,6 +68,66 @@
             border-radius: 8px;
         }
 
+        /* Fallback card (when no image is provided) */
+        .gift-card-fallback {
+            display: inline-block;
+            width: 420px;
+            max-width: 90%;
+            margin: 10px auto;
+            padding: 26px 22px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 45%, #E43C3E 140%);
+            box-shadow: 0 14px 28px rgba(17, 24, 39, 0.18);
+            text-align: left;
+        }
+
+        .gift-card-fallback .top-row {
+            width: 100%;
+        }
+
+        .gift-card-fallback .brand {
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .gift-card-fallback .badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .gift-card-fallback .amount {
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 44px;
+            font-weight: 700;
+            line-height: 1.05;
+            margin: 18px 0 6px;
+            color: #ffffff;
+        }
+
+        .gift-card-fallback .subtitle {
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.88);
+        }
+
+        .gift-card-fallback .fineprint {
+            font-family: 'Poppins', Arial, sans-serif;
+            font-size: 11px;
+            margin: 22px 0 0;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
         .highlight {
             color: #E43C3E;
             font-size: 18px;
@@ -120,7 +180,26 @@
                     <tr>
                         <td align="center" style="padding: 0 10px;"> <!-- Horizontal padding only -->
                             <div class="gift-card">
-                                <img src="<%= cardImage %>" alt="Gift Card">
+                                <% if (cardImage) { %>
+                                    <img src="<%= cardImage %>" alt="Gift Card">
+                                <% } else { %>
+                                    <!-- Custom amount gift: fallback card UI (no image provided) -->
+                                    <div class="gift-card-fallback" role="img" aria-label="Gift card worth £<%= price %>">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="top-row">
+                                            <tr>
+                                                <td align="left" valign="top">
+                                                    <div class="brand">Alps Driving School</div>
+                                                </td>
+                                                <td align="right" valign="top">
+                                                    <span class="badge">Gift Card</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        <div class="amount">£<%= price %></div>
+                                        <p class="subtitle">Redeemable on lesson bookings</p>
+                                        <p class="fineprint">Present this email to use your gift card.</p>
+                                    </div>
+                                <% } %>
                             </div>
                         </td>
                     </tr>
