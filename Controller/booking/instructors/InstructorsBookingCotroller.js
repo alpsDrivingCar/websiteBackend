@@ -1404,7 +1404,13 @@ async function getInstructorAvailability(
     }, {});
 
     while (currentDate <= endDate) {
-      if (currentDate < new Date()) {
+      // Compare dates at day level (ignore time) to avoid skipping current day
+      const today = new Date();
+      const currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      // Skip past dates only (not today)
+      if (currentDateOnly < todayOnly) {
         currentDate.setDate(currentDate.getDate() + 1);
         continue;
       }
