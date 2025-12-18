@@ -434,8 +434,10 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       postcode,
       isGapCreating = false,
       pupilId,
+      isGapBooking = false,
     } = req.query;
     const isGapCreatingBool = isGapCreating === "true";
+    const gapBookingBool = isGapBooking === "true";
     let areaPrefix = "";
     if (postcode) {
       const areaLength = determinePostcodeAreaLength(postcode);
@@ -540,7 +542,8 @@ exports.availableTimeSlotsV2 = async (req, res) => {
             nearestYear,
             areaPrefix,
             isGapCreatingBool,
-            true
+            true,
+            gapBookingBool
           );
           return {
             instructorId: instructor._id,
@@ -569,7 +572,9 @@ exports.availableTimeSlotsV2 = async (req, res) => {
               nearestMonth,
               nearestYear,
               areaPrefix,
-              isGapCreatingBool
+              isGapCreatingBool,
+              false,
+              gapBookingBool
             );
             return {
               instructorId: instructor._id,
@@ -596,7 +601,9 @@ exports.availableTimeSlotsV2 = async (req, res) => {
           parseInt(month),
           parseInt(year),
           areaPrefix,
-          isGapCreatingBool
+          isGapCreatingBool,
+          false,
+          gapBookingBool
         );
         return {
           instructorId: instructor._id,
@@ -1136,7 +1143,8 @@ async function getInstructorAvailability(
   year,
   postcode,
   isGapCreating,
-  isNearestSlot = false
+  isNearestSlot = false,
+  isGapBooking = false
 ) {
   try {
     let startDate;
@@ -1146,6 +1154,24 @@ async function getInstructorAvailability(
         startDate = new Date(Date.UTC(year, month - 1, 1));
     }
     const endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+
+    // Fetch gaps if isGapBooking is enabled (gaps that start before 48 hours from now)
+    let qualifyingGaps = [];
+    if (isGapBooking) {
+      const now = new Date();
+      const fortyEightHoursFromNow = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+      
+      qualifyingGaps = await LessonEvent.find({
+        $or: [{ instructorId: instructor._id }, { trainerId: instructor._id }],
+        eventType: "Gap",
+        startTime: {
+          $gte: startDate,
+          $lte: endDate,
+          $lt: fortyEightHoursFromNow, // Gap must start before 48 hours from now
+        },
+        status: "active",
+      });
+    }
 
     // Update the workingHoursEvents query to include LUNCH_BREAK and fetch travel time events
     const [existingLessons, workingHoursEvents, travelTimeEvents] = await Promise.all([
@@ -1304,7 +1330,13 @@ async function getInstructorAvailability(
 
         // Ensure slot is at least 48 hours from now
         const now = new Date();
-        const minimumAdvanceTime = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+        let minimumAdvanceTime = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+        if(isGapCreating) {
+          minimumAdvanceTime = 0; // 0 hours in milliseconds
+        }
+        
+        // Skip slots that are within 48 hours (normal restriction applies)
+        // Gap times will be added separately after processing regular slots
         if (currentTime.getTime() < now.getTime() + minimumAdvanceTime) {
           currentTime = new Date(currentTime.getTime() + 60 * 1000); // Move forward by 1 minute
           continue;
@@ -1441,6 +1473,56 @@ async function getInstructorAvailability(
 
       currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    // If isGapBooking is enabled, add qualifying gaps directly to the available hours
+    if (isGapBooking && qualifyingGaps.length > 0) {
+      qualifyingGaps.forEach((gap) => {
+        const gapStart = new Date(gap.startTime);
+        const gapDate = gapStart.toISOString().split("T")[0];
+        const gapDayOfWeek = gapStart.toLocaleString("en-US", {
+          weekday: "long",
+        });
+
+        // Initialize day entry if it doesn't exist
+        if (!slotsGroupedByDay[gapDate]) {
+          slotsGroupedByDay[gapDate] = {
+            date: gapDate,
+            dayOfWeek: gapDayOfWeek,
+            availableHours: [],
+          };
+        }
+
+        // Add gap as an available time slot
+        const gapSlot = {
+          id: gap._id.toString(),
+          time: gapStart.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "UTC",
+          }),
+          timestamp: gapStart.toISOString(),
+          endTime: gap.endTime ? new Date(gap.endTime).toISOString() : null,
+          duration: gap.durationMinutes || null,
+          isGap: true, // Flag to indicate this is a gap slot
+        };
+
+        slotsGroupedByDay[gapDate].availableHours.push(gapSlot);
+      });
+
+      // Sort availableHours within each day by time
+      Object.values(slotsGroupedByDay).forEach((day) => {
+        day.availableHours.sort(
+          (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+        );
+      });
+    }
+
+    // Remove days with no available hours (after gaps have been added)
+    Object.keys(slotsGroupedByDay).forEach((dayKey) => {
+      if (slotsGroupedByDay[dayKey]?.availableHours.length === 0) {
+        delete slotsGroupedByDay[dayKey];
+      }
+    });
 
     const formattedSlots = Object.values(slotsGroupedByDay).sort((a, b) =>
       a.date.localeCompare(b.date)
