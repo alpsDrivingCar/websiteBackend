@@ -1161,11 +1161,14 @@ async function getInstructorAvailability(
       const now = new Date();
       const fortyEightHoursFromNow = new Date(now.getTime() + 48 * 60 * 60 * 1000);
       
+      // Use the later of startDate or now to ensure we don't get past gaps
+      const effectiveStartDate = startDate > now ? startDate : now;
+      
       qualifyingGaps = await LessonEvent.find({
         $or: [{ instructorId: instructor._id }, { trainerId: instructor._id }],
         eventType: "Gap",
         startTime: {
-          $gte: startDate,
+          $gte: effectiveStartDate, // Don't include past gaps
           $lte: endDate,
           $lt: fortyEightHoursFromNow, // Gap must start before 48 hours from now
         },
@@ -1482,8 +1485,21 @@ async function getInstructorAvailability(
 
     // If isGapBooking is enabled, add qualifying gaps directly to the available hours
     if (isGapBooking && qualifyingGaps.length > 0) {
+      const now = new Date();
       qualifyingGaps.forEach((gap) => {
         const gapStart = new Date(gap.startTime);
+        const gapEnd = gap.endTime ? new Date(gap.endTime) : null;
+        
+        // Skip gaps that have already ended
+        if (gapEnd && gapEnd <= now) {
+          return;
+        }
+        
+        // Skip gaps that start in the past (additional safety check)
+        if (gapStart <= now) {
+          return;
+        }
+        
         const gapDate = gapStart.toISOString().split("T")[0];
         const gapDayOfWeek = gapStart.toLocaleString("en-US", {
           weekday: "long",
@@ -1507,7 +1523,7 @@ async function getInstructorAvailability(
             timeZone: "UTC",
           }),
           timestamp: gapStart.toISOString(),
-          endTime: gap.endTime ? new Date(gap.endTime).toISOString() : null,
+          endTime: gapEnd ? gapEnd.toISOString() : null,
           duration: gap.durationMinutes || null,
           isGap: true, // Flag to indicate this is a gap slot
         };
