@@ -4,6 +4,7 @@ const PackageSchema = require("../../../../model/booking/package/packageSchema")
 const OfferSchema = require("../../../../model/offer/offerSchema");
 const InstructorsUserSchema = require("../../../../model/user/Instructor");
 const LessonEvent = require("../../../../model/booking/instructors/lessonEventSchema");
+const Pupil = require("../../../../model/user/Pupil");
 const axios = require("axios");
 const NotificationCreator = require("../../../notification/notificationCreator");
 const { updateOrderStatus } = require('../../../../Controller/booking/checkout/payment/updateOrder')
@@ -56,6 +57,10 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
     const receivedData = req.body;
     const { studentInfo, orderInfo, isMobileOrder } = receivedData;
     if (!studentInfo.gender) studentInfo.gender = 'male';
+    
+    // Validate introductory offer before proceeding
+    await validateIntroductoryOffer(orderInfo, studentInfo);
+    
     // const isAvailable = await checkInstructorAvailability(orderInfo);
     // if (!isAvailable) {
     //   return res.status(404).json({
@@ -202,6 +207,46 @@ async function validateVerificationNumber(studentInfo) {
 
   if (!existingEmailRecord) {
     throw new Error("Verification number is not valid");
+  }
+}
+
+async function validateIntroductoryOffer(orderInfo, studentInfo) {
+  if (!orderInfo.items || !Array.isArray(orderInfo.items)) {
+    return; // No items to validate
+  }
+
+  // Check each item for introductory offers
+  for (const item of orderInfo.items) {
+    if (!item.packageId) {
+      continue; // Skip items without packageId
+    }
+
+    let packageResult;
+    
+    // Fetch the package based on order type
+    if (orderInfo.typeOfLesson === "hot-offer") {
+      // For hot-offer, fetch the offer first, then get the referenced package
+      const offerResult = await fetchOfferPackage(item.packageId);
+      if (offerResult && offerResult.packageId) {
+        // Fetch the actual package referenced by the offer
+        packageResult = await fetchRegularPackage(offerResult.packageId);
+      }
+    } else {
+      // For regular packages, fetch directly
+      packageResult = await fetchRegularPackage(item.packageId);
+    }
+
+    // Check if this package is an introductory offer
+    if (packageResult && packageResult.slugOfType === "our_offers_packages") {
+      // Check if a pupil with this phone number already exists
+      const existingPupil = await Pupil.findOne({
+        phoneNumber: studentInfo.phoneNumber,
+      });
+
+      if (existingPupil) {
+        throw new Error("Introductory offers can't be booked more than once");
+      }
+    }
   }
 }
 
