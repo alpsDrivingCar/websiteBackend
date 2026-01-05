@@ -95,12 +95,13 @@ const isElavonPaymentPaid = async (sessionId) => {
   };
 
 async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
+    const typeOfLesson = updatedCheckoutInfo.orderInfo.typeOfLesson;
     const availableHours = updatedCheckoutInfo.orderInfo.items[0].availableHours;
     let results = []; // Array to store results
 
     for (const time of availableHours) {
         const formattedStartTime = convertToSimpleTimeFormat(time); // Ensure formatTime is defined
-        const formattedEndTime = addTwoHours(formattedStartTime); // Calculate endTime
+        const formattedEndTime = typeOfLesson === "mock_test" ? addHours(formattedStartTime, 1.5) : addTwoHours(formattedStartTime); // Calculate endTime
         const formattedDateTime = convertDateToReadableFormat(time);
         // Call addLessonEvent for each time and store the result
         const result = await addLessonEvent(updatedCheckoutInfo, pupilId, formattedDateTime, formattedStartTime,formattedEndTime,token);
@@ -186,8 +187,8 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
             "startTime": startTime,
             "instructorId": updatedCheckoutInfo.orderInfo.instructorsId.toString(), // Convert ObjectId to string
             "pupilId": pupilId,
-            "durationMinutes": "120", // Duration of the lesson in minutes
-            "durationHours": "2", // Duration of the lesson in hours
+            "durationMinutes": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? 90 : 120, // Duration of the lesson in minutes
+            "durationHours": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? 1.5 : 2, // Duration of the lesson in hours
             "gearbox": typeOfGearbox, // Type of gearbox, e.g., automatic or manual
             "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson, // Type of lesson, e.g., regular, intensive
             "pickUpLocation": "home", // Pickup location
@@ -451,6 +452,11 @@ function convertToSimpleTimeFormat(isoDateString) {
 function addTwoHours(date) {
     const newDate = new Date(date);
     newDate.setHours(newDate.getHours() + 2);
+    return newDate;
+}
+function addHours(date, hours) {
+    const newDate = new Date(date);
+    newDate.setHours(newDate.getHours() + hours);
     return newDate;
 }
 
