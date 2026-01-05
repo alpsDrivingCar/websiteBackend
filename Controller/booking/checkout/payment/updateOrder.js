@@ -194,7 +194,7 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
             "dropOffLocation": "home", // Drop-off location
             "date": time, // Date and time of the lesson,
             "endTime": formattedEndTime,
-            "lessonType": "Web site lessons/661f96868ef5f48b31d1a241"
+            "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? `Mock Test/${process.env.MOCK_TEST_LESSONTYPEID}` : "Web site lessons/661f96868ef5f48b31d1a241"
 
         };
 

@@ -46,7 +46,8 @@ const bookingPackageSchema = new Schema({
                         "intensive_courses",
                         "refresher_lessons",
                         "pass_plus_course",
-                        "tesla_model_y_courses"
+                        "tesla_model_y_courses",
+                        "mock_test_offer"
                 ],
                 required: true
         },
