@@ -6,6 +6,9 @@ const LessonSchema = require("../../../model/booking/lesson/lessonSchema");
 const PackageSchema = require("../../../model/booking/package/packageSchema");
 const Pupil = require("../../../model/user/Pupil");
 
+const DEFAULT_SLOT_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+const MOCK_TEST_SLOT_DURATION_MS = 90 * 60 * 1000; // 1.5 hours
+
 exports.createBookingInstructors = (req, res) => {
   const lessonSchema = new InstructorsSchema(req.body);
 
@@ -517,9 +520,15 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       isGapCreating = false,
       pupilId,
       isGapBooking = false,
+      isMockTestBooking = false,
     } = req.query;
     const isGapCreatingBool = isGapCreating === "true";
     const gapBookingBool = isGapBooking === "true";
+    const isMockTestBookingBool =
+      isMockTestBooking === true || isMockTestBooking === "true";
+    const slotDurationMs = isMockTestBookingBool
+      ? MOCK_TEST_SLOT_DURATION_MS
+      : DEFAULT_SLOT_DURATION_MS;
     let areaPrefix = "";
     if (postcode) {
       const areaLength = determinePostcodeAreaLength(postcode);
@@ -547,27 +556,59 @@ exports.availableTimeSlotsV2 = async (req, res) => {
     // Use pupilId from query parameter first, then fall back to token
     const effectivePupilId = pupilId || tokenPupilId;
 
-    // Handle both single and multiple instructor cases
-    if (!instructorId && !instructorIds && !effectivePupilId) {
-      return res.status(400).json({
-        message: "Either instructorId or instructorIds is required.",
-      });
-    }
     let instructors = [];
 
-    if (effectivePupilId) {
-      const pupil = await Pupil.findById(effectivePupilId).populate("instructors");
-      instructors = (pupil.instructors || []).filter(instructor => instructor.status === "active");
-    } else {
-      // Get array of instructor IDs
-      const instructorIdArray = instructorId
-        ? [instructorId]
-        : instructorIds.split(",");
+    if (isMockTestBookingBool) {
+      const mockTestInstructorId = process.env.MOCK_TEST_INSTRUCTORID;
+      if (!mockTestInstructorId) {
+        return res.status(500).json({
+          message:
+            "Server misconfiguration: MOCK_TEST_INSTRUCTORID is not set",
+        });
+      }
 
-      // Get all instructors
-      instructors = await InstructorsUserSchema.find({
-        _id: { $in: instructorIdArray },
-      });
+      const mockInstructor =
+        await InstructorsUserSchema.findById(mockTestInstructorId);
+      if (!mockInstructor) {
+        return res.status(500).json({
+          message: "Server misconfiguration: Mock test instructor not found",
+        });
+      }
+
+      if (mockInstructor.status && mockInstructor.status !== "active") {
+        return res.status(500).json({
+          message:
+            "Server misconfiguration: Mock test instructor is not active",
+        });
+      }
+
+      instructors = [mockInstructor];
+    } else {
+      // Handle both single and multiple instructor cases
+      if (!instructorId && !instructorIds && !effectivePupilId) {
+        return res.status(400).json({
+          message: "Either instructorId or instructorIds is required.",
+        });
+      }
+
+      if (effectivePupilId) {
+        const pupil = await Pupil.findById(effectivePupilId).populate(
+          "instructors"
+        );
+        instructors = (pupil.instructors || []).filter(
+          (instructor) => instructor.status === "active"
+        );
+      } else {
+        // Get array of instructor IDs
+        const instructorIdArray = instructorId
+          ? [instructorId]
+          : instructorIds.split(",");
+
+        // Get all instructors
+        instructors = await InstructorsUserSchema.find({
+          _id: { $in: instructorIdArray },
+        });
+      }
     }
 
     if (instructors.length === 0) {
@@ -589,7 +630,7 @@ exports.availableTimeSlotsV2 = async (req, res) => {
       // Find nearest slot for all instructors
       const nearestSlots = await Promise.all(
         instructors.map((instructor) =>
-          findNearestAvailableSlot(instructor._id)
+          findNearestAvailableSlot(instructor._id, slotDurationMs)
         )
       );
       // Filter out null values and sort by date
@@ -625,7 +666,8 @@ exports.availableTimeSlotsV2 = async (req, res) => {
             areaPrefix,
             isGapCreatingBool,
             true,
-            gapBookingBool
+            gapBookingBool,
+            slotDurationMs
           );
           return {
             instructorId: instructor._id,
@@ -656,7 +698,8 @@ exports.availableTimeSlotsV2 = async (req, res) => {
               areaPrefix,
               isGapCreatingBool,
               false,
-              gapBookingBool
+              gapBookingBool,
+              slotDurationMs
             );
             return {
               instructorId: instructor._id,
@@ -685,7 +728,8 @@ exports.availableTimeSlotsV2 = async (req, res) => {
           areaPrefix,
           isGapCreatingBool,
           false,
-          gapBookingBool
+          gapBookingBool,
+          slotDurationMs
         );
         return {
           instructorId: instructor._id,
@@ -971,7 +1015,10 @@ function formatGapEvents(gapEvents) {
   return formattedSlots;
 }
 
-async function findNearestAvailableSlot(instructorId) {
+async function findNearestAvailableSlot(
+  instructorId,
+  slotDurationMs = DEFAULT_SLOT_DURATION_MS
+) {
   // Create dates in UTC to avoid timezone issues
   const now = new Date();
   const startDate = new Date(
@@ -1011,15 +1058,10 @@ async function findNearestAvailableSlot(instructorId) {
   });
 
   // Start checking from the startDate day
-  let currentDate = new Date(startDate); 
-
-
-  // Duration of a typical lesson slot in milliseconds (2 hours)
-  const slotDuration = 2 * 60 * 60 * 1000;
+  let currentDate = new Date(startDate);
 
   // Loop through each day until we find an available slot or reach the end date
   while (currentDate <= endDate) {
-
     // Get working hours for the day (6 AM to 11 PM)
     const dayStart = new Date(
       Date.UTC(
@@ -1048,9 +1090,9 @@ async function findNearestAvailableSlot(instructorId) {
     // Check time slots throughout the day, incrementing by 30 minutes
     let currentSlotStart = new Date(dayStart);
 
-    while (currentSlotStart.getTime() + slotDuration <= dayEnd.getTime()) {
+    while (currentSlotStart.getTime() + slotDurationMs <= dayEnd.getTime()) {
       const currentSlotEnd = new Date(
-        currentSlotStart.getTime() + slotDuration
+        currentSlotStart.getTime() + slotDurationMs
       );
 
       // Check if the current slot conflicts with any lesson
@@ -1065,7 +1107,6 @@ async function findNearestAvailableSlot(instructorId) {
       });
 
       if (!hasConflict) {
-        
         return currentSlotStart; // Return the first available slot
       }
 
@@ -1077,7 +1118,6 @@ async function findNearestAvailableSlot(instructorId) {
     currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
 
-  
   return null;
 }
 
@@ -1294,7 +1334,8 @@ async function getInstructorAvailability(
   postcode,
   isGapCreating,
   isNearestSlot = false,
-  isGapBooking = false
+  isGapBooking = false,
+  slotDurationMs = DEFAULT_SLOT_DURATION_MS
 ) {
   try {
     let startDate;
@@ -1497,7 +1538,7 @@ async function getInstructorAvailability(
 
       while (currentTime < dayEnd) {
         const slotEndTime = new Date(currentTime);
-        slotEndTime.setTime(currentTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours lesson
+        slotEndTime.setTime(currentTime.getTime() + slotDurationMs);
 
         // Ensure slot is at least 48 hours from now
         const now = new Date();
@@ -1634,9 +1675,10 @@ async function getInstructorAvailability(
           };
           slotsGroupedByDay[dayKey].availableHours.push(timeSlot);
           // After adding a slot, jump to the next possible slot time
-          // This accounts for: 2-hour lesson + travel time
-          const slotDurationMs = 2 * 60 * 60 * 1000; // 2 hours
-          const nextPossibleSlotTime = new Date(currentTime.getTime() + slotDurationMs + travelTimeMs);
+          // This accounts for: lesson duration + travel time
+          const nextPossibleSlotTime = new Date(
+            currentTime.getTime() + slotDurationMs + travelTimeMs
+          );
           currentTime = nextPossibleSlotTime;
         } else {
           // Move by 1 minute when there's a conflict to find the earliest available slot

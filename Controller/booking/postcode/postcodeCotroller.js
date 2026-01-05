@@ -6,6 +6,8 @@ const Locations = require("../../../model/locations/locationsSchema");
 exports.validateUKPostcode = async (req, res) => {
     try {
         let postcode = req.query.postcode;
+        let isMockTestBooking = req.query.isMockTestBooking;
+        const isMockTestBookingBool = isMockTestBooking === true || isMockTestBooking === "true";
         postcode = postcode.replace(/\s+/g, '').toUpperCase();
 
         // Check for booking packages first
@@ -22,6 +24,44 @@ exports.validateUKPostcode = async (req, res) => {
 
         const areaLength = determinePostcodeAreaLength(postcode);
         const areaRegex = new RegExp("^" + postcode.substring(0, areaLength), "i");
+
+        // Mock-test booking: only validate coverage against the configured mock-test instructor
+        if (isMockTestBookingBool) {
+            const mockTestInstructorId = process.env.MOCK_TEST_INSTRUCTORID;
+            if (!mockTestInstructorId) {
+                return res.status(500).json({
+                    message: "Server misconfiguration: MOCK_TEST_INSTRUCTORID is not set",
+                });
+            }
+
+            const mockInstructor = await InstructorsUserSchema.findById(mockTestInstructorId);
+            if (!mockInstructor) {
+                return res.status(500).json({
+                    message: "Server misconfiguration: Mock test instructor not found",
+                });
+            }
+
+            if (mockInstructor.status && mockInstructor.status !== "active") {
+                return res.status(500).json({
+                    message: "Server misconfiguration: Mock test instructor is not active",
+                });
+            }
+
+            const mockCoversPostcode = Array.isArray(mockInstructor.areas)
+                ? mockInstructor.areas.some((a) => typeof a === "string" && areaRegex.test(a))
+                : false;
+
+            const exists = mockCoversPostcode && mockInstructor.AcceptStudent === true;
+            await trackPostcodeSearch(postcode, exists);
+
+            if (!exists) {
+                return res
+                    .status(404)
+                    .json({ message: 'No trainers found. Please try another PostCode, such as NN2 8FW' });
+            }
+
+            return res.status(204).send();
+        }
 
         const filter = {
             "areas": { $regex: areaRegex },

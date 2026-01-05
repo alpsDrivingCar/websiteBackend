@@ -57,10 +57,53 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
   try {
     const receivedData = req.body;
     const { studentInfo, orderInfo, isMobileOrder } = receivedData;
+    const { isMockTestBooking = false } = req.query;
+    const isMockTestBookingBool =
+      isMockTestBooking === true || isMockTestBooking === "true";
     if (!studentInfo.gender) studentInfo.gender = 'male';
     
-    // Validate introductory offer before proceeding
-    await validateIntroductoryOffer(orderInfo, studentInfo);
+    if (isMockTestBookingBool) {
+      const mockPackageId = process.env.MOCK_TEST_PACKAGEID;
+      console.log("mockPackageId123123: ", mockPackageId);
+      if (!mockPackageId) {
+        return res.status(500).json({
+          message: "Server misconfiguration: MOCK_TEST_PACKAGEID is not set",
+        });
+      }
+      if (!mongoose.Types.ObjectId.isValid(mockPackageId)) {
+        return res.status(500).json({
+          message: "Server misconfiguration: MOCK_TEST_PACKAGEID is invalid",
+        });
+      }
+
+      // Ensure the package exists (and will be payable) before proceeding
+      try {
+        await fetchRegularPackage(mockPackageId);
+      } catch (e) {
+        return res.status(500).json({
+          message: "Server misconfiguration: Mock test package not found",
+        });
+      }
+
+      const incomingAvailableHours =
+        orderInfo?.items?.[0]?.availableHours &&
+        Array.isArray(orderInfo.items[0].availableHours)
+          ? orderInfo.items[0].availableHours
+          : [];
+
+      orderInfo.items = [
+        {
+          packageId: mockPackageId,
+          quantity: 1,
+          availableHours: incomingAvailableHours,
+        },
+      ];
+      orderInfo.typeOfGearbox = "automatic";
+      orderInfo.instructorsId = process.env.MOCK_TEST_INSTRUCTORID;
+    } else {
+      // Validate introductory offer before proceeding
+      await validateIntroductoryOffer(orderInfo, studentInfo);
+    }
     
     // const isAvailable = await checkInstructorAvailability(orderInfo);
     // if (!isAvailable) {
