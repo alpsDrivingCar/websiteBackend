@@ -10,6 +10,7 @@ const fs = require("fs");
 const NotificationCreator = require("../../../notification/notificationCreator");
 const dotenv = require("dotenv");
 const Event = require("../../../../model/booking/instructors/lessonEventSchema");
+const { getElavonTransactionStatus } = require("./elavonUtils");
 
 dotenv.config(dotenv);
 
@@ -84,12 +85,13 @@ const isElavonPaymentPaid = async (sessionId) => {
       },
     });
 
-    const isCompleted =
-        response.data.transaction &&
-        response.data.threeDSecure &&
-        response.data.threeDSecure.transactionStatus === "Y";
-
-    return isCompleted;
+    if (response.data.transaction) {
+      const transactionStatus = await getElavonTransactionStatus(response.data.transaction);
+      if (transactionStatus && (transactionStatus === 'captured' || transactionStatus === 'settled')) {
+        return true;
+      }
+    }
+    return false;
   };
 
 async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {

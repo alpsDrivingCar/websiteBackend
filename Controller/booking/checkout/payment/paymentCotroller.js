@@ -17,6 +17,7 @@ const bodyParser = require("body-parser");
 const express = require("express");
 const mongoose = require("mongoose");
 const fs = require("fs");
+const { getElavonTransactionStatus } = require("./elavonUtils");
 
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
@@ -604,12 +605,19 @@ exports.checkPendingPayments = async () => {
         try {
             // Use your existing getElavonSessionStatus function
             const sessionStatus = await getElavonSessionStatus(order.orderInfo.elavonSessionId);
+            let transactionStatus = null;
+            let isPaymentCompleted = false;
 
-            const isPaymentCompleted = sessionStatus.transaction && 
-                              sessionStatus.threeDSecure && 
-                              sessionStatus.threeDSecure.transactionStatus === 'Y';
+            if (sessionStatus.transaction) {
+                transactionStatus = await getElavonTransactionStatus(sessionStatus.transaction);
+            }
+
+            if (transactionStatus && (transactionStatus === 'captured' || transactionStatus === 'settled')) {
+              isPaymentCompleted = true;
+            }
 
             if (isPaymentCompleted) {
+              console.log('Payment completed for order', order._id);
                 await updateOrderStatus({ 
                     params: { id: order._id }, 
                     body: { status: 'success' } 
