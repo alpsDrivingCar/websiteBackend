@@ -27,6 +27,16 @@ exports.getBookingPackageById = (req, res) => {
         });
 }
 
+exports.getMockTestBookingPackage = (req, res) => {
+    PackageSchema.find({ slugOfType: "mock_test_offer" })
+        .then((result) => {
+            res.status(200).json({data: result});
+        })
+        .catch((err) => {
+            console.log(err);
+        });
+}
+
 exports.bookingPackageByPostCodeAndType = (req, res) => {
     const { postCode, type } = req.query;
 
