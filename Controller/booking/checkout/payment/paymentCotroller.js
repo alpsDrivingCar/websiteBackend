@@ -100,6 +100,7 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
       ];
       orderInfo.typeOfGearbox = "automatic";
       orderInfo.instructorsId = process.env.MOCK_TEST_INSTRUCTORID;
+      orderInfo.typeOfLesson = "mock_test";
     } else {
       // Validate introductory offer before proceeding
       await validateIntroductoryOffer(orderInfo, studentInfo);
