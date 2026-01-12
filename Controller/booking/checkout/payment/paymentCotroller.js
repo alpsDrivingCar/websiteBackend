@@ -57,6 +57,7 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
   try {
     const receivedData = req.body;
     const { studentInfo, orderInfo, isMobileOrder } = receivedData;
+    console.log("orderInfo123123: ", orderInfo);
     const { isMockTestBooking = false } = req.query;
     const isMockTestBookingBool =
       isMockTestBooking === true || isMockTestBooking === "true";
