@@ -46,7 +46,7 @@ const validatePostcode = [
         .customSanitizer(normalizePostcode),
 ];
 
-const OS_API_BASE_URL = 'https://api.os.uk/search/places/v1';
+const EASYPOSTCODES_API_BASE_URL = 'https://api.easypostcodes.com';
 
 router.get("/search",
     limiter,
@@ -62,22 +62,18 @@ router.get("/search",
 
         try {
             const postcode = req.query.postcode; // This is now normalized
-            const response = await axios.get(`${OS_API_BASE_URL}/postcode`, {
+            const response = await axios.get(`${EASYPOSTCODES_API_BASE_URL}/addresses/${postcode}`, {
                 params: {
-                    postcode: postcode, // No need to replace spaces anymore
-                    key: process.env.OS_API_KEY
+                    includeGeo: true
+                },
+                headers: {
+                    'Key': process.env.EASYPOSTCODES_API_KEY
                 },
                 timeout: 8000 // Increased timeout to 8 seconds
             });
 
-            if (response.data.header.totalresults === 0) {
-                return res.status(404).json({
-                    message: 'Invalid postcode - no addresses found'
-                });
-            }
-
-            const addresses = response.data.results || [];
-            const formattedAddresses = addresses.map(address => address.DPA.ADDRESS);
+            const addresses = Array.isArray(response.data) ? response.data : [];
+            const formattedAddresses = addresses.map(address => address.envelopeAddress?.summaryLine).filter(Boolean);
 
             res.json({ 
                 data: formattedAddresses,
@@ -87,7 +83,7 @@ router.get("/search",
             console.error('Error fetching addresses:', error);
             res.status(error.response?.status || 500).json({ 
                 message: 'Error retrieving addresses',
-                error: error.response?.data?.error || error.message 
+                error: error.response?.data?.error || error.response?.data?.message || error.message 
             });
         }
     }
