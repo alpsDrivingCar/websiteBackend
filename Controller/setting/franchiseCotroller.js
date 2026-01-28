@@ -43,42 +43,44 @@ async function handleValidator(req) {
     const errors = validationResult(req);
     return errors;
 }
-exports.allFranchise = (req, res) => {
-    FranchiseSchema.find()
-        .sort({ createdAt: -1 })
-        .then((result) => {
-            res.json(result);
-        })
-        .catch((err) => {
-            console.log(err);
-            res.status(500).json({ error: 'Internal Server Error' });
-        })
+exports.allFranchise = async (req, res) => {
+    try {
+        const results = await FranchiseSchema.find()
+            .sort({ createdAt: -1 });
+        res.json(results);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+    }
 }
 
 
-exports.getById = (req, res) => {
-    const { id } = req.params; // Extract the id from request parameters
-    FranchiseSchema.findById(id) // Use the extracted id to find the document
-        .then((result) => {
-            if (result) {
-                res.json(result); // If document is found, send it as JSON response
-            } else {
-                res.status(404).json({ error: 'Document not found' }); // If document is not found, send 404 status with error message
-            }
-        })
-        .catch((err) => {
-            console.log(err);
-            res.status(500).json({ error: 'Internal Server Error' }); // Handle other errors with 500 status and error message
-        });
+exports.getById = async (req, res) => {
+    try {
+        const result = await FranchiseSchema.findById(req.params.id);
+        if (!result) {
+            res.status(404).json({ error: 'Document not found' });
+        } else {
+            res.json(result);
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 };
 
 exports.franchiseUpdate = (req, res) => {
-    FranchiseSchema.findByIdAndUpdate("64b26a3bfeb691283105b1be").updateOne(req.body)
-        .then((result) => {
-            res.json(result)
+    const id = req.params.id;
+    FranchiseSchema.findByIdAndUpdate(id, req.body, { new: true })
+        .then(result => {
+            if (!result) {
+                return res.status(404).json({ message: "Franchise request not found" });
+            }
+            res.json(result);
         })
-        .catch((err) => {
-            console.log(err);
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ error: "An error occurred during the update" });
         });
 }
 
