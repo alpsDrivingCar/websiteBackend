@@ -6,7 +6,22 @@ const franchiseSchema = new Schema({
     email: String,
     phoneNumber: String,
     location: String,
-    name: String
+    name: String,
+    answer: {
+        subject: {
+            type: String,
+            required: false
+        },
+        messageBody: {
+            type: String,
+            required: false
+        }
+    },
+    answered: {
+        type: Boolean,
+        required: false,
+        default: false,
+    },
 }, {
     timestamps: true,
 });
