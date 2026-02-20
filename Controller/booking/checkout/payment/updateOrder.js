@@ -263,7 +263,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
                 { email: { $ne: "", $eq: updatedCheckoutInfo.studentInfo.email } },
                 { phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber }
             ]
-        });
+        }).collation({ locale: "en", strength: 2 });
 
         if (existingPupil) {
             console.log(`Existing pupil found: ${existingPupil}`);
@@ -286,7 +286,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
             "middleName": updatedCheckoutInfo.studentInfo.middleName || '',
             "lastName": updatedCheckoutInfo.studentInfo.lastName,
             "phoneNumber": updatedCheckoutInfo.studentInfo.phoneNumber,
-            "email": updatedCheckoutInfo.studentInfo.email,
+            "email": updatedCheckoutInfo.studentInfo.email.toLowerCase(),
             "instructors": updatedCheckoutInfo.orderInfo.instructorsId,
             "postCode": updatedCheckoutInfo.orderInfo.postCode?.toUpperCase(),
             "address": updatedCheckoutInfo.studentInfo.address,
