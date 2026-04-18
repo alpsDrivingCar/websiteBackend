@@ -5,6 +5,7 @@ const apiKeyAuth = require('../../Middleware/ApiKeyAuth');
 const rateLimit = require('express-rate-limit');
 const { body, query, validationResult } = require('express-validator');
 const mcache = require('memory-cache');
+const AddressCache = require('../../model/postcode/AddressCacheSchema');
 
 // Rate limiting - 100 requests per 15 minutes per IP
 const limiter = rateLimit({
@@ -62,6 +63,18 @@ router.get("/search",
 
         try {
             const postcode = req.query.postcode; // This is now normalized
+
+            const cached = await AddressCache.findOne({ postcode }).lean();
+            if (cached) {
+                AddressCache.updateOne({ postcode }, { $inc: { hitCount: 1 } }).catch(err => {
+                    console.error('AddressCache hitCount update failed:', err);
+                });
+                return res.json({
+                    data: cached.summaryLines || [],
+                    message: 'Addresses retrieved successfully'
+                });
+            }
+
             const response = await axios.get(`${EASYPOSTCODES_API_BASE_URL}/addresses/${postcode}`, {
                 params: {
                     includeGeo: true
@@ -75,7 +88,20 @@ router.get("/search",
             const addresses = Array.isArray(response.data) ? response.data : [];
             const formattedAddresses = addresses.map(address => address.envelopeAddress?.summaryLine).filter(Boolean);
 
-            res.json({ 
+            AddressCache.findOneAndUpdate(
+                { postcode },
+                {
+                    rawResponse: response.data,
+                    summaryLines: formattedAddresses,
+                    fetchedAt: new Date(),
+                    $setOnInsert: { hitCount: 0 }
+                },
+                { upsert: true }
+            ).catch(err => {
+                console.error('AddressCache write failed:', err);
+            });
+
+            res.json({
                 data: formattedAddresses,
                 message: 'Addresses retrieved successfully'
             });
