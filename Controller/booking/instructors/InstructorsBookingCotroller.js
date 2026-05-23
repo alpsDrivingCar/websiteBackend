@@ -60,77 +60,77 @@ exports.deleteBookingInstructors = (req, res) => {
 
 // Function to get instructors and trainees by postcode, available time, and gearbox
 exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
-    try {
-      let { postcode, availableTime, gearbox, studentGender } = req.query;
-  
-      // if (!postcode || !availableTime) {
-      //     return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
-      // }
-      postcode = postcode.replace(/\s+/g, '');
-      const areaLength = determinePostcodeAreaLength(postcode);
-      const areaPrefix = postcode.substring(0, areaLength).trim();
-      const regexPostcode = new RegExp("^" + areaPrefix + "$", "i");
+  try {
+    let { postcode, availableTime, gearbox, studentGender } = req.query;
+
+    // if (!postcode || !availableTime) {
+    //     return res.status(400).json({ message: 'Postcode and availableTime are required query parameters.' });
+    // }
+    postcode = postcode.replace(/\s+/g, '');
+    const areaLength = determinePostcodeAreaLength(postcode);
+    const areaPrefix = postcode.substring(0, areaLength).trim();
+    const regexPostcode = new RegExp("^\\s*" + areaPrefix + "\\s*$", "i");
+    const regexPattern = new RegExp(gearbox, "i");
+
+    // Define filter criteria for instructors
+    const instructorFilter = {
+      areas: regexPostcode,
+      AcceptStudent: true,
+      status: "active",
+    };
+
+    // Define filter criteria for trainers (without gearbox)
+    const trainerFilter = {
+      areas: regexPostcode,
+      gearbox: { $regex: regexPattern },
+      AcceptStudent: true,
+    };
+    // Conditionally add gearbox filter if gearbox is not "all"
+    if (gearbox && gearbox.toLowerCase() !== "all") {
       const regexPattern = new RegExp(gearbox, "i");
-  
-      // Define filter criteria for instructors
-      const instructorFilter = {
-        areas: regexPostcode,
-        AcceptStudent: true,
-        status: "active",
-      };
-  
-      // Define filter criteria for trainers (without gearbox)
-      const trainerFilter = {
-        areas: regexPostcode,
-        gearbox: { $regex: regexPattern },
-        AcceptStudent: true,
-      };
-      // Conditionally add gearbox filter if gearbox is not "all"
-      if (gearbox && gearbox.toLowerCase() !== "all") {
-        const regexPattern = new RegExp(gearbox, "i");
-        instructorFilter["gearbox"] = { $regex: regexPattern };
-        trainerFilter["gearbox"] = { $regex: regexPattern };
-      }
-  
-      // Find instructors and trainees
-      let [instructors, trainers] = await Promise.all([
-        InstructorsUserSchema.find(instructorFilter),
-        TraineesUserSchema.find(trainerFilter),
-      ]);
-  
-      let users = [...instructors, ...trainers];
-  
-      if (!users.length) {
-        return res.json({ data: [] });
-      }
-      if (studentGender === "male") {
-        users = users.filter(
-          (user) => 
-            // Include instructors who don't exclusively accept female students
-            !user.AcceptFemaleStudent || 
-            // OR include male instructors
-            user.gender === 0 ||
-            // OR include instructors who exclusively accept male students
-            user.AcceptMaleStudent
-        );
-      } else if (studentGender === "female") {
-        users = users.filter(
-          (user) => 
-            // Include instructors who don't exclusively accept male students
-            !user.AcceptMaleStudent || 
-            // OR include female instructors
-            user.gender === 1 ||
-            // OR include instructors who exclusively accept female students
-            user.AcceptFemaleStudent
-        );
-      }
-      return res.json({ data: users });
-  
-    } catch (error) {
-      console.error("Outer Error:", error);
-      res.status(500).json({ message: "An error occurred", error });
+      instructorFilter["gearbox"] = { $regex: regexPattern };
+      trainerFilter["gearbox"] = { $regex: regexPattern };
     }
-  };
+
+    // Find instructors and trainees
+    let [instructors, trainers] = await Promise.all([
+      InstructorsUserSchema.find(instructorFilter),
+      TraineesUserSchema.find(trainerFilter),
+    ]);
+
+    let users = [...instructors, ...trainers];
+
+    if (!users.length) {
+      return res.json({ data: [] });
+    }
+    if (studentGender === "male") {
+      users = users.filter(
+        (user) => 
+          // Include instructors who don't exclusively accept female students
+          !user.AcceptFemaleStudent || 
+          // OR include male instructors
+          user.gender === 0 ||
+          // OR include instructors who exclusively accept male students
+          user.AcceptMaleStudent
+      );
+    } else if (studentGender === "female") {
+      users = users.filter(
+        (user) => 
+          // Include instructors who don't exclusively accept male students
+          !user.AcceptMaleStudent || 
+          // OR include female instructors
+          user.gender === 1 ||
+          // OR include instructors who exclusively accept female students
+          user.AcceptFemaleStudent
+      );
+    }
+    return res.json({ data: users });
+
+  } catch (error) {
+    console.error("Outer Error:", error);
+    res.status(500).json({ message: "An error occurred", error });
+  }
+};
 
   const determinePostcodeAreaLength = (postcode) => {
     switch (postcode.length) {
