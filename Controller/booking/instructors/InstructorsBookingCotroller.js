@@ -69,7 +69,7 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
     postcode = postcode.replace(/\s+/g, '');
     const areaLength = determinePostcodeAreaLength(postcode);
     const areaPrefix = postcode.substring(0, areaLength).trim();
-    const regexPostcode = new RegExp("^" + areaPrefix + "$", "i");
+    const regexPostcode = new RegExp("^\\s*" + areaPrefix + "\\s*$", "i");
     const regexPattern = new RegExp(gearbox, "i");
 
     // Define filter criteria for instructors
