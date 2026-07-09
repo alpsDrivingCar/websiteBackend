@@ -1428,9 +1428,17 @@ async function getInstructorAvailability(
       }
 
       if (event.awayType === "WORKING_HOURS_MORNING") {
-        acc[dayKey].start = new Date(event.endTime).getUTCHours();
+        const morningEnd = new Date(event.endTime);
+        acc[dayKey].start = {
+          hours: morningEnd.getUTCHours(),
+          minutes: morningEnd.getUTCMinutes(),
+        };
       } else if (event.awayType === "WORKING_HOURS_EVENING") {
-        acc[dayKey].end = new Date(event.startTime).getUTCHours();
+        const eveningStart = new Date(event.startTime);
+        acc[dayKey].end = {
+          hours: eveningStart.getUTCHours(),
+          minutes: eveningStart.getUTCMinutes(),
+        };
       } else if (
         event.awayType === "LUNCH_BREAK" &&
         event.startTime &&
@@ -1468,8 +1476,9 @@ async function getInstructorAvailability(
       // Check for working hours override first, then fall back to default working hours
       const workingHoursOverride = workingHoursOverrides[dayKey];
       const defaultWorkingHours = instructor.workingHours?.[currentDay];
-      if (workingHoursOverride && workingHoursOverride.end === 0) {
-        workingHoursOverride.end = 23;
+      // Evening away starting at 00:xx means "work until end of day" -> treat as 23:00
+      if (workingHoursOverride && workingHoursOverride.end?.hours === 0) {
+        workingHoursOverride.end = { hours: 23, minutes: 0 };
       }
       // Determine actual working hours for the day with minutes
       const getTimeComponents = (timeString) => {
@@ -1491,11 +1500,11 @@ async function getInstructorAvailability(
       // Use override hours if available, otherwise use defaults
       const workingStartTime =
         workingHoursOverride?.start !== undefined
-          ? { hours: workingHoursOverride.start, minutes: 0 }
+          ? { ...workingHoursOverride.start }
           : defaultStart;
       const workingEndTime =
         workingHoursOverride?.end !== undefined
-          ? { hours: workingHoursOverride.end, minutes: 0 }
+          ? { ...workingHoursOverride.end }
           : defaultEnd;
 
       // Ensure minimum start time is 6 AM
