@@ -74,6 +74,48 @@ exports.createPaymentAndGetUrlPaymentForGiftNew = async (req, res) => {
 
 // Remove the old scheduleGiftEmail function - it's no longer needed
 
+// Admin-only: manually issue a gift when the customer paid via bank transfer.
+// No Elavon payment intent and no OTP validation are involved. The gift is
+// created directly with status "success" and issued through the existing
+// gift-issuance logic (immediate email or scheduling based on deliverDate).
+exports.createManualGiftByAdmin = async (req, res) => {
+  try {
+    const giftCheckoutReceivedData = req.body;
+
+    // Reuse the existing card/custom validation (throws if neither is valid)
+    await generateLineItem(giftCheckoutReceivedData);
+
+    // Build the manual gift record, reusing the existing save helper.
+    // senderOTP is given an internal placeholder so the schema stays unchanged.
+    const manualGiftData = {
+      ...giftCheckoutReceivedData,
+      senderOTP: "MANUAL_ADMIN",
+      paymentMethod: "bank_transfer",
+      status: "success",
+      emailSent: false,
+    };
+
+    const savedGiftCheckoutSchema = await saveGiftCheckoutSchema(manualGiftData);
+
+    // Reuse the existing admin notification
+    const senderText = `Gift Order from ${savedGiftCheckoutSchema.senderName} to ${savedGiftCheckoutSchema.deliverName}`;
+    await NotificationCreator.createWebsiteAdminNotification(
+      senderText,
+      "Gift Order",
+      savedGiftCheckoutSchema._id,
+      "giftCheckout"
+    );
+
+    // Reuse the existing issuance logic: sends immediately if the deliverDate is
+    // due (or not set) and schedules it otherwise.
+    await exports.initializeScheduledGifts();
+
+    res.status(201).json({ status: "success", data: savedGiftCheckoutSchema });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 exports.validateOTP = async (req, res) => {
   try {
     const giftCheckoutReceivedData = req.body;
