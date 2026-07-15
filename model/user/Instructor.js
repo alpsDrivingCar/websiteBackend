@@ -312,6 +312,11 @@ const InstructorSchema = new mongoose.Schema(
             start: { type: String },
             end: { type: String }
           },
+
+          dinnerBreak: {
+            start: { type: String },
+            end: { type: String }
+          },
     },
 
     {
