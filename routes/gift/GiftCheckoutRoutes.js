@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.post("/create",giftServer.createPaymentAndGetUrlPaymentForGiftNew)
 router.post("/validateOTP", giftServer.validateOTP);
+router.post("/manual", authenticateAdmin, giftServer.createManualGiftByAdmin);
 
 router.get('/all', authenticateAdmin, giftServer.getAllCheckoutInfos);
 router.get('/:id', authenticateAdmin, giftServer.getCheckoutInfoById);

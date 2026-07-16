@@ -44,6 +44,11 @@ const giftCheckoutSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    paymentMethod: {
+        type: String,
+        enum: ['elavon', 'bank_transfer'],
+        default: 'elavon'
+    },
     type: {
         type: String,
         enum: ['card', 'custom'],
