@@ -1246,6 +1246,7 @@ async function getInstructorAvailability(
             "WORKING_HOURS_MORNING",
             "WORKING_HOURS_EVENING",
             "LUNCH_BREAK",
+            "DINNER_BREAK",
           ],
         },
       }),
@@ -1278,6 +1279,7 @@ async function getInstructorAvailability(
           start: undefined,
           end: undefined,
           lunchBreak: null,
+          dinnerBreak: null,
         };
       }
 
@@ -1302,6 +1304,18 @@ async function getInstructorAvailability(
         const startTime = new Date(event.startTime);
         const endTime = new Date(event.endTime);
         acc[dayKey].lunchBreak = {
+          start: startTime,
+          end: endTime,
+        };
+      } else if (
+        event.awayType === "DINNER_BREAK" &&
+        event.startTime &&
+        event.endTime
+      ) {
+        // Only set dinner break if both start and end times are valid and different
+        const startTime = new Date(event.startTime);
+        const endTime = new Date(event.endTime);
+        acc[dayKey].dinnerBreak = {
           start: startTime,
           end: endTime,
         };
@@ -1484,7 +1498,81 @@ async function getInstructorAvailability(
         if (overlapsLunch) {
           // Skip to after lunch
           currentTime = new Date(lunchEndTime);
-          
+
+          continue;
+        }
+
+        // Create dinner break times for current day using the full ISO time
+        let dinnerStartTime = null;
+        let dinnerEndTime = null;
+
+        // First check for override dinner break
+        if (workingHoursOverride?.dinnerBreak) {
+          dinnerStartTime = new Date(
+            Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate(),
+              workingHoursOverride.dinnerBreak.start.getUTCHours(),
+              workingHoursOverride.dinnerBreak.start.getUTCMinutes(),
+              0,
+              0
+            )
+          );
+
+          dinnerEndTime = new Date(
+            Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate(),
+              workingHoursOverride.dinnerBreak.end.getUTCHours(),
+              workingHoursOverride.dinnerBreak.end.getUTCMinutes(),
+              0,
+              0
+            )
+          );
+        }
+        // Fall back to instructor's default dinner break if no override exists
+        else if (instructor.dinnerBreak?.start && instructor.dinnerBreak?.end) {
+          const dinnerStartTemp = new Date(instructor.dinnerBreak.start);
+          const dinnerEndTemp = new Date(instructor.dinnerBreak.end);
+
+          dinnerStartTime = new Date(
+            Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate(),
+              dinnerStartTemp.getUTCHours(),
+              dinnerStartTemp.getUTCMinutes(),
+              0,
+              0
+            )
+          );
+
+          dinnerEndTime = new Date(
+            Date.UTC(
+              currentDate.getUTCFullYear(),
+              currentDate.getUTCMonth(),
+              currentDate.getUTCDate(),
+              dinnerEndTemp.getUTCHours(),
+              dinnerEndTemp.getUTCMinutes(),
+              0,
+              0
+            )
+          );
+        }
+
+        // Check if slot overlaps with dinner break using exact times
+        const overlapsDinner =
+          dinnerStartTime &&
+          dinnerEndTime &&
+          currentTime < dinnerEndTime &&
+          slotEndTime > dinnerStartTime;
+
+        if (overlapsDinner) {
+          // Skip to after dinner
+          currentTime = new Date(dinnerEndTime);
+
           continue;
         }
 
