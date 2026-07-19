@@ -1241,6 +1241,7 @@ async function getInstructorAvailability(
       LessonEvent.find({
         $or: [{ instructorId: instructor._id }, { trainerId: instructor._id }],
         startTime: { $gte: startDate, $lte: endDate },
+        status: { $ne: "cancelled" },
         awayType: {
           $in: [
             "WORKING_HOURS_MORNING",
@@ -1300,13 +1301,17 @@ async function getInstructorAvailability(
         event.startTime &&
         event.endTime
       ) {
-        // Only set lunch break if both start and end times are valid and different
+        // Only set lunch break if both start and end times are valid and different.
+        // A zero-length break carries no time to protect, and would otherwise act as a
+        // point-blocker: any slot spanning it is rejected and the cursor is thrown to it.
         const startTime = new Date(event.startTime);
         const endTime = new Date(event.endTime);
-        acc[dayKey].lunchBreak = {
-          start: startTime,
-          end: endTime,
-        };
+        if (endTime.getTime() > startTime.getTime()) {
+          acc[dayKey].lunchBreak = {
+            start: startTime,
+            end: endTime,
+          };
+        }
       } else if (
         event.awayType === "DINNER_BREAK" &&
         event.startTime &&
@@ -1315,10 +1320,12 @@ async function getInstructorAvailability(
         // Only set dinner break if both start and end times are valid and different
         const startTime = new Date(event.startTime);
         const endTime = new Date(event.endTime);
-        acc[dayKey].dinnerBreak = {
-          start: startTime,
-          end: endTime,
-        };
+        if (endTime.getTime() > startTime.getTime()) {
+          acc[dayKey].dinnerBreak = {
+            start: startTime,
+            end: endTime,
+          };
+        }
       }
       return acc;
     }, {});
