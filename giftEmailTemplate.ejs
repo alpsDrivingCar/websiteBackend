@@ -171,8 +171,10 @@
                             <div class="body-text">
                                 <p style="font-size: 18px;">Dear <%= deliverName %>,</p>
                                 <p style="font-size: 16px;">You have received a <span class="highlight"><%= cardName %> Gift Card Worth £<%= price %></span> from <%= senderName %>.</p>
-                                <p style="font-size: 16px;">Here's a special message from <%= senderName %>:</p>
-                                <p class="message">"<%= message %>"</p>
+                                <% if (message && message.trim()) { %>
+                                    <p style="font-size: 16px;">Here's a special message from <%= senderName %>:</p>
+                                    <p class="message">"<%= message %>"</p>
+                                <% } %>
                                 <p class="usage">You can use this card for booking lessons at Alps Driving School.</p>
                             </div>
                         </td>
