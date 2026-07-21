@@ -17,7 +17,8 @@ const giftCheckoutSchema = new mongoose.Schema({
     },
     message: {
         type: String,
-        required: true
+        required: false,
+        default: ""
     },
     senderName: {
         type: String,
