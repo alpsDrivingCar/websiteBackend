@@ -155,14 +155,19 @@ exports.instructorsByPostcodeAndAvailableTimeAndGearBox = async (req, res) => {
 ////////////////////// get Booking   //////////////////
 exports.getBookingPackagesByPostcodeAndtype = async (req, res) => {
     try {
-        const { postcode, type: typeId, packageId } = req.query;
+        const { postcode, type: typeId, packageId, instructorId } = req.query;
 
         if (!postcode) {
             return res.status(404).json({ message: 'Postcode is not defined.' });
         }
 
+        let instructor = null;
+        if (instructorId) {
+            instructor = await InstructorsUserSchema.findById(instructorId).catch(() => null);
+        }
+
         // Directly fetch and format booking packages based on the provided parameters
-        const formattedData = await fetchAndFormatBookingPackages(postcode, typeId, packageId);
+        const formattedData = await fetchAndFormatBookingPackages(postcode, typeId, packageId, instructor);
 
         // Create a new InstructorsSchema instance with the formatted data and save it
         const bookingInstructor = new InstructorsSchema(formattedData);
@@ -186,7 +191,7 @@ function sortDataByNumberHour(formattedData) {
     return formattedData;
 }
 
-async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
+async function fetchAndFormatBookingPackages(postcode, typeId, packageId, instructor) {
     let formattedData;
 
     if (packageId) {
@@ -195,7 +200,7 @@ async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
         if (!bookingPackage) {
             throw new Error("No booking package found for the given packageId and postcode.");
         }
-        formattedData = formatDataForBooking([bookingPackage]); // Format single package
+        formattedData = formatDataForBooking([bookingPackage], instructor); // Format single package
     } else if (typeId) {
         // Fetch booking packages by type and postcode
         const targetTypeOfLesson = await fetchLessonTypeById(typeId);
@@ -206,7 +211,7 @@ async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
         if (!bookingPackages.length) {
             throw new Error("No booking packages found for the given postcode and type.");
         }
-        formattedData = formatDataForBooking(bookingPackages); // Format multiple packages
+        formattedData = formatDataForBooking(bookingPackages, instructor); // Format multiple packages
     } else {
         throw new Error('Either type or packageId must be provided.');
     }
@@ -246,7 +251,30 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
     });
 };
 
-const formatDataForBooking = (bookingPackages) => {
+const resolvePackagePricing = (curr, instructor) => {
+    const hours = parseInt(curr.numberHour);
+
+    if (instructor && instructor.pricingMode === 'custom' && Array.isArray(instructor.customPackages)) {
+        const match = instructor.customPackages.find(
+            (p) => parseInt(p.numberHour) === hours && p.status !== 'inactive' && p.price > 0
+        );
+        if (match) {
+            const before = match.priceBeforeSale > match.price ? match.priceBeforeSale : match.price;
+            return { total: match.price, totalBeforeSale: before };
+        }
+    }
+
+    if (instructor && instructor.lessonHourlyRate > 0) {
+        const total = instructor.lessonHourlyRate * hours;
+        return { total, totalBeforeSale: total };
+    }
+
+    const total = convertToNumber(curr.price, "price");
+    const totalBeforeSale = convertToNumber(curr.priecBeforeSele, "priecBeforeSele");
+    return { total, totalBeforeSale };
+};
+
+const formatDataForBooking = (bookingPackages, instructor) => {
     const order = { 'manual': 1, 'automatic': 2, 'electric': 3 };
 
     // Check if 'manual' exists in the booking packages
@@ -273,12 +301,11 @@ const formatDataForBooking = (bookingPackages) => {
         }
 
         console.log(`curr ${curr.title}`);
-        const total = convertToNumber(curr.price, "price");
-        const totalBeforeSale = convertToNumber(curr.priecBeforeSele, "priecBeforeSele");
+        const { total, totalBeforeSale } = resolvePackagePricing(curr, instructor);
 
         // Calculate the savings
         const savings = totalBeforeSale - total;
-        const savingsPercentage = (savings / totalBeforeSale) * 100;
+        const savingsPercentage = totalBeforeSale > 0 ? (savings / totalBeforeSale) * 100 : 0;
 
         acc[curr.slugOfGearbox].packages.push({
             packageId: curr.id,

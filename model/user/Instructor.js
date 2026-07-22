@@ -204,6 +204,27 @@ const InstructorSchema = new mongoose.Schema(
         hourlyCost: {
             type: Number,
         },
+        pricingMode: {
+            type: String,
+            enum: ['hourly', 'custom'],
+            default: 'hourly',
+        },
+        lessonHourlyRate: {
+            type: Number,
+        },
+        customPackages: [
+            {
+                name: { type: String },
+                numberHour: { type: Number },
+                price: { type: Number },
+                priceBeforeSale: { type: Number },
+                status: {
+                    type: String,
+                    enum: ['active', 'inactive'],
+                    default: 'active',
+                },
+            },
+        ],
         areas: {
             type: Array,
             default: [],
