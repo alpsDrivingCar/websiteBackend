@@ -46,7 +46,7 @@ exports.updateOrderStatus = async (req, res) => {
         const pupilId = apiResponse.pupil._id;
 
         // Add updatePupilIdById here
-        await addCreditToPupilAccount(pupilId, token, packageId);
+        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId);
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -111,9 +111,9 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     return results; // Return the array of results
 }
 
-async function addCreditToPupilAccount(pupilId, token, packageId) {
+async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) {
     console.log('Starting addCreditToPupilAccount...');
-    console.log('Inputs:', { pupilId, packageId });
+    console.log('Inputs:', { pupilId, packageId, instructorId });
     
     try {
         const apiUrl = `${process.env.DASHBOARD_URL}/api/lesson-payment/create`;
@@ -128,9 +128,10 @@ async function addCreditToPupilAccount(pupilId, token, packageId) {
         const package = await getBookingPackageById(packageId);
         console.log('Retrieved package:', package);
 
-        const payload = { 
+        const payload = {
             date: new Date().toISOString(),
             pupilId: pupilId,
+            instructorId: instructorId ? instructorId.toString() : undefined,
             fee: package.price || 0,
             method: "Card",
             privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
