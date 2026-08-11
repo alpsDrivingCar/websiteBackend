@@ -18,6 +18,8 @@ dotenv.config(dotenv);
 exports.updateOrderStatus = async (req, res) => {
     try {
         const {id} = req.params;
+        // The cron flow calls this handler with an ObjectId, the HTTP flow with a string.
+        const checkoutInfoId = String(id);
         const {status} = req.body;
         const order = await CheckoutInfo.findById(id);
         let isOrderPaid = false;
@@ -46,7 +48,7 @@ exports.updateOrderStatus = async (req, res) => {
         const pupilId = apiResponse.pupil._id;
 
         // Add updatePupilIdById here
-        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId);
+        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId, checkoutInfoId);
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -111,9 +113,9 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     return results; // Return the array of results
 }
 
-async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) {
+async function addCreditToPupilAccount(pupilId, token, packageId, instructorId, checkoutInfoId) {
     console.log('Starting addCreditToPupilAccount...');
-    console.log('Inputs:', { pupilId, packageId, instructorId });
+    console.log('Inputs:', { pupilId, packageId, instructorId, checkoutInfoId });
     
     try {
         const apiUrl = `${process.env.DASHBOARD_URL}/api/lesson-payment/create`;
@@ -132,6 +134,8 @@ async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) 
             date: new Date().toISOString(),
             pupilId: pupilId,
             instructorId: instructorId ? instructorId.toString() : undefined,
+            checkoutInfoId: checkoutInfoId ? String(checkoutInfoId) : undefined,
+            packageId: packageId ? String(packageId) : undefined,
             fee: package.price || 0,
             method: "Card",
             privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
