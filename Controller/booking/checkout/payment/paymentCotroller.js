@@ -107,12 +107,16 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
       await validateIntroductoryOffer(orderInfo, studentInfo);
     }
     
-    // const isAvailable = await checkInstructorAvailability(orderInfo);
-    // if (!isAvailable) {
-    //   return res.status(404).json({
-    //     message: "Instructor has become unavailable at the requested times.",
-    //   });
-    // }
+    // The slots were offered to the pupil earlier; re-check them now, before we take payment.
+    const availability = await checkInstructorAvailability(orderInfo);
+    if (!availability.available) {
+      return res.status(409).json({
+        code: "SLOT_NO_LONGER_AVAILABLE",
+        message:
+          "Sorry, that time has just been booked by someone else. Please go back and pick another available time.",
+        conflictingTime: availability.conflictAt,
+      });
+    }
     isMobileOrder ? orderInfo.orderType = 'app' : orderInfo.orderType = 'website';
 
     const lineItems = await generateLineItems(orderInfo);
@@ -183,25 +187,37 @@ async function checkInstructorAvailability(orderInfo) {
   }, []);
 
   if (availableTimes.length === 0) {
+    // Nothing was scheduled with this order, so there is nothing to clash with.
     console.log("No available times found in the order items.");
-    return false; // Indicating no available times to check against
+    return { available: true, conflictAt: null };
   }
 
+  // Mirror the duration addLessonEvent() will use, so we check the slot we are about to create.
+  const lessonDurationMinutes = orderInfo.typeOfLesson === "mock_test" ? 90 : 120;
+
   // Check availability for the specified instructor at each provided time
-  for (const time of availableTimes) {
-    const hasLesson = await LessonEvent.findOne({
-      instructorId: instructorsId, // Directly use the single ID provided
-      startTime: { $lte: time },
-      endTime: { $gte: time },
+  for (const slotStart of availableTimes) {
+    const slotEnd = new Date(
+      slotStart.getTime() + lessonDurationMinutes * 60 * 1000
+    );
+
+    // True range overlap: existing.start < new.end AND existing.end > new.start
+    const clashingLesson = await LessonEvent.findOne({
+      $or: [{ instructorId: instructorsId }, { trainerId: instructorsId }],
+      eventType: "Lesson",
+      status: { $ne: "cancelled" },
+      startTime: { $lt: slotEnd },
+      endTime: { $gt: slotStart },
     });
-    if (hasLesson) {
+
+    if (clashingLesson) {
       // This instructor is not available at this time
-      return false; // Instructor is unavailable at least one of the provided times
+      return { available: false, conflictAt: slotStart };
     }
   }
 
   // If the loop completes without finding any unavailability, the instructor is available
-  return true; // The instructor is available at all provided times
+  return { available: true, conflictAt: null };
 }
 
 async function sendNotifications(data, orderId) {
