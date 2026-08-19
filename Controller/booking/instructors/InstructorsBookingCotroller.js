@@ -198,6 +198,11 @@ function sortDataByNumberHour(formattedData) {
 async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
   let formattedData;
 
+  // Resolved once per request, not per package: every package reaching
+  // formatDataForBooking is being offered for this one postcode, so the answer is the
+  // same for all of them and a per-package query would repeat identical work.
+  const hasIntensiveCoverage = await hasIntensivePackagesForPostcode(postcode);
+
   if (packageId) {
     // Fetch a single booking package by ID and ensure it matches the postcode
     const bookingPackage = await fetchPackageById(packageId);
@@ -206,7 +211,7 @@ async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
         "No booking package found for the given packageId and postcode."
       );
     }
-    formattedData = formatDataForBooking([bookingPackage]); // Format single package
+    formattedData = formatDataForBooking([bookingPackage], hasIntensiveCoverage); // Format single package
   } else if (typeId) {
     // Fetch booking packages by type and postcode
     const targetTypeOfLesson = await fetchLessonTypeById(typeId);
@@ -222,7 +227,7 @@ async function fetchAndFormatBookingPackages(postcode, typeId, packageId) {
         "No booking packages found for the given postcode and type."
       );
     }
-    formattedData = formatDataForBooking(bookingPackages); // Format multiple packages
+    formattedData = formatDataForBooking(bookingPackages, hasIntensiveCoverage); // Format multiple packages
   } else {
     throw new Error("Either type or packageId must be provided.");
   }
@@ -261,7 +266,29 @@ const fetchBookingPackages = async (postcode, slugOfTypeLesson) => {
   });
 };
 
-const formatDataForBooking = (bookingPackages) => {
+// Is an intensive course actually on offer in this postcode area?
+//
+// Read live from the packages collection so that coverage follows the data: adding or
+// deactivating an intensive package, or extending one to a new area, changes the answer
+// with no code change. Deliberately no hardcoded area list.
+//
+// Uses the same prefix regex and status filter as fetchBookingPackages above, so the
+// answer can never disagree with the package list it is attached to.
+const hasIntensivePackagesForPostcode = async (postcode) => {
+  const areaLength = determinePostcodeAreaLength(postcode);
+  const areaPrefix = postcode.substring(0, areaLength).trim();
+  const regexPostcode = new RegExp("^" + areaPrefix, "i");
+
+  const match = await PackageSchema.exists({
+    "postCode.postCode": regexPostcode,
+    slugOfType: "intensive_courses",
+    status: "active",
+  });
+
+  return match !== null;
+};
+
+const formatDataForBooking = (bookingPackages, hasIntensiveCoverage = false) => {
   const order = { 'manual': 1, 'automatic': 2, 'electric': 3 };
 
   // Check if 'manual' exists in the booking packages
@@ -314,6 +341,10 @@ const formatDataForBooking = (bookingPackages) => {
       totalBeforeSale: totalBeforeSale,
       saveUp: `Save Up To ${savingsPercentage.toFixed(0)}%!`,
       priceSave: `Saving of £${savings.toFixed(2)}`,
+      hasIntensiveCoverage: hasIntensiveCoverage,
+      // The package's own type, straight from the source document, so callers can
+      // tell an intensive course from a standard one without matching on an id.
+      slugOfType: curr.slugOfType,
     });
 
     return acc;
