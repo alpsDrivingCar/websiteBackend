@@ -30,7 +30,8 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Update status
         var updateResult = await updateStatusById(id, status);
-        const packageId = updateResult.checkoutInfo.orderInfo.items[0].packageId;
+        const orderItem = updateResult.checkoutInfo.orderInfo.items[0];
+        const packageId = orderItem.packageId;
 
         if (updateResult.alreadyUpdated) {
             // If the order was already updated to "success", return a message indicating so
@@ -46,7 +47,7 @@ exports.updateOrderStatus = async (req, res) => {
         const pupilId = apiResponse.pupil._id;
 
         // Add updatePupilIdById here
-        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId);
+        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId, orderItem, updateResult.checkoutInfo._id);
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -111,9 +112,9 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     return results; // Return the array of results
 }
 
-async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) {
+async function addCreditToPupilAccount(pupilId, token, packageId, instructorId, orderItem, checkoutInfoId) {
     console.log('Starting addCreditToPupilAccount...');
-    console.log('Inputs:', { pupilId, packageId, instructorId });
+    console.log('Inputs:', { pupilId, packageId, instructorId, checkoutInfoId });
     
     try {
         const apiUrl = `${process.env.DASHBOARD_URL}/api/lesson-payment/create`;
@@ -137,6 +138,13 @@ async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) 
             privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
             status: "Income",
             durationMinutes: package.numberHour * 60,
+            // Name of the package as it stood at payment time, so later renames of the
+            // package don't rewrite history on the payment record.
+            packageNameSnapshot: orderItem?.packageName || orderItem?.name || package.title,
+            // Links the payment back to what was bought and to the order it came from;
+            // the payments report joins on packageId to resolve the current package name.
+            packageId: packageId,
+            checkoutInfoId: checkoutInfoId ? checkoutInfoId.toString() : undefined,
         };
         console.log('Preparing payload:', payload);
 
@@ -147,11 +155,34 @@ async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) 
             throw new Error(`API responded with status code ${response.status}`);
         }
 
+        // The dashboard strips unknown fields silently and still answers 2xx, so confirm the
+        // snapshot actually landed on the stored document instead of assuming it did.
+        warnIfSnapshotMissing(response.data, payload.packageNameSnapshot);
+
         return response.data;
 
     } catch (error) {
         console.error('Error in addCreditToPupilAccount:', error);
         handleApiError(error);
+    }
+}
+
+function warnIfSnapshotMissing(responseData, sentSnapshot) {
+    if (!sentSnapshot) {
+        console.warn('packageNameSnapshot: nothing to send - order item had no packageName/name and the package had no title.');
+        return;
+    }
+
+    // POST /api/lesson-payment/create answers with { data: savedLessonPayment }.
+    const saved = responseData?.data;
+
+    if (!saved || saved.packageNameSnapshot === undefined) {
+        console.warn(
+            `packageNameSnapshot: sent "${sentSnapshot}" but it is absent from the created document. ` +
+            'Check that the field exists on the LessonPayment schema in alps-driving-server and is spelled identically.'
+        );
+    } else if (saved.packageNameSnapshot !== sentSnapshot) {
+        console.warn(`packageNameSnapshot: sent "${sentSnapshot}" but stored "${saved.packageNameSnapshot}".`);
     }
 }
 

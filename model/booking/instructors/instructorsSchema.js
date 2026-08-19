@@ -17,6 +17,14 @@ const bookingInstructorsSchema = new Schema({
                     numberOfLessons: Number,
                     saveUp: { type: String, default: "Save Up To 20% !" },
                     priceSave: { type: String, default: "Save £50" },
+                    // Set by formatDataForBooking. Must stay declared here: the booking
+                    // response is built by instantiating this model, so an undeclared
+                    // field is stripped silently and the API answers 200 without it.
+                    hasIntensiveCoverage: { type: Boolean, default: false },
+                    // Mirrors slugOfType on the package document. Left as a plain String
+                    // with no enum: this is a read-only view of the packages collection,
+                    // so a new type added there must flow through, not fail here.
+                    slugOfType: String,
 
                 }
             ]
