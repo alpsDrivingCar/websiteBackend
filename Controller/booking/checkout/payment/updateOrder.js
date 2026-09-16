@@ -303,9 +303,25 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
 
         return response.data;
     } catch (error) {
-        const errMsg = error.message;
-        console.log(`error ${error}`);
-        throw new Error(`Add Lesson API Error: ${errMsg}`);
+        // axios's message is only the status line; which rule refused the lesson
+        // (INTENSIVE_PACKAGE_REQUIRED vs SLOT_NO_LONGER_AVAILABLE) is in response.data.
+        const body = error.response && error.response.data;
+        const code = (body && (body.code || (body.error && body.error.code))) || null;
+        const reason = (body && body.message) || code || error.message;
+
+        console.error("Add Lesson API failed:", JSON.stringify({
+            status: error.response && error.response.status,
+            code,
+            startTime,
+            response: body,
+        }));
+
+        const wrapped = new Error(`Add Lesson API Error: ${reason}`);
+        wrapped.status = (error.response && error.response.status) || null;
+        wrapped.code = code;
+        wrapped.details = body || null;
+        wrapped.slotStartTime = startTime;
+        throw wrapped;
     }
 }
 
