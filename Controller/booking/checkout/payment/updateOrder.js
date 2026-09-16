@@ -48,6 +48,18 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Add updatePupilIdById here
         await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId, orderItem, updateResult.checkoutInfo._id);
+        // ORDER MATTERS: updatePupilIdById must stay ABOVE processAvailableHours.
+        //
+        // Each lesson carries this order's checkoutInfoId, and the dashboard refuses to
+        // tag a lesson from a checkout that has no studentInfo.pupilId on it, or whose
+        // pupil differs from the one being booked
+        // (services/PackageSourceService.js in alps-driving-server). That pupilId is
+        // written by the line below, so it has to be on the document before the first
+        // lesson is posted.
+        //
+        // Swap these two lines and every lesson is still booked and every response
+        // still looks correct - the lessons simply arrive with no package attached, and
+        // nothing raises, logs or fails on this side.
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -227,7 +239,18 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
             "dropOffLocation": "home", // Drop-off location
             "date": time, // Date and time of the lesson,
             "endTime": formattedEndTime,
-            "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? `Mock Test/${process.env.MOCK_TEST_LESSONTYPEID}` : "Web site lessons/661f96868ef5f48b31d1a241"
+            "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? `Mock Test/${process.env.MOCK_TEST_LESSONTYPEID}` : "Web site lessons/661f96868ef5f48b31d1a241",
+            // The order this lesson was bought under. The dashboard resolves the
+            // package and its type from it and stores them on the lesson as
+            // packageSource (services/PackageSourceService.js in alps-driving-server),
+            // so nothing here has to name the package.
+            //
+            // Sent as an explicit string rather than relying on ObjectId serialising
+            // itself, matching how addCreditToPupilAccount passes the same id.
+            //
+            // A failure to resolve it is swallowed on their side: the lesson is still
+            // booked, just untagged. So this field can never cost us a booking.
+            "checkoutInfoId": String(updatedCheckoutInfo._id)
 
         };
 

@@ -116,6 +116,31 @@ exports.createPaymentAndGetUrlPaymentNew = async (req, res) => {
         conflictingTime: availability.conflictAt,
       });
     }
+
+    // The dashboard caps how many lessons a pupil may hold in one ISO week and
+    // refuses the rest with a 409 when the lesson is created - which happens after
+    // payment. Ask the same question now, while the pupil can still change the
+    // booking. This is a business rule, not a website rule: mobile orders are
+    // checked too, hence its place above the orderType branch.
+    const weeklyLimit = await checkWeeklyLessonLimit(orderInfo, studentInfo);
+    if (!weeklyLimit.allowed) {
+      return res.status(409).json({
+        code: "WEEKLY_LESSON_LIMIT_REACHED",
+        message: buildWeeklyLimitMessage(weeklyLimit),
+        week: {
+          key: weeklyLimit.week.key,
+          start: weeklyLimit.week.start,
+          end: weeklyLimit.week.endInclusive,
+          label: weeklyLimit.week.label,
+        },
+        existingLessons: weeklyLimit.existingLessons,
+        requestedLessons: weeklyLimit.requestedLessons,
+        resultingTotal: weeklyLimit.resultingTotal,
+        allowedPerWeek: weeklyLimit.allowedPerWeek,
+        remainingThisWeek: weeklyLimit.remainingThisWeek,
+      });
+    }
+
     isMobileOrder ? orderInfo.orderType = 'app' : orderInfo.orderType = 'website';
 
     const lineItems = await generateLineItems(orderInfo);
@@ -217,6 +242,243 @@ async function checkInstructorAvailability(orderInfo) {
 
   // If the loop completes without finding any unavailability, the instructor is available
   return { available: true, conflictAt: null };
+}
+
+// ---------------------------------------------------------------------------
+// Weekly lesson limit, enforced here BEFORE the pupil pays.
+//
+// The dashboard refuses a lesson that would breach this rule at
+// POST /api/diary/lesson-event with a 409. That refusal used to land *after* the
+// card was charged: the order was already flipped to "success", the lessons were
+// never created, and nothing retried it.
+//
+// Every constant, filter and boundary below mirrors
+// services/IntensiveCourseService.js in alps-driving-server. If the two ever
+// disagree, the pupil pays and is refused anyway - the exact failure this check
+// exists to prevent. Match that file; do not "improve" the rule here.
+// ---------------------------------------------------------------------------
+
+// Mirrors WEEKLY_LESSON_LIMIT in the dashboard. It is the REJECTED total, not the
+// allowance: at 3, the third lesson in a week is the first one refused, so a pupil
+// may hold LIMIT - 1 lessons per ISO week. Kept in the dashboard's shape rather
+// than a literal 2 so that a change over there is a one-number change here.
+const WEEKLY_LESSON_LIMIT = 3;
+
+// Which lessons count, copied from the dashboard's countableFilter().
+//
+// The dashboard counts with status: 'active' - NOT status: { $ne: 'cancelled' }.
+// The two disagree on legacy events saved before the status field existed: $ne
+// matches a document with no status at all, 'active' does not. Counting with $ne
+// here would tally lessons the dashboard ignores and reject an order it would
+// have accepted, which is worse than being theoretically more correct: the point
+// of this check is to predict the dashboard's answer, not to be right on its own.
+//
+// Our local Event schema (model/booking/instructors/lessonEventSchema.js) does not
+// declare status at all; the filter still reaches Mongo because strictQuery is off
+// by default in Mongoose 7 and nothing in app.js turns it on.
+const weeklyLimitCountableFilter = () => ({ status: "active" });
+
+function buildWeekLabel(start, endInclusive) {
+  const from = moment.utc(start);
+  const to = moment.utc(endInclusive);
+
+  if (from.year() === to.year() && from.month() === to.month()) {
+    return `Mon ${from.format("D")} - Sun ${to.format("D MMM YYYY")}`;
+  }
+  if (from.year() === to.year()) {
+    return `Mon ${from.format("D MMM")} - Sun ${to.format("D MMM YYYY")}`;
+  }
+  return `Mon ${from.format("D MMM YYYY")} - Sun ${to.format("D MMM YYYY")}`;
+}
+
+// ISO week: Monday 00:00 to Sunday 23:59, raw UTC - no Europe/London conversion.
+// The dashboard is explicit about this (converting would shift the boundary by an
+// hour in summer and push a Monday 00:30 lesson into the previous week), so we
+// must not "fix" it here either.
+function getIsoWeek(startTime) {
+  const at = moment.utc(startTime);
+  const start = at.clone().startOf("isoWeek");
+  const endExclusive = start.clone().add(7, "days");
+  const endInclusive = endExclusive.clone().subtract(1, "millisecond");
+
+  return {
+    key: at.format("GGGG-[W]WW"),
+    start: start.toDate(),
+    endExclusive: endExclusive.toDate(),
+    endInclusive: endInclusive.toDate(),
+    label: buildWeekLabel(start, endInclusive),
+  };
+}
+
+// The pupil has no pupilId on the order yet - it is only written after checkout,
+// by updatePupilIdById() once the dashboard has created or matched the pupil. So
+// identity has to be resolved from the contact details, and it has to be resolved
+// the SAME way addPupilfireExternalAPI() will resolve it later
+// (Controller/booking/checkout/payment/updateOrder.js). A different lookup - say
+// by phone only, or without the collation - can see a brand new pupil where the
+// dashboard sees an existing one with a full week, and wave through an order that
+// is then refused after payment.
+async function findPupilForWeeklyLimit(studentInfo) {
+  return Pupil.findOne({
+    status: "active",
+    $or: [
+      { email: { $ne: "", $eq: studentInfo.email } },
+      { phoneNumber: studentInfo.phoneNumber },
+    ],
+  }).collation({ locale: "en", strength: 2 });
+}
+
+async function countPupilLessonsInWeek(pupilId, week) {
+  return LessonEvent.countDocuments({
+    pupilId,
+    eventType: "Lesson",
+    startTime: { $gte: week.start, $lt: week.endExclusive },
+    ...weeklyLimitCountableFilter(),
+  });
+}
+
+function buildWeeklyLimitMessage(result) {
+  const allowance = WEEKLY_LESSON_LIMIT - 1;
+  const lessons = (n) => `${n} ${n === 1 ? "lesson" : "lessons"}`;
+  const moreLessons = (n) => `${n} more ${n === 1 ? "lesson" : "lessons"}`;
+
+  // The same closing sentence in every branch: it states the rule and names the
+  // product that lifts it, which is more use to the pupil than asking them to work
+  // out for themselves which slot to drop. remainingThisWeek is still on the
+  // response body for the client to use; it just does not need saying twice here.
+  const tail = `Standard packages are limited to ${allowance} lessons per week — if you'd like more lessons in the same week, our Intensive courses are designed for that.`;
+
+  if (result.existingLessons === 0) {
+    return `You have chosen ${lessons(result.requestedLessons)} in the week of ${
+      result.week.label
+    }. ${tail}`;
+  }
+
+  return `You already have ${lessons(
+    result.existingLessons
+  )} booked in the week of ${result.week.label}, and have chosen ${moreLessons(
+    result.requestedLessons
+  )} in the same week. ${tail}`;
+}
+
+// !!! THIS EXEMPTION RUNS AHEAD OF THE DASHBOARD - DO NOT SHIP AS IS !!!
+//
+// services/IntensiveCourseService.js in alps-driving-server reads NO field of the
+// package: its countable filter is events only, and its sole exemption is the
+// actor's role (instructor or trainer). Buying an Intensive course buys no relief
+// from the limit over there - the name of the error code INTENSIVE_PACKAGE_REQUIRED
+// is advice to the pupil, not a rule the enforcement implements.
+//
+// So with this exemption in place, an Intensive order carrying 3 lessons in one ISO
+// week passes the gate below, the pupil is charged, and POST /api/diary/lesson-event
+// then refuses the third lesson with a 409 - the exact post-payment failure this
+// whole check exists to prevent, narrowed to Intensive customers.
+//
+// Do not release this to production until the matching exemption exists on the
+// dashboard. Until then the two systems disagree, and the website is the lenient
+// one, which is the dangerous direction.
+async function isIntensiveOrder(orderInfo) {
+  if (!orderInfo.items || !Array.isArray(orderInfo.items)) {
+    return false;
+  }
+
+  for (const item of orderInfo.items) {
+    if (!item.packageId) {
+      continue;
+    }
+
+    // Resolved exactly as validateIntroductoryOffer() resolves it, hot-offer
+    // indirection included: for an offer, item.packageId is the offer's id and the
+    // real package hangs off it.
+    let packageResult;
+    if (orderInfo.typeOfLesson === "hot-offer") {
+      const offerResult = await fetchOfferPackage(item.packageId);
+      if (offerResult && offerResult.packageId) {
+        packageResult = await fetchRegularPackage(offerResult.packageId);
+      }
+    } else {
+      packageResult = await fetchRegularPackage(item.packageId);
+    }
+
+    // Explicit positive match on the one slug that is exempt. Never phrase this as
+    // "not standard_packages": the enum carries seven values
+    // (model/booking/package/packageSchema.js), and refresher, pass-plus, Tesla,
+    // offers and mock tests all have to stay inside the limit.
+    if (packageResult && packageResult.slugOfType === "intensive_courses") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Checks the order as a whole: the slots it asks for, grouped by ISO week, on top
+// of the lessons the pupil already holds in those weeks. Checking slot by slot
+// would miss the case that started all this - a pupil with two lessons already in
+// the week adding more, where no single slot is the one at fault.
+//
+// Mirrors the dashboard's checkBatchWeeklyLimit(): same grouping, same comparison,
+// and it reports the first week that breaches rather than collecting them all.
+async function checkWeeklyLessonLimit(orderInfo, studentInfo) {
+  // Intensive courses are sold precisely to drive more than the weekly allowance,
+  // so they skip the rule entirely. Read the warning above isIntensiveOrder()
+  // before releasing this.
+  if (await isIntensiveOrder(orderInfo)) {
+    return { allowed: true, skippedReason: "INTENSIVE_PACKAGE" };
+  }
+
+  // Same reduce as checkInstructorAvailability: the schema allows several items,
+  // and the mock-test path replaces the array wholesale.
+  const requestedTimes = (orderInfo.items || []).reduce((acc, item) => {
+    if (item.availableHours && Array.isArray(item.availableHours)) {
+      // new Date() exactly as convertToSimpleTimeFormat() does before the lesson
+      // is POSTed, so the instant counted here is the instant the dashboard will
+      // be asked to store.
+      return acc.concat(item.availableHours.map((time) => new Date(time)));
+    }
+    return acc;
+  }, []);
+
+  if (requestedTimes.length === 0) {
+    // Test-booking-only orders and the like schedule nothing.
+    return { allowed: true };
+  }
+
+  const byWeek = new Map();
+  for (const startTime of requestedTimes) {
+    const week = getIsoWeek(startTime);
+    const entry = byWeek.get(week.key) || { week, requestedLessons: 0 };
+    entry.requestedLessons += 1;
+    byWeek.set(week.key, entry);
+  }
+
+  const pupil = await findPupilForWeeklyLimit(studentInfo);
+
+  for (const { week, requestedLessons } of byWeek.values()) {
+    // A pupil the dashboard has never seen holds nothing, but the order's own
+    // slots still have to fit inside the weekly allowance on their own.
+    const existingLessons = pupil
+      ? await countPupilLessonsInWeek(pupil._id, week)
+      : 0;
+
+    if (existingLessons + requestedLessons >= WEEKLY_LESSON_LIMIT) {
+      return {
+        allowed: false,
+        week,
+        existingLessons,
+        requestedLessons,
+        resultingTotal: existingLessons + requestedLessons,
+        limit: WEEKLY_LESSON_LIMIT,
+        allowedPerWeek: WEEKLY_LESSON_LIMIT - 1,
+        remainingThisWeek: Math.max(
+          0,
+          WEEKLY_LESSON_LIMIT - 1 - existingLessons
+        ),
+      };
+    }
+  }
+
+  return { allowed: true };
 }
 
 async function sendNotifications(data, orderId) {
