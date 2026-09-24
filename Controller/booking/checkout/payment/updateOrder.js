@@ -30,7 +30,8 @@ exports.updateOrderStatus = async (req, res) => {
 
         // Update status
         var updateResult = await updateStatusById(id, status);
-        const packageId = updateResult.checkoutInfo.orderInfo.items[0].packageId;
+        const orderItem = updateResult.checkoutInfo.orderInfo.items[0];
+        const packageId = orderItem.packageId;
 
         if (updateResult.alreadyUpdated) {
             // If the order was already updated to "success", return a message indicating so
@@ -46,7 +47,19 @@ exports.updateOrderStatus = async (req, res) => {
         const pupilId = apiResponse.pupil._id;
 
         // Add updatePupilIdById here
-        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId);
+        await addCreditToPupilAccount(pupilId, token, packageId, updateResult.checkoutInfo.orderInfo.instructorsId, orderItem, updateResult.checkoutInfo._id);
+        // ORDER MATTERS: updatePupilIdById must stay ABOVE processAvailableHours.
+        //
+        // Each lesson carries this order's checkoutInfoId, and the dashboard refuses to
+        // tag a lesson from a checkout that has no studentInfo.pupilId on it, or whose
+        // pupil differs from the one being booked
+        // (services/PackageSourceService.js in alps-driving-server). That pupilId is
+        // written by the line below, so it has to be on the document before the first
+        // lesson is posted.
+        //
+        // Swap these two lines and every lesson is still booked and every response
+        // still looks correct - the lessons simply arrive with no package attached, and
+        // nothing raises, logs or fails on this side.
         const updatedCheckoutInfo = await updatePupilIdById(id, pupilId); // Assuming id is the same as CheckoutInfo id
         const addLessonEvent1 = await processAvailableHours(updatedCheckoutInfo, pupilId, token);
 
@@ -111,9 +124,9 @@ async function processAvailableHours(updatedCheckoutInfo, pupilId,token) {
     return results; // Return the array of results
 }
 
-async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) {
+async function addCreditToPupilAccount(pupilId, token, packageId, instructorId, orderItem, checkoutInfoId) {
     console.log('Starting addCreditToPupilAccount...');
-    console.log('Inputs:', { pupilId, packageId, instructorId });
+    console.log('Inputs:', { pupilId, packageId, instructorId, checkoutInfoId });
     
     try {
         const apiUrl = `${process.env.DASHBOARD_URL}/api/lesson-payment/create`;
@@ -137,6 +150,13 @@ async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) 
             privateNotes: "This payment has been credited to the pupil's account following a successful checkout on the website.",
             status: "Income",
             durationMinutes: package.numberHour * 60,
+            // Name of the package as it stood at payment time, so later renames of the
+            // package don't rewrite history on the payment record.
+            packageNameSnapshot: orderItem?.packageName || orderItem?.name || package.title,
+            // Links the payment back to what was bought and to the order it came from;
+            // the payments report joins on packageId to resolve the current package name.
+            packageId: packageId,
+            checkoutInfoId: checkoutInfoId ? checkoutInfoId.toString() : undefined,
         };
         console.log('Preparing payload:', payload);
 
@@ -147,11 +167,34 @@ async function addCreditToPupilAccount(pupilId, token, packageId, instructorId) 
             throw new Error(`API responded with status code ${response.status}`);
         }
 
+        // The dashboard strips unknown fields silently and still answers 2xx, so confirm the
+        // snapshot actually landed on the stored document instead of assuming it did.
+        warnIfSnapshotMissing(response.data, payload.packageNameSnapshot);
+
         return response.data;
 
     } catch (error) {
         console.error('Error in addCreditToPupilAccount:', error);
         handleApiError(error);
+    }
+}
+
+function warnIfSnapshotMissing(responseData, sentSnapshot) {
+    if (!sentSnapshot) {
+        console.warn('packageNameSnapshot: nothing to send - order item had no packageName/name and the package had no title.');
+        return;
+    }
+
+    // POST /api/lesson-payment/create answers with { data: savedLessonPayment }.
+    const saved = responseData?.data;
+
+    if (!saved || saved.packageNameSnapshot === undefined) {
+        console.warn(
+            `packageNameSnapshot: sent "${sentSnapshot}" but it is absent from the created document. ` +
+            'Check that the field exists on the LessonPayment schema in alps-driving-server and is spelled identically.'
+        );
+    } else if (saved.packageNameSnapshot !== sentSnapshot) {
+        console.warn(`packageNameSnapshot: sent "${sentSnapshot}" but stored "${saved.packageNameSnapshot}".`);
     }
 }
 
@@ -196,7 +239,18 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
             "dropOffLocation": "home", // Drop-off location
             "date": time, // Date and time of the lesson,
             "endTime": formattedEndTime,
-            "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? `Mock Test/${process.env.MOCK_TEST_LESSONTYPEID}` : "Web site lessons/661f96868ef5f48b31d1a241"
+            "lessonType": updatedCheckoutInfo.orderInfo.typeOfLesson === "mock_test" ? `Mock Test/${process.env.MOCK_TEST_LESSONTYPEID}` : "Web site lessons/661f96868ef5f48b31d1a241",
+            // The order this lesson was bought under. The dashboard resolves the
+            // package and its type from it and stores them on the lesson as
+            // packageSource (services/PackageSourceService.js in alps-driving-server),
+            // so nothing here has to name the package.
+            //
+            // Sent as an explicit string rather than relying on ObjectId serialising
+            // itself, matching how addCreditToPupilAccount passes the same id.
+            //
+            // A failure to resolve it is swallowed on their side: the lesson is still
+            // booked, just untagged. So this field can never cost us a booking.
+            "checkoutInfoId": String(updatedCheckoutInfo._id)
 
         };
 
@@ -249,9 +303,25 @@ async function addLessonEvent(updatedCheckoutInfo, pupilId, time, startTime,form
 
         return response.data;
     } catch (error) {
-        const errMsg = error.message;
-        console.log(`error ${error}`);
-        throw new Error(`Add Lesson API Error: ${errMsg}`);
+        // axios's message is only the status line; which rule refused the lesson
+        // (INTENSIVE_PACKAGE_REQUIRED vs SLOT_NO_LONGER_AVAILABLE) is in response.data.
+        const body = error.response && error.response.data;
+        const code = (body && (body.code || (body.error && body.error.code))) || null;
+        const reason = (body && body.message) || code || error.message;
+
+        console.error("Add Lesson API failed:", JSON.stringify({
+            status: error.response && error.response.status,
+            code,
+            startTime,
+            response: body,
+        }));
+
+        const wrapped = new Error(`Add Lesson API Error: ${reason}`);
+        wrapped.status = (error.response && error.response.status) || null;
+        wrapped.code = code;
+        wrapped.details = body || null;
+        wrapped.slotStartTime = startTime;
+        throw wrapped;
     }
 }
 
@@ -260,6 +330,7 @@ async function addPupilfireExternalAPI(updatedCheckoutInfo, token) {
     try {
         // Check if the pupil exists by email or phone number
         const existingPupil = await PupilUserSchema.findOne({
+            status: "active",
             $or: [
                 { email: { $ne: "", $eq: updatedCheckoutInfo.studentInfo.email } },
                 { phoneNumber: updatedCheckoutInfo.studentInfo.phoneNumber }
